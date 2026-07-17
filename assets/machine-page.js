@@ -79,7 +79,7 @@ function fmtClock(iso) {
 // extraFields: kolom tambahan generik (mis. Blanking: top_coil, berat_coil)
 // routingMax: 0 = tidak ada fitur routing; 8 = Tandem; 2 = PC200t
 // =========================================================
-function machinePage(machineKey, machineLabel, extraFields, routingMax) {
+function machinePage(machineKey, machineLabel, extraFields, routingMax, kategoriOptions) {
   return {
     // ---- state umum ----
     session: null,
@@ -90,15 +90,18 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax) {
     successMsg: "",
     extraFields,
     routingMax: routingMax || 0,
+    kategoriOptions: kategoriOptions || ["MESIN", "DIES", "OTHER"],
     mobileNavOpen: false,
 
     // ---- data tabel ----
     productionRows: [],
     downtimeRows: [],
 
-    // ---- dropdown master data ----
-    partNumberOptions: [],
-    problemOptions: [],
+    // ---- master data (Part Number & Problem) — {id, value}[] ----
+    partNumberList: [],
+    problemList: [],
+    newPartNumberValue: "",
+    newProblemValue: "",
 
     // ---- offline ----
     isOnline: navigator.onLine,
@@ -179,41 +182,92 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax) {
       }
     },
 
-    // ================= MASTER DATA (dropdown) =================
+    // ================= MASTER DATA (Part Number & Problem) =================
     async fetchPartNumbers() {
       const { data, error } = await supabaseClient
         .from("part_numbers")
-        .select("value")
+        .select("id, value")
         .eq("mesin", machineKey)
         .order("value");
-      if (!error && data) this.partNumberOptions = data.map((r) => r.value);
+      if (!error && data) this.partNumberList = data;
     },
 
     async fetchProblems() {
       const { data, error } = await supabaseClient
         .from("downtime_problems")
-        .select("value")
+        .select("id, value")
         .eq("mesin", machineKey)
         .order("value");
-      if (!error && data) this.problemOptions = data.map((r) => r.value);
+      if (!error && data) this.problemList = data;
     },
 
+    // dipanggil otomatis saat operator ketik nilai baru di form Produksi/Downtime
     async learnPartNumber(value) {
       if (!value) return;
-      if (this.partNumberOptions.some((v) => v.toLowerCase() === value.toLowerCase())) return;
-      const { error } = await supabaseClient
-        .from("part_numbers")
-        .insert({ mesin: machineKey, value });
-      if (!error) this.partNumberOptions.push(value);
+      if (this.partNumberList.some((r) => r.value.toLowerCase() === value.toLowerCase())) return;
+      const { data, error } = await supabaseClient
+        .from("part_numbers").insert({ mesin: machineKey, value }).select().single();
+      if (!error && data) this.partNumberList.push(data);
     },
-
     async learnProblem(value) {
       if (!value) return;
-      if (this.problemOptions.some((v) => v.toLowerCase() === value.toLowerCase())) return;
-      const { error } = await supabaseClient
-        .from("downtime_problems")
-        .insert({ mesin: machineKey, value });
-      if (!error) this.problemOptions.push(value);
+      if (this.problemList.some((r) => r.value.toLowerCase() === value.toLowerCase())) return;
+      const { data, error } = await supabaseClient
+        .from("downtime_problems").insert({ mesin: machineKey, value }).select().single();
+      if (!error && data) this.problemList.push(data);
+    },
+
+    // dipanggil dari tab "Master Data" — tambah manual
+    async addMasterPartNumber() {
+      const v = (this.newPartNumberValue || "").trim();
+      if (!v) return;
+      const { data, error } = await supabaseClient
+        .from("part_numbers").insert({ mesin: machineKey, value: v }).select().single();
+      if (error) { this.flash("Gagal tambah (mungkin sudah ada): " + error.message, true); return; }
+      this.partNumberList.push(data);
+      this.partNumberList.sort((a, b) => a.value.localeCompare(b.value));
+      this.newPartNumberValue = "";
+      this.flash("Part number ditambahkan.");
+    },
+    async updateMasterPartNumber(item) {
+      const v = (item.value || "").trim();
+      if (!v) { this.flash("Part number tidak boleh kosong.", true); await this.fetchPartNumbers(); return; }
+      const { error } = await supabaseClient.from("part_numbers").update({ value: v }).eq("id", item.id);
+      if (error) { this.flash("Gagal simpan (mungkin sudah ada yang sama): " + error.message, true); await this.fetchPartNumbers(); return; }
+      this.flash("Part number diperbarui.");
+    },
+    async deleteMasterPartNumber(id) {
+      if (!confirm("Hapus part number ini dari daftar pilihan?")) return;
+      const { error } = await supabaseClient.from("part_numbers").delete().eq("id", id);
+      if (error) { this.flash("Gagal hapus: " + error.message, true); return; }
+      this.partNumberList = this.partNumberList.filter((r) => r.id !== id);
+      this.flash("Part number dihapus dari daftar.");
+    },
+
+    async addMasterProblem() {
+      const v = (this.newProblemValue || "").trim();
+      if (!v) return;
+      const { data, error } = await supabaseClient
+        .from("downtime_problems").insert({ mesin: machineKey, value: v }).select().single();
+      if (error) { this.flash("Gagal tambah (mungkin sudah ada): " + error.message, true); return; }
+      this.problemList.push(data);
+      this.problemList.sort((a, b) => a.value.localeCompare(b.value));
+      this.newProblemValue = "";
+      this.flash("Problem ditambahkan.");
+    },
+    async updateMasterProblem(item) {
+      const v = (item.value || "").trim();
+      if (!v) { this.flash("Problem tidak boleh kosong.", true); await this.fetchProblems(); return; }
+      const { error } = await supabaseClient.from("downtime_problems").update({ value: v }).eq("id", item.id);
+      if (error) { this.flash("Gagal simpan (mungkin sudah ada yang sama): " + error.message, true); await this.fetchProblems(); return; }
+      this.flash("Problem diperbarui.");
+    },
+    async deleteMasterProblem(id) {
+      if (!confirm("Hapus problem ini dari daftar pilihan?")) return;
+      const { error } = await supabaseClient.from("downtime_problems").delete().eq("id", id);
+      if (error) { this.flash("Gagal hapus: " + error.message, true); return; }
+      this.problemList = this.problemList.filter((r) => r.id !== id);
+      this.flash("Problem dihapus dari daftar.");
     },
 
     // ================= ROUTING (Tandem & PC200t) =================

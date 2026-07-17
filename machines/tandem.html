@@ -18,7 +18,7 @@
 <body>
 
 <div class="app-shell"
-     x-data='machinePage("tandem", "Tandem", [], 8, ["MESIN", "DIES", "OTHER"])'
+     x-data='machinePage("tandem", "Tandem", [], 8, ["MESIN", "DIES", "OTHER"], {"mode": "variant", "variants": {"lama": ["PA-1", "PA-2", "PA-3", "PA-4", "PA-5"], "baru": ["PA-6", "PA-7", "PA-8", "PA-9", "PA-10"]}})'
      x-init="init()">
   <div class="mobile-topbar">
     <button class="hamburger" @click="mobileNavOpen = true">☰</button>
@@ -55,6 +55,7 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn-secondary btn-sm" :class="tab==='produksi' ? 'btn-primary' : ''" @click="tab='produksi'">Produksi</button>
         <button class="btn-secondary btn-sm" :class="tab==='downtime' ? 'btn-primary' : ''" @click="tab='downtime'">Downtime</button>
+        <button class="btn-secondary btn-sm" :class="tab==='nonproduksi' ? 'btn-primary' : ''" @click="tab='nonproduksi'">Non-Produksi</button>
         <button class="btn-secondary btn-sm" :class="tab==='master' ? 'btn-primary' : ''" @click="tab='master'">Master Data</button>
       </div>
     </div>
@@ -73,80 +74,119 @@
       <div>
         <!-- ===================== TAB PRODUKSI ===================== -->
         <div x-show="tab === 'produksi'">
-          <div class="panel">
-            <p class="panel-title" x-text="editingProductionId ? 'Edit Data Produksi' : 'Catat Produksi'"></p>
 
-            <div class="timer-row" x-show="!editingProductionId">
-              <template x-if="prodState === 'idle'">
-                <button type="button" class="btn-primary" @click="startProduction()">▶ Mulai Produksi</button>
-              </template>
-              <template x-if="prodState !== 'idle'">
-                <div class="timer-badge">
-                  <span class="timer-dot" :class="prodState==='running' ? 'timer-dot-live' : ''"></span>
-                  <span>Mulai <b x-text="fmtClock(prodStart)"></b></span>
-                  <template x-if="prodState === 'running'">
-                    <button type="button" class="btn-secondary btn-sm" @click="stopProduction()">⏹ Selesai</button>
-                  </template>
-                  <template x-if="prodState === 'stopped'">
-                    <span>· Selesai <b x-text="fmtClock(prodEnd)"></b></span>
-                  </template>
-                  <button type="button" class="btn-ghost btn-sm" @click="cancelProductionTimer()">Batal</button>
-                </div>
-              </template>
+          <!-- Pilih line Tandem dulu (Lama/Baru) -->
+          <div class="panel" x-show="stationConfig.mode === 'variant' && !tandemVariant">
+            <p class="panel-title">Pilih Line Tandem</p>
+            <div class="chip-row">
+              <button type="button" class="btn-primary" @click="setTandemVariant('lama')">TDM Lama (PA-1 s/d PA-5)</button>
+              <button type="button" class="btn-primary" @click="setTandemVariant('baru')">TDM Baru (PA-6 s/d PA-10)</button>
             </div>
-            <p class="hint" x-show="editingProductionId">Mode edit — waktu diambil dari data yang sudah ada, tidak pakai timer.</p>
-
-            <form @submit.prevent="submitProduction" x-show="editingProductionId || prodState !== 'idle'" x-cloak>
-              <div class="form-grid">
-                <div class="field">
-                  <label>Part Number</label>
-                  <input type="text" list="partNumberList-tandem" x-model="productionForm.part_number" placeholder="Ketik atau pilih...">
-                  <datalist id="partNumberList-tandem">
-                    <template x-for="opt in partNumberList" :key="opt.id">
-                      <option :value="opt.value"></option>
-                    </template>
-                  </datalist>
-                </div>
-                <div class="field">
-                  <label>Qty</label>
-                  <input type="number" x-model="productionForm.qty">
-                </div>
-                <div class="field">
-                  <label>NG</label>
-                  <input type="number" x-model="productionForm.ng">
-                </div>
-                <div class="field">
-                  <label>Kategori NG</label>
-                  <input type="text" x-model="productionForm.kategori_ng">
-                </div>
-                <div class="field">
-                  <label>Break (menit)</label>
-                  <input type="number" x-model="productionForm.break_menit">
-                </div>
-
-              </div>
-
-              <div class="field" x-show="routingMax > 0" style="margin-bottom:16px;">
-                <label>Routing</label>
-                <div class="chip-row">
-                  <button type="button" class="chip" :class="routingType==='WIP' ? 'chip-active' : ''" @click="setRoutingType('WIP')">WIP</button>
-                  <button type="button" class="chip" :class="routingType==='FG' ? 'chip-active' : ''" @click="setRoutingType('FG')">FG</button>
-                </div>
-                <div class="chip-row" x-show="routingType" style="margin-top:8px;">
-                  <template x-for="n in routingRange()" :key="n">
-                    <button type="button" class="chip chip-num" :class="routingNumbers.includes(n) ? 'chip-active' : ''" @click="toggleRoutingNumber(n)" x-text="n"></button>
-                  </template>
-                </div>
-              </div>
-
-              <div class="form-actions">
-                <button type="button" class="btn-ghost" x-show="editingProductionId" @click="resetProductionForm()">Batal Edit</button>
-                <button type="submit" class="btn-primary"
-                        :disabled="!editingProductionId && prodState !== 'stopped'"
-                        x-text="editingProductionId ? 'Simpan Perubahan' : 'Simpan Data'"></button>
-              </div>
-            </form>
           </div>
+          <p class="hint" style="margin-bottom:16px;" x-show="stationConfig.mode === 'variant' && tandemVariant">
+            Line aktif: <b x-text="tandemVariant === 'lama' ? 'TDM Lama (PA-1 s/d PA-5)' : 'TDM Baru (PA-6 s/d PA-10)'"></b>
+            — <a href="#" @click.prevent="tandemVariant = null">ganti line</a>
+          </p>
+
+          <datalist id="partNumberList-tandem">
+            <template x-for="opt in partNumberList" :key="opt.id">
+              <option :value="opt.value"></option>
+            </template>
+          </datalist>
+
+          <template x-for="st in stationList()" :key="st.id">
+            <div class="panel station-card">
+              <p class="panel-title" x-show="st.label"><span x-text="st.label"></span></p>
+
+              <!-- Wajib diisi dulu kalau ada jeda dari produksi terakhir -->
+              <div class="classification-box" x-show="lines[st.id].pendingClassification" x-cloak>
+                <p class="classification-title">⏱ Ada jeda dari produksi terakhir — isi dulu sebelum mulai lagi</p>
+                <p class="hint" x-text="'Jeda: ' + fmtClock(lines[st.id].classification.gapStart) + ' → ' + fmtClock(lines[st.id].classification.gapEnd) + ' (' + durasiMenit(lines[st.id].classification.gapStart, lines[st.id].classification.gapEnd) + ')'"></p>
+                <div class="form-grid">
+                  <div class="field">
+                    <label>Kategori</label>
+                    <select x-model="lines[st.id].classification.kategori">
+                      <option value="DANDORI">Dandori</option>
+                      <option value="WATARI">Watari</option>
+                      <option value="STOP_LINE">Stop Line Terencana</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Part Dari</label>
+                    <input type="text" list="partNumberList-tandem" x-model="lines[st.id].classification.part_dari">
+                  </div>
+                  <div class="field">
+                    <label>Part Ke</label>
+                    <input type="text" list="partNumberList-tandem" x-model="lines[st.id].classification.part_ke">
+                  </div>
+                  <div class="field" style="grid-column: 1 / -1;">
+                    <label>Keterangan (opsional)</label>
+                    <input type="text" x-model="lines[st.id].classification.keterangan" placeholder="mis. watari ke line lain, dll">
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="button" class="btn-ghost" @click="cancelClassification(st.id)">Batal</button>
+                  <button type="button" class="btn-primary" @click="confirmClassificationAndStart(st.id)">Simpan &amp; Mulai Produksi</button>
+                </div>
+              </div>
+
+              <div class="timer-row" x-show="!lines[st.id].editingId && !lines[st.id].pendingClassification">
+                <template x-if="lines[st.id].state === 'idle'">
+                  <button type="button" class="btn-primary" @click="clickMulaiProduksi(st.id)">▶ Mulai Produksi</button>
+                </template>
+                <template x-if="lines[st.id].state !== 'idle'">
+                  <div class="timer-badge">
+                    <span class="timer-dot" :class="lines[st.id].state==='running' ? 'timer-dot-live' : ''"></span>
+                    <span>Mulai <b x-text="fmtClock(lines[st.id].start)"></b></span>
+                    <template x-if="lines[st.id].state === 'running'">
+                      <button type="button" class="btn-secondary btn-sm" @click="stopProduction(st.id)">⏹ Selesai</button>
+                    </template>
+                    <template x-if="lines[st.id].state === 'stopped'">
+                      <span>· Selesai <b x-text="fmtClock(lines[st.id].end)"></b></span>
+                    </template>
+                    <button type="button" class="btn-ghost btn-sm" @click="cancelProductionTimer(st.id)">Batal</button>
+                  </div>
+                </template>
+              </div>
+              <p class="hint" x-show="lines[st.id].editingId">Mode edit — waktu diambil dari data yang sudah ada, tidak pakai timer.</p>
+
+              <form @submit.prevent="submitProduction(st.id)"
+                    x-show="(lines[st.id].editingId || lines[st.id].state !== 'idle') && !lines[st.id].pendingClassification" x-cloak>
+                <div class="form-grid">
+                  <div class="field">
+                    <label>Part Number</label>
+                    <input type="text" list="partNumberList-tandem" x-model="lines[st.id].form.part_number" placeholder="Ketik atau pilih...">
+                  </div>
+                  <div class="field"><label>Qty</label><input type="number" x-model="lines[st.id].form.qty"></div>
+                  <div class="field"><label>NG</label><input type="number" x-model="lines[st.id].form.ng"></div>
+                  <div class="field"><label>Kategori NG</label><input type="text" x-model="lines[st.id].form.kategori_ng"></div>
+                  <div class="field"><label>Break (menit)</label><input type="number" x-model="lines[st.id].form.break_menit"></div>
+
+                </div>
+
+                <div class="field" x-show="routingMax > 0" style="margin-bottom:16px;">
+                  <label>Routing</label>
+                  <div class="chip-row">
+                    <button type="button" class="chip" :class="lines[st.id].routingType==='WIP' ? 'chip-active' : ''" @click="setRoutingType(st.id, 'WIP')">WIP</button>
+                    <button type="button" class="chip" :class="lines[st.id].routingType==='FG' ? 'chip-active' : ''" @click="setRoutingType(st.id, 'FG')">FG</button>
+                  </div>
+                  <div class="chip-row" x-show="lines[st.id].routingType" style="margin-top:8px;">
+                    <template x-for="n in routingRange()" :key="n">
+                      <button type="button" class="chip chip-num" :class="lines[st.id].routingNumbers.includes(n) ? 'chip-active' : ''" @click="toggleRoutingNumber(st.id, n)" x-text="n"></button>
+                    </template>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="button" class="btn-ghost" x-show="lines[st.id].editingId" @click="cancelProductionTimer(st.id)">Batal Edit</button>
+                  <button type="submit" class="btn-primary"
+                          :disabled="!lines[st.id].editingId && lines[st.id].state !== 'stopped'"
+                          x-text="lines[st.id].editingId ? 'Simpan Perubahan' : 'Simpan Data'"></button>
+                </div>
+              </form>
+            </div>
+          </template>
 
           <div class="panel">
             <p class="panel-title">Riwayat Produksi <span class="count" x-text="productionRows.length + ' baris'"></span></p>
@@ -154,16 +194,21 @@
               <table>
                 <thead>
                   <tr>
+                    <th>Kode</th>
+                    <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
                     <th>Waktu Awal</th><th>Waktu Akhir</th><th>Durasi</th>
                     <th>Part Number</th><th>Qty</th><th>NG</th><th>Kategori NG</th><th>Break</th>
 
                     <th x-show="routingMax > 0">Routing</th>
+                    <th>Jeda dari part sebelumnya</th>
                     <th>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   <template x-for="row in productionRows" :key="row.id">
                     <tr :class="row._pending ? 'row-pending' : ''">
+                      <td class="mono" x-text="row.kode || (row._pending ? '⏳' : '-')"></td>
+                      <td class="mono" x-show="stationConfig.mode !== 'none'" x-text="row.stasiun || '-'"></td>
                       <td class="mono" x-text="fmt(row.waktu_awal)"></td>
                       <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
                       <td class="mono" x-text="durasiMenit(row.waktu_awal, row.waktu_akhir)"></td>
@@ -174,6 +219,10 @@
                       <td x-text="row.break_menit ?? '-'"></td>
 
                       <td x-show="routingMax > 0" x-text="routingLabel(row)"></td>
+                      <td class="mono">
+                        <span x-show="gapDariSebelumnya(row) !== null" x-text="gapDariSebelumnya(row) + ' mnt'"></span>
+                        <span x-show="gapDariSebelumnya(row) === null">-</span>
+                      </td>
                       <td>
                         <span class="badge" x-show="row._pending">⏳ Belum sinkron</span>
                         <div class="row-actions" x-show="!row._pending">
@@ -294,11 +343,77 @@
           </div>
         </div>
 
+        <!-- ===================== TAB NON-PRODUKSI ===================== -->
+        <div x-show="tab === 'nonproduksi'">
+          <div class="panel" x-show="editingNonProduksiId" x-cloak>
+            <p class="panel-title">Edit Data Non-Produksi</p>
+            <div class="form-grid">
+              <div class="field"><label>Waktu Awal</label><input type="datetime-local" x-model="nonProduksiEditForm.waktu_awal"></div>
+              <div class="field"><label>Waktu Akhir</label><input type="datetime-local" x-model="nonProduksiEditForm.waktu_akhir"></div>
+              <div class="field">
+                <label>Kategori</label>
+                <select x-model="nonProduksiEditForm.kategori">
+                  <option value="DANDORI">Dandori</option>
+                  <option value="WATARI">Watari</option>
+                  <option value="STOP_LINE">Stop Line Terencana</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div class="field"><label>Part Dari</label><input type="text" x-model="nonProduksiEditForm.part_dari"></div>
+              <div class="field"><label>Part Ke</label><input type="text" x-model="nonProduksiEditForm.part_ke"></div>
+              <div class="field" style="grid-column: 1 / -1;"><label>Keterangan</label><input type="text" x-model="nonProduksiEditForm.keterangan"></div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-ghost" @click="cancelEditNonProduksi()">Batal</button>
+              <button type="button" class="btn-primary" @click="saveNonProduksiEdit()">Simpan</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <p class="panel-title">Riwayat Non-Produksi <span class="count" x-text="nonProduksiRows.length + ' baris'"></span></p>
+            <p class="hint" style="margin-bottom:12px;">Catatan ini dibuat otomatis tiap operator mulai produksi lagi setelah ada jeda. Edit di sini kalau kategorinya perlu dikoreksi.</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Waktu Awal</th><th>Waktu Akhir</th><th>Durasi</th><th>Kategori</th>
+                    <th>Stasiun</th><th>Part Dari</th><th>Part Ke</th><th>Keterangan</th><th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in nonProduksiRows" :key="row.id">
+                    <tr :class="row._pending ? 'row-pending' : ''">
+                      <td class="mono" x-text="fmt(row.waktu_awal)"></td>
+                      <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
+                      <td class="mono" x-text="durasiMenit(row.waktu_awal, row.waktu_akhir)"></td>
+                      <td><span class="badge" x-text="kategoriNonProduksiLabel(row.kategori)"></span></td>
+                      <td x-text="row.stasiun || '-'"></td>
+                      <td x-text="row.part_dari || '-'"></td>
+                      <td x-text="row.part_ke || '-'"></td>
+                      <td x-text="row.keterangan || '-'"></td>
+                      <td>
+                        <span class="badge" x-show="row._pending">⏳ Belum sinkron</span>
+                        <div class="row-actions" x-show="!row._pending">
+                          <button class="btn-secondary btn-sm" @click="editNonProduksi(row)">Edit</button>
+                          <button class="btn-danger btn-sm" @click="deleteNonProduksi(row.id)">Hapus</button>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                  <tr x-show="nonProduksiRows.length === 0">
+                    <td colspan="9" class="empty-state">Belum ada data non-produksi untuk mesin ini.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- ===================== TAB MASTER DATA ===================== -->
         <div x-show="tab === 'master'">
           <div class="panel">
             <p class="panel-title">Daftar Part Number <span class="count" x-text="partNumberList.length + ' item'"></span></p>
-            <p class="hint" style="margin-bottom:12px;">Dropdown Part Number di form Produksi ambil dari daftar ini. Klik teksnya untuk edit, klik di luar untuk simpan.</p>
+            <p class="hint" style="margin-bottom:12px;">Dropdown Part Number di form Produksi ambil dari daftar ini. Klik Edit untuk ubah teksnya, lalu Simpan.</p>
             <div class="master-add-row">
               <input type="text" x-model="newPartNumberValue" @keyup.enter="addMasterPartNumber()" placeholder="Tambah part number baru...">
               <button type="button" class="btn-primary btn-sm" @click="addMasterPartNumber()">+ Tambah</button>

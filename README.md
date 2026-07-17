@@ -71,7 +71,39 @@ lalu buka `http://localhost:8000/login.html`.
     └── machine-page.js         # Logika CRUD (dipakai semua halaman mesin)
 ```
 
-## 6. Import data lama dari Excel (opsional)
+## 7. Install sebagai app di HP (PWA)
+
+App ini sudah disiapkan sebagai **PWA (Progressive Web App)** — bisa
+di-"install" dari browser HP dan buka seperti app biasa (ada ikon di
+homescreen, layar penuh tanpa address bar), **tanpa lewat Play Store /
+App Store, dan tanpa develop app native**.
+
+Syaratnya cuma satu: app harus sudah **online lewat HTTPS** (bukan `file://`
+atau localhost) — jadi ini baru bisa dicoba **setelah deploy ke Vercel**.
+
+**Android (Chrome):**
+1. Buka URL Vercel Anda (mis. `https://nama-project.vercel.app/login.html`)
+2. Login seperti biasa
+3. Chrome otomatis menampilkan banner **"Add to Home screen"** / **"Install
+   app"** di bagian bawah — atau buka menu titik tiga (⋮) → **Install app**
+4. Ikon app akan muncul di homescreen, buka seperti app lain
+
+**iPhone (Safari):**
+1. Buka URL Vercel Anda di Safari (harus Safari, browser lain di iOS tidak
+   bisa install PWA)
+2. Tap ikon **Share** (kotak dengan panah ke atas) di bawah
+3. Pilih **"Add to Home Screen"**
+4. Ikon app muncul di homescreen
+
+Setelah ter-install: tampilan otomatis full-screen, ada menu hamburger (☰)
+untuk pilih mesin (menggantikan sidebar di versi desktop), dan target
+tombol/input sudah diperbesar supaya gampang dipakai satu tangan di
+lapangan. Tampilan shell (HTML/CSS/JS) juga di-cache supaya app tetap cepat
+dibuka walau sinyal pas-pasan — catatan: ini hanya cache tampilan, bukan
+data. Menyimpan data produksi/downtime tetap butuh koneksi internet aktif
+ke Supabase.
+
+## 8. Import data lama dari Excel (opsional)
 
 Data lama di `Data_Downtime.xlsx` dan `Data_Laporan_Produksi.xlsx` bisa
 dimasukkan ke Supabase dengan:
@@ -85,7 +117,7 @@ dimasukkan ke Supabase dengan:
 Kalau datanya banyak dan formatnya rumit, lebih gampang minta bantuan lagi
 untuk membuatkan script import otomatis dari file Excel langsung ke Supabase.
 
-## 7. Kenapa arsitektur ini dipilih
+## 9. Kenapa arsitektur ini dipilih
 
 - **Supabase** = database Postgres asli (bukan spreadsheet), jadi cepat
   walau data ribuan baris, plus REST API otomatis & sistem login bawaan.

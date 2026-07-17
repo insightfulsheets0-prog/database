@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Transfer 2000t — Sistem Produksi &amp; Downtime</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a1e24">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
@@ -15,11 +18,16 @@
 <body>
 
 <div class="app-shell"
-     x-data="machinePage('transfer_2000t', 'Transfer 2000t', [])"
+     x-data='machinePage("transfer_2000t", "Transfer 2000t", [])'
      x-init="init()">
-  <aside class="sidebar">
+  <div class="mobile-topbar">
+    <button class="hamburger" @click="mobileNavOpen = true">☰</button>
+    <span class="mobile-title">Transfer 2000t</span>
+  </div>
+  <div class="sidebar-overlay" x-show="mobileNavOpen" @click="mobileNavOpen = false" x-cloak></div>
+  <aside class="sidebar" :class="mobileNavOpen ? 'sidebar-open' : ''">
     <div class="sidebar-brand">PRODUKSI<span>&amp;</span>DOWNTIME</div>
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" @click="mobileNavOpen = false">
       <a href="../index.html" class="sidebar-link">🏠 Dashboard</a>
       <a href="tandem.html" class="sidebar-link">⚙️ Tandem</a>
       <a href="blanking.html" class="sidebar-link">⚙️ Blanking</a>

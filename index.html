@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard — Sistem Produksi & Downtime</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a1e24">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
@@ -14,9 +17,14 @@
 <body>
 
 <div class="app-shell" x-data="dashboard()" x-init="init()">
-  <aside class="sidebar">
+  <div class="mobile-topbar">
+    <button class="hamburger" @click="mobileNavOpen = true">☰</button>
+    <span class="mobile-title">Dashboard</span>
+  </div>
+  <div class="sidebar-overlay" x-show="mobileNavOpen" @click="mobileNavOpen = false" x-cloak></div>
+  <aside class="sidebar" :class="mobileNavOpen ? 'sidebar-open' : ''">
     <div class="sidebar-brand">PRODUKSI<span>&amp;</span>DOWNTIME</div>
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" @click="mobileNavOpen = false">
       <a href="index.html" class="sidebar-link active">🏠 Dashboard</a>
       <a href="machines/tandem.html" class="sidebar-link">⚙️ Tandem</a>
       <a href="machines/blanking.html" class="sidebar-link">⚙️ Blanking</a>
@@ -80,6 +88,7 @@ function dashboard() {
   return {
     session: null,
     profile: null,
+    mobileNavOpen: false,
     async init() {
       this.session = await requireAuth();
       if (!this.session) return;

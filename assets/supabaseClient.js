@@ -2,8 +2,8 @@
 // KONFIGURASI SUPABASE
 // Ambil dari: Supabase Dashboard > Project Settings > API
 // =========================================================
-const SUPABASE_URL = "https://yjeyijphsghrfssxefqf.supabase.co"; // contoh: https://xxxxx.supabase.co
-const SUPABASE_ANON_KEY = "sb_publishable_InkKOMwPNGrcL2KHhMIeag_BnZShjBN";
+const SUPABASE_URL = "GANTI_DENGAN_PROJECT_URL_ANDA"; // contoh: https://xxxxx.supabase.co
+const SUPABASE_ANON_KEY = "GANTI_DENGAN_ANON_KEY_ANDA";
 
 // Dipakai bersama di semua halaman (login.html, index.html, machines/*.html)
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -27,4 +27,15 @@ function getBasePath() {
 async function logout() {
   await supabaseClient.auth.signOut();
   window.location.href = getBasePath() + "login.html";
+}
+
+// Daftarkan service worker (biar bisa "Install App" / Add to Home Screen).
+// Dibungkus try/catch + cek protokol karena SW butuh https (atau localhost) —
+// aman diabaikan kalau lagi dites via file:// di komputer.
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {
+      // diam-diam gagal kalau tidak didukung, tidak mengganggu app utama
+    });
+  });
 }

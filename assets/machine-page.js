@@ -13,6 +13,7 @@ function machinePage(machineKey, machineLabel, extraFields) {
     errorMsg: "",
     successMsg: "",
     extraFields, // [{key,label,type}]
+    mobileNavOpen: false,
 
     // ---- data ----
     productionRows: [],

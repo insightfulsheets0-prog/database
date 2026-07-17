@@ -324,6 +324,59 @@ td.mono, .mono { font-family: var(--font-mono); }
 
 .row-pending { opacity: 0.65; }
 .row-pending td { font-style: italic; }
+
+/* ---------- Master Data (Part Number & Problem CRUD) ---------- */
+.master-add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.master-add-row input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 9px 10px;
+  font-size: 14px;
+}
+.master-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.master-list-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 4px 0;
+}
+.master-value {
+  flex: 1;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+.master-list-row input {
+  flex: 1;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.master-list-row input:focus {
+  outline: none;
+  border-color: var(--amber);
+  background: var(--bg);
+}
+.master-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
 .error-msg {
   background: rgba(229,87,92,0.12);
   border: 1px solid var(--red);

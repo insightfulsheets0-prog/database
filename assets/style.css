@@ -252,6 +252,78 @@ td.mono, .mono { font-family: var(--font-mono); }
 }
 
 .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* ---------- Timer Start/Stop ---------- */
+.timer-row { margin-bottom: 16px; }
+.timer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 8px 8px 16px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.timer-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+.timer-dot-live {
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(76,175,125,0.6);
+  animation: pulse-dot 1.6s infinite;
+}
+@keyframes pulse-dot {
+  0% { box-shadow: 0 0 0 0 rgba(76,175,125,0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(76,175,125,0); }
+  100% { box-shadow: 0 0 0 0 rgba(76,175,125,0); }
+}
+
+/* ---------- Routing chips (WIP/FG + nomor) ---------- */
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-mono);
+}
+.chip-num { min-width: 40px; text-align: center; padding: 8px 0; }
+.chip-active {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #1a1e24;
+}
+
+/* ---------- Online/offline status ---------- */
+.net-status {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  margin: 8px 0;
+  color: var(--muted);
+}
+.net-status.net-online { color: var(--green); }
+.net-status.net-offline { color: var(--red); }
+
+.offline-banner {
+  background: rgba(232,163,61,0.12);
+  border: 1px solid var(--amber);
+  color: var(--amber);
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.row-pending { opacity: 0.65; }
+.row-pending td { font-style: italic; }
 .error-msg {
   background: rgba(229,87,92,0.12);
   border: 1px solid var(--red);

@@ -306,8 +306,24 @@
             <div class="master-list">
               <template x-for="item in partNumberList" :key="item.id">
                 <div class="master-list-row">
-                  <input type="text" x-model="item.value" @blur="updateMasterPartNumber(item)" @keyup.enter="$event.target.blur()">
-                  <button type="button" class="btn-danger btn-sm" @click="deleteMasterPartNumber(item.id)">Hapus</button>
+                  <template x-if="!item.editing">
+                    <span class="master-value" x-text="item.value"></span>
+                  </template>
+                  <template x-if="item.editing">
+                    <input type="text" x-model="item.draft" @keyup.enter="saveMasterPartNumber(item)" @keyup.escape="cancelEditPartNumber(item)">
+                  </template>
+                  <div class="master-row-actions">
+                    <template x-if="!item.editing">
+                      <button type="button" class="btn-secondary btn-sm" @click="startEditPartNumber(item)">Edit</button>
+                    </template>
+                    <template x-if="item.editing">
+                      <button type="button" class="btn-primary btn-sm" @click="saveMasterPartNumber(item)">Simpan</button>
+                    </template>
+                    <template x-if="item.editing">
+                      <button type="button" class="btn-ghost btn-sm" @click="cancelEditPartNumber(item)">Batal</button>
+                    </template>
+                    <button type="button" class="btn-danger btn-sm" @click="deleteMasterPartNumber(item.id)">Hapus</button>
+                  </div>
                 </div>
               </template>
               <p class="empty-state" x-show="partNumberList.length === 0">Belum ada data. Tambah lewat kotak di atas.</p>
@@ -324,8 +340,24 @@
             <div class="master-list">
               <template x-for="item in problemList" :key="item.id">
                 <div class="master-list-row">
-                  <input type="text" x-model="item.value" @blur="updateMasterProblem(item)" @keyup.enter="$event.target.blur()">
-                  <button type="button" class="btn-danger btn-sm" @click="deleteMasterProblem(item.id)">Hapus</button>
+                  <template x-if="!item.editing">
+                    <span class="master-value" x-text="item.value"></span>
+                  </template>
+                  <template x-if="item.editing">
+                    <input type="text" x-model="item.draft" @keyup.enter="saveMasterProblem(item)" @keyup.escape="cancelEditProblem(item)">
+                  </template>
+                  <div class="master-row-actions">
+                    <template x-if="!item.editing">
+                      <button type="button" class="btn-secondary btn-sm" @click="startEditProblem(item)">Edit</button>
+                    </template>
+                    <template x-if="item.editing">
+                      <button type="button" class="btn-primary btn-sm" @click="saveMasterProblem(item)">Simpan</button>
+                    </template>
+                    <template x-if="item.editing">
+                      <button type="button" class="btn-ghost btn-sm" @click="cancelEditProblem(item)">Batal</button>
+                    </template>
+                    <button type="button" class="btn-danger btn-sm" @click="deleteMasterProblem(item.id)">Hapus</button>
+                  </div>
                 </div>
               </template>
               <p class="empty-state" x-show="problemList.length === 0">Belum ada data. Tambah lewat kotak di atas.</p>

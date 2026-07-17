@@ -92,8 +92,17 @@ function dashboard() {
     async init() {
       this.session = await requireAuth();
       if (!this.session) return;
-      const { data } = await supabaseClient.from("profiles").select("*").eq("id", this.session.user.id).single();
-      this.profile = data;
+      try {
+        const { data, error } = await supabaseClient
+          .from("profiles")
+          .select("*")
+          .eq("id", this.session.user.id)
+          .maybeSingle();
+        if (error) throw error;
+        this.profile = data;
+      } catch (err) {
+        console.error("Gagal memuat profil:", err.message || err);
+      }
     },
     logout,
   };

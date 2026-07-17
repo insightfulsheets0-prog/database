@@ -31,17 +31,23 @@ function machinePage(machineKey, machineLabel, extraFields) {
       this.session = await requireAuth();
       if (!this.session) return;
 
-      const { data: profile } = await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq("id", this.session.user.id)
-        .single();
-      this.profile = profile;
+      try {
+        const { data: profile, error: profileError } = await supabaseClient
+          .from("profiles")
+          .select("*")
+          .eq("id", this.session.user.id)
+          .maybeSingle();
+        if (profileError) throw profileError;
+        this.profile = profile;
 
-      this.resetProductionForm();
-      this.resetDowntimeForm();
-      await Promise.all([this.fetchProduction(), this.fetchDowntime()]);
-      this.loading = false;
+        this.resetProductionForm();
+        this.resetDowntimeForm();
+        await Promise.all([this.fetchProduction(), this.fetchDowntime()]);
+      } catch (err) {
+        this.flash("Gagal memuat halaman: " + (err.message || err), true);
+      } finally {
+        this.loading = false;
+      }
     },
 
     flash(msg, isError = false) {

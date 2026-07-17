@@ -18,7 +18,7 @@
 <body>
 
 <div class="app-shell"
-     x-data='machinePage("transfer_2000t", "Transfer 2000t", [], 0)'
+     x-data='machinePage("transfer_2000t", "Transfer 2000t", [], 0, ["MESIN", "DIES", "FINGER", "OTHER"])'
      x-init="init()">
   <div class="mobile-topbar">
     <button class="hamburger" @click="mobileNavOpen = true">☰</button>
@@ -52,9 +52,10 @@
         <span class="eyebrow">Mesin</span>
         Transfer 2000t
       </h1>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn-secondary btn-sm" :class="tab==='produksi' ? 'btn-primary' : ''" @click="tab='produksi'">Produksi</button>
         <button class="btn-secondary btn-sm" :class="tab==='downtime' ? 'btn-primary' : ''" @click="tab='downtime'">Downtime</button>
+        <button class="btn-secondary btn-sm" :class="tab==='master' ? 'btn-primary' : ''" @click="tab='master'">Master Data</button>
       </div>
     </div>
 
@@ -101,8 +102,8 @@
                   <label>Part Number</label>
                   <input type="text" list="partNumberList-transfer_2000t" x-model="productionForm.part_number" placeholder="Ketik atau pilih...">
                   <datalist id="partNumberList-transfer_2000t">
-                    <template x-for="opt in partNumberOptions" :key="opt">
-                      <option :value="opt"></option>
+                    <template x-for="opt in partNumberList" :key="opt.id">
+                      <option :value="opt.value"></option>
                     </template>
                   </datalist>
                 </div>
@@ -222,17 +223,17 @@
                   <label>Kategori</label>
                   <select x-model="downtimeForm.kategori">
                     <option value="">- pilih -</option>
-                    <option value="MESIN">MESIN</option>
-                    <option value="DIES">DIES</option>
-                    <option value="OTHER">OTHER</option>
+                    <template x-for="k in kategoriOptions" :key="k">
+                      <option :value="k" x-text="k"></option>
+                    </template>
                   </select>
                 </div>
                 <div class="field" style="grid-column: span 2;">
                   <label>Problem</label>
                   <input type="text" list="problemList-transfer_2000t" x-model="downtimeForm.problem" placeholder="Ketik atau pilih...">
                   <datalist id="problemList-transfer_2000t">
-                    <template x-for="opt in problemOptions" :key="opt">
-                      <option :value="opt"></option>
+                    <template x-for="opt in problemList" :key="opt.id">
+                      <option :value="opt.value"></option>
                     </template>
                   </datalist>
                 </div>
@@ -289,6 +290,45 @@
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== TAB MASTER DATA ===================== -->
+        <div x-show="tab === 'master'">
+          <div class="panel">
+            <p class="panel-title">Daftar Part Number <span class="count" x-text="partNumberList.length + ' item'"></span></p>
+            <p class="hint" style="margin-bottom:12px;">Dropdown Part Number di form Produksi ambil dari daftar ini. Klik teksnya untuk edit, klik di luar untuk simpan.</p>
+            <div class="master-add-row">
+              <input type="text" x-model="newPartNumberValue" @keyup.enter="addMasterPartNumber()" placeholder="Tambah part number baru...">
+              <button type="button" class="btn-primary btn-sm" @click="addMasterPartNumber()">+ Tambah</button>
+            </div>
+            <div class="master-list">
+              <template x-for="item in partNumberList" :key="item.id">
+                <div class="master-list-row">
+                  <input type="text" x-model="item.value" @blur="updateMasterPartNumber(item)" @keyup.enter="$event.target.blur()">
+                  <button type="button" class="btn-danger btn-sm" @click="deleteMasterPartNumber(item.id)">Hapus</button>
+                </div>
+              </template>
+              <p class="empty-state" x-show="partNumberList.length === 0">Belum ada data. Tambah lewat kotak di atas.</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <p class="panel-title">Daftar Problem Downtime <span class="count" x-text="problemList.length + ' item'"></span></p>
+            <p class="hint" style="margin-bottom:12px;">Dropdown Problem di form Downtime ambil dari daftar ini.</p>
+            <div class="master-add-row">
+              <input type="text" x-model="newProblemValue" @keyup.enter="addMasterProblem()" placeholder="Tambah problem baru...">
+              <button type="button" class="btn-primary btn-sm" @click="addMasterProblem()">+ Tambah</button>
+            </div>
+            <div class="master-list">
+              <template x-for="item in problemList" :key="item.id">
+                <div class="master-list-row">
+                  <input type="text" x-model="item.value" @blur="updateMasterProblem(item)" @keyup.enter="$event.target.blur()">
+                  <button type="button" class="btn-danger btn-sm" @click="deleteMasterProblem(item.id)">Hapus</button>
+                </div>
+              </template>
+              <p class="empty-state" x-show="problemList.length === 0">Belum ada data. Tambah lewat kotak di atas.</p>
             </div>
           </div>
         </div>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Sistem Produksi & Downtime</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabaseClient.js"></script>
+</head>
+<body>
+
+<div class="app-shell" x-data="dashboard()" x-init="init()">
+  <aside class="sidebar">
+    <div class="sidebar-brand">PRODUKSI<span>&amp;</span>DOWNTIME</div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link active">🏠 Dashboard</a>
+      <a href="machines/tandem.html" class="sidebar-link">⚙️ Tandem</a>
+      <a href="machines/blanking.html" class="sidebar-link">⚙️ Blanking</a>
+      <a href="machines/transfer-2000t.html" class="sidebar-link">⚙️ Transfer 2000t</a>
+      <a href="machines/transfer-800t.html" class="sidebar-link">⚙️ Transfer 800t</a>
+      <a href="machines/pc200t.html" class="sidebar-link">⚙️ PC200t</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="who" x-text="profile?.full_name || session?.user?.email || '...'"></div>
+      <span class="badge" :class="profile?.role === 'admin' ? 'role-admin' : ''" x-text="profile?.role || '...'"></span>
+      <button class="btn-ghost btn-sm" @click="logout()">Keluar</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <h1 class="page-title">
+        <span class="eyebrow">Ringkasan</span>
+        Dashboard
+      </h1>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title">Pilih Mesin</p>
+      <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px,1fr));">
+        <a href="machines/tandem.html" class="panel" style="margin:0;display:block;text-decoration:none;color:inherit;">
+          <strong>Tandem</strong>
+          <p class="hint">Input produksi &amp; downtime</p>
+        </a>
+        <a href="machines/blanking.html" class="panel" style="margin:0;display:block;text-decoration:none;color:inherit;">
+          <strong>Blanking</strong>
+          <p class="hint">Input produksi &amp; downtime</p>
+        </a>
+        <a href="machines/transfer-2000t.html" class="panel" style="margin:0;display:block;text-decoration:none;color:inherit;">
+          <strong>Transfer 2000t</strong>
+          <p class="hint">Input produksi &amp; downtime</p>
+        </a>
+        <a href="machines/transfer-800t.html" class="panel" style="margin:0;display:block;text-decoration:none;color:inherit;">
+          <strong>Transfer 800t</strong>
+          <p class="hint">Input produksi &amp; downtime</p>
+        </a>
+        <a href="machines/pc200t.html" class="panel" style="margin:0;display:block;text-decoration:none;color:inherit;">
+          <strong>PC200t</strong>
+          <p class="hint">Input produksi &amp; downtime</p>
+        </a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title">Tentang akun Anda</p>
+      <p class="hint">
+        Semua operator dan admin punya akses penuh (tambah/ubah/hapus) ke data produksi dan downtime.
+        Role <span class="mono">admin</span> disiapkan untuk pengembangan fitur lanjutan (misal kelola user) di masa depan.
+      </p>
+    </div>
+  </main>
+</div>
+
+<script>
+function dashboard() {
+  return {
+    session: null,
+    profile: null,
+    async init() {
+      this.session = await requireAuth();
+      if (!this.session) return;
+      const { data } = await supabaseClient.from("profiles").select("*").eq("id", this.session.user.id).single();
+      this.profile = data;
+    },
+    logout,
+  };
+}
+</script>
+</body>
+</html>

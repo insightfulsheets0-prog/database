@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tandem — Sistem Produksi &amp; Downtime</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/supabaseClient.js"></script>
+<script src="../assets/machine-page.js"></script>
+</head>
+<body>
+
+<div class="app-shell"
+     x-data="machinePage('tandem', 'Tandem', [{"key": "rout_pa1", "label": "Rout PA-1", "type": "number"}, {"key": "rout_pa2", "label": "Rout PA-2", "type": "number"}, {"key": "rout_pa3", "label": "Rout PA-3", "type": "number"}, {"key": "rout_pa4", "label": "Rout PA-4", "type": "number"}, {"key": "rout_pa5", "label": "Rout PA-5", "type": "number"}])"
+     x-init="init()">
+  <aside class="sidebar">
+    <div class="sidebar-brand">PRODUKSI<span>&amp;</span>DOWNTIME</div>
+    <nav class="sidebar-nav">
+      <a href="../index.html" class="sidebar-link">🏠 Dashboard</a>
+      <a href="tandem.html" class="sidebar-link active">⚙️ Tandem</a>
+      <a href="blanking.html" class="sidebar-link">⚙️ Blanking</a>
+      <a href="transfer-2000t.html" class="sidebar-link">⚙️ Transfer 2000t</a>
+      <a href="transfer-800t.html" class="sidebar-link">⚙️ Transfer 800t</a>
+      <a href="pc200t.html" class="sidebar-link">⚙️ PC200t</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="who" x-text="profile?.full_name || session?.user?.email || '...'"></div>
+      <span class="badge" :class="profile?.role === 'admin' ? 'role-admin' : ''" x-text="profile?.role || '...'"></span>
+      <button class="btn-ghost btn-sm" @click="logout()">Keluar</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <h1 class="page-title">
+        <span class="eyebrow">Mesin</span>
+        Tandem
+      </h1>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-secondary btn-sm" :class="tab==='produksi' ? 'btn-primary' : ''" @click="tab='produksi'">Produksi</button>
+        <button class="btn-secondary btn-sm" :class="tab==='downtime' ? 'btn-primary' : ''" @click="tab='downtime'">Downtime</button>
+      </div>
+    </div>
+
+    <template x-if="errorMsg"><div class="error-msg" x-text="errorMsg"></div></template>
+    <template x-if="successMsg"><div class="success-msg" x-text="successMsg"></div></template>
+
+    <template x-if="loading">
+      <div class="empty-state">Memuat data...</div>
+    </template>
+
+    <template x-if="!loading">
+      <div>
+        <!-- ===================== TAB PRODUKSI ===================== -->
+        <div x-show="tab === 'produksi'">
+          <div class="panel">
+            <p class="panel-title" x-text="editingProductionId ? 'Edit Data Produksi' : 'Tambah Data Produksi'"></p>
+            <form @submit.prevent="submitProduction">
+              <div class="form-grid">
+                <div class="field">
+                  <label>Waktu Awal</label>
+                  <input type="datetime-local" x-model="productionForm.waktu_awal" required>
+                </div>
+                <div class="field">
+                  <label>Waktu Akhir</label>
+                  <input type="datetime-local" x-model="productionForm.waktu_akhir" required>
+                </div>
+                <div class="field">
+                  <label>Part Number</label>
+                  <input type="text" x-model="productionForm.part_number" placeholder="mis. 61211-KK010">
+                </div>
+                <div class="field">
+                  <label>Qty</label>
+                  <input type="number" x-model="productionForm.qty">
+                </div>
+                <div class="field">
+                  <label>NG</label>
+                  <input type="number" x-model="productionForm.ng">
+                </div>
+                <div class="field">
+                  <label>Kategori NG</label>
+                  <input type="text" x-model="productionForm.kategori_ng">
+                </div>
+                <div class="field">
+                  <label>Break (menit)</label>
+                  <input type="number" x-model="productionForm.break_menit">
+                </div>
+                <div class="field">
+                  <label>Rout PA-1</label>
+                  <input type="number" x-model="productionForm.rout_pa1">
+                </div>
+                <div class="field">
+                  <label>Rout PA-2</label>
+                  <input type="number" x-model="productionForm.rout_pa2">
+                </div>
+                <div class="field">
+                  <label>Rout PA-3</label>
+                  <input type="number" x-model="productionForm.rout_pa3">
+                </div>
+                <div class="field">
+                  <label>Rout PA-4</label>
+                  <input type="number" x-model="productionForm.rout_pa4">
+                </div>
+                <div class="field">
+                  <label>Rout PA-5</label>
+                  <input type="number" x-model="productionForm.rout_pa5">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn-ghost" x-show="editingProductionId" @click="resetProductionForm()">Batal Edit</button>
+                <button type="submit" class="btn-primary" x-text="editingProductionId ? 'Simpan Perubahan' : 'Tambah Data'"></button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel">
+            <p class="panel-title">Riwayat Produksi <span class="count" x-text="productionRows.length + ' baris'"></span></p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Waktu Awal</th><th>Waktu Akhir</th><th>Durasi</th>
+                    <th>Part Number</th><th>Qty</th><th>NG</th><th>Kategori NG</th><th>Break</th>
+                    <th>Rout PA-1</th>
+                    <th>Rout PA-2</th>
+                    <th>Rout PA-3</th>
+                    <th>Rout PA-4</th>
+                    <th>Rout PA-5</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in productionRows" :key="row.id">
+                    <tr>
+                      <td class="mono" x-text="fmt(row.waktu_awal)"></td>
+                      <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
+                      <td class="mono" x-text="durasiMenit(row.waktu_awal, row.waktu_akhir)"></td>
+                      <td x-text="row.part_number || '-'"></td>
+                      <td x-text="row.qty ?? '-'"></td>
+                      <td x-text="row.ng ?? '-'"></td>
+                      <td x-text="row.kategori_ng || '-'"></td>
+                      <td x-text="row.break_menit ?? '-'"></td>
+                      <td x-text="row.extra?.rout_pa1 ?? '-'"></td>
+                      <td x-text="row.extra?.rout_pa2 ?? '-'"></td>
+                      <td x-text="row.extra?.rout_pa3 ?? '-'"></td>
+                      <td x-text="row.extra?.rout_pa4 ?? '-'"></td>
+                      <td x-text="row.extra?.rout_pa5 ?? '-'"></td>
+                      <td>
+                        <div class="row-actions">
+                          <button class="btn-secondary btn-sm" @click="editProduction(row)">Edit</button>
+                          <button class="btn-danger btn-sm" @click="deleteProduction(row.id)">Hapus</button>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                  <tr x-show="productionRows.length === 0">
+                    <td colspan="20" class="empty-state">Belum ada data produksi untuk mesin ini.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== TAB DOWNTIME ===================== -->
+        <div x-show="tab === 'downtime'">
+          <div class="panel">
+            <p class="panel-title" x-text="editingDowntimeId ? 'Edit Data Downtime' : 'Tambah Data Downtime'"></p>
+            <form @submit.prevent="submitDowntime">
+              <div class="form-grid">
+                <div class="field">
+                  <label>Waktu Awal</label>
+                  <input type="datetime-local" x-model="downtimeForm.waktu_awal" required>
+                </div>
+                <div class="field">
+                  <label>Waktu Akhir</label>
+                  <input type="datetime-local" x-model="downtimeForm.waktu_akhir" required>
+                </div>
+                <div class="field">
+                  <label>Kategori</label>
+                  <select x-model="downtimeForm.kategori">
+                    <option value="">- pilih -</option>
+                    <option value="MESIN">MESIN</option>
+                    <option value="DIES">DIES</option>
+                    <option value="OTHER">OTHER</option>
+                  </select>
+                </div>
+                <div class="field" style="grid-column: span 2;">
+                  <label>Problem</label>
+                  <input type="text" x-model="downtimeForm.problem">
+                </div>
+                <div class="field" style="grid-column: span 2;">
+                  <label>Penyebab</label>
+                  <input type="text" x-model="downtimeForm.penyebab">
+                </div>
+                <div class="field" style="grid-column: span 2;">
+                  <label>Countermeasure</label>
+                  <input type="text" x-model="downtimeForm.countermeasure">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn-ghost" x-show="editingDowntimeId" @click="resetDowntimeForm()">Batal Edit</button>
+                <button type="submit" class="btn-primary" x-text="editingDowntimeId ? 'Simpan Perubahan' : 'Tambah Data'"></button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel">
+            <p class="panel-title">Riwayat Downtime <span class="count" x-text="downtimeRows.length + ' baris'"></span></p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Waktu Awal</th><th>Waktu Akhir</th><th>Durasi</th>
+                    <th>Kategori</th><th>Problem</th><th>Penyebab</th><th>Countermeasure</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in downtimeRows" :key="row.id">
+                    <tr>
+                      <td class="mono" x-text="fmt(row.waktu_awal)"></td>
+                      <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
+                      <td class="mono" x-text="durasiMenit(row.waktu_awal, row.waktu_akhir)"></td>
+                      <td><span class="badge" x-text="row.kategori || '-'"></span></td>
+                      <td x-text="row.problem || '-'"></td>
+                      <td x-text="row.penyebab || '-'"></td>
+                      <td x-text="row.countermeasure || '-'"></td>
+                      <td>
+                        <div class="row-actions">
+                          <button class="btn-secondary btn-sm" @click="editDowntime(row)">Edit</button>
+                          <button class="btn-danger btn-sm" @click="deleteDowntime(row.id)">Hapus</button>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                  <tr x-show="downtimeRows.length === 0">
+                    <td colspan="8" class="empty-state">Belum ada data downtime untuk mesin ini.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </main>
+</div>
+
+</body>
+</html>

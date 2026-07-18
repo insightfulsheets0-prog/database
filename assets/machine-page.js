@@ -647,17 +647,23 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     async fetchPartNumbers() {
       const { data, error } = await supabaseClient
         .from("part_numbers").select("id, value, next_processes").eq("mesin", machineKey).order("value");
-      if (!error && data) {
-        this.partNumberList = data.map((r) => ({
-          ...r, editing: false, draft: r.value,
-          draftNextProcesses: (r.next_processes || []).map((p) => ({ ...p })),
-        }));
+      if (error) {
+        this.flash("Gagal memuat daftar Part Number: " + error.message, true);
+        return;
       }
+      this.partNumberList = data.map((r) => ({
+        ...r, editing: false, draft: r.value,
+        draftNextProcesses: (r.next_processes || []).map((p) => ({ ...p })),
+      }));
     },
     async fetchProblems() {
       const { data, error } = await supabaseClient
         .from("downtime_problems").select("id, value").eq("mesin", machineKey).order("value");
-      if (!error && data) this.problemList = data.map((r) => ({ ...r, editing: false, draft: r.value }));
+      if (error) {
+        this.flash("Gagal memuat daftar Problem: " + error.message, true);
+        return;
+      }
+      this.problemList = data.map((r) => ({ ...r, editing: false, draft: r.value }));
     },
     async learnPartNumber(value) {
       if (!value) return;

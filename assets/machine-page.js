@@ -853,19 +853,28 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     // Jeda otomatis dari selesainya part sebelumnya (di stasiun yang SAMA)
     // ke mulainya part ini — cuma referensi, bukan pengganti catatan
     // Non-Produksi (yang sudah wajib diisi tiap mulai produksi lagi).
-    gapDariSebelumnya(row) {
-      if (!row.part_number || !row.waktu_awal) return null;
-      const sameStation = (row.stasiun || null);
-      const candidates = this.productionRows.filter(
-        (r) => r.id !== row.id && (r.stasiun || null) === sameStation && r.waktu_akhir &&
-          new Date(r.waktu_akhir) <= new Date(row.waktu_awal)
-      );
-      if (candidates.length === 0) return null;
-      candidates.sort((a, b) => new Date(b.waktu_akhir) - new Date(a.waktu_akhir));
-      const prev = candidates[0];
-      if (!prev.part_number || prev.part_number === row.part_number) return null;
-      const diffMin = Math.round((new Date(row.waktu_awal) - new Date(prev.waktu_akhir)) / 60000);
-      return diffMin >= 0 ? diffMin : null;
+    // Gabungan Riwayat Produksi + Non-Produksi, urut waktu — gaya Nippo
+    // (satu tabel, bukan dua terpisah, biar alurnya kelihatan runtut).
+    riwayatGabungan() {
+      const prod = this.productionRows.map((r) => ({ ...r, _tipe: "produksi" }));
+      const nonProd = this.nonProduksiRows.map((r) => ({ ...r, _tipe: "dandori" }));
+      const combined = [...prod, ...nonProd];
+      combined.sort((a, b) => new Date(b.waktu_awal) - new Date(a.waktu_awal));
+      return combined;
+    },
+    detailRiwayat(row) {
+      if (row._tipe === "produksi") return row.part_number || "-";
+      const dari = row.part_dari, ke = row.part_ke;
+      if (dari && ke) return `${dari} → ${ke}`;
+      return dari || ke || "-";
+    },
+    editRiwayat(row) {
+      if (row._tipe === "produksi") this.editProduction(row);
+      else this.editNonProduksi(row);
+    },
+    deleteRiwayat(row) {
+      if (row._tipe === "produksi") this.deleteProduction(row.id);
+      else this.deleteNonProduksi(row.id);
     },
 
     logout,

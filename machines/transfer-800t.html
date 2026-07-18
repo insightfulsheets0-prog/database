@@ -413,7 +413,7 @@
         <div x-show="tab === 'master'">
           <div class="panel">
             <p class="panel-title">Daftar Part Number <span class="count" x-text="partNumberList.length + ' item'"></span></p>
-            <p class="hint" style="margin-bottom:12px;">Dropdown Part Number di form Produksi ambil dari daftar ini. Klik Edit untuk ubah teksnya, lalu Simpan.</p>
+            <p class="hint" style="margin-bottom:12px;">Dropdown Part Number di form Produksi ambil dari daftar ini. Klik Edit untuk ubah teks atau atur "Proses Selanjutnya" (part number ini lanjut ke line mana), lalu Simpan.</p>
             <div class="master-add-row">
               <input type="text" x-model="newPartNumberValue" @keyup.enter="addMasterPartNumber()" placeholder="Tambah part number baru...">
               <button type="button" class="btn-primary btn-sm" @click="addMasterPartNumber()">+ Tambah</button>
@@ -422,10 +422,34 @@
               <template x-for="item in partNumberList" :key="item.id">
                 <div class="master-list-row">
                   <template x-if="!item.editing">
-                    <span class="master-value" x-text="item.value"></span>
+                    <div style="flex:1;">
+                      <span class="master-value" x-text="item.value"></span>
+                      <div class="hint" x-show="item.next_line" style="padding:0 10px;">
+                        <span x-text="'→ Proses selanjutnya: ' + machineLabel(item.next_line) + (item.next_part_number ? ' — ' + item.next_part_number : '')"></span>
+                      </div>
+                    </div>
                   </template>
                   <template x-if="item.editing">
-                    <input type="text" x-model="item.draft" @keyup.enter="saveMasterPartNumber(item)" @keyup.escape="cancelEditPartNumber(item)">
+                    <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+                      <input type="text" x-model="item.draft" placeholder="Part number" @keyup.enter="saveMasterPartNumber(item)">
+                      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <select x-model="item.draftNextLine" @change="ensurePartNumbersForLine(item.draftNextLine)" style="flex:1;min-width:160px;">
+                          <option value="">- Proses selanjutnya (opsional) -</option>
+                          <template x-for="m in machineOptions" :key="m.key">
+                            <option :value="m.key" x-text="m.label"></option>
+                          </template>
+                        </select>
+                        <template x-if="item.draftNextLine">
+                          <input type="text" :list="'nextPartList-' + item.id" x-model="item.draftNextPartNumber"
+                                 placeholder="Part number di line itu" style="flex:1;min-width:160px;">
+                        </template>
+                        <datalist :id="'nextPartList-' + item.id">
+                          <template x-for="opt in (partNumbersByLine[item.draftNextLine] || [])" :key="opt">
+                            <option :value="opt"></option>
+                          </template>
+                        </datalist>
+                      </div>
+                    </div>
                   </template>
                   <div class="master-row-actions">
                     <template x-if="!item.editing">

@@ -61,6 +61,8 @@ function fmtClock(iso) {
   if (!iso) return "";
   return new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
+let _nextRowKeyCounter = 0;
+function nextRowKey() { return "row_" + Date.now() + "_" + (_nextRowKeyCounter++); }
 
 // Daftar semua line/mesin — dipakai untuk dropdown "Proses Selanjutnya"
 // di Master Data (butuh tahu semua line, bukan cuma mesin halaman ini).
@@ -653,7 +655,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       }
       this.partNumberList = data.map((r) => ({
         ...r, editing: false, draft: r.value,
-        draftNextProcesses: (r.next_processes || []).map((p) => ({ ...p })),
+        draftNextProcesses: (r.next_processes || []).map((p) => ({ ...p, _key: nextRowKey() })),
       }));
     },
     async fetchProblems() {
@@ -691,20 +693,20 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
     startEditPartNumber(item) {
       item.draft = item.value;
-      item.draftNextProcesses = (item.next_processes || []).map((p) => ({ ...p }));
+      item.draftNextProcesses = (item.next_processes || []).map((p) => ({ ...p, _key: nextRowKey() }));
       item.draftNextProcesses.forEach((p) => { if (p.line) this.ensurePartNumbersForLine(p.line); });
       item.editing = true;
     },
     cancelEditPartNumber(item) {
       item.draft = item.value;
-      item.draftNextProcesses = (item.next_processes || []).map((p) => ({ ...p }));
+      item.draftNextProcesses = (item.next_processes || []).map((p) => ({ ...p, _key: nextRowKey() }));
       item.editing = false;
     },
     addNextProcessRow(item) {
-      item.draftNextProcesses.push({ line: "", part_number: "" });
+      item.draftNextProcesses.push({ line: "", part_number: "", _key: nextRowKey() });
     },
-    removeNextProcessRow(item, idx) {
-      item.draftNextProcesses.splice(idx, 1);
+    removeNextProcessRow(item, key) {
+      item.draftNextProcesses = item.draftNextProcesses.filter((p) => p._key !== key);
     },
     async saveMasterPartNumber(item) {
       const v = (item.draft || "").trim();
@@ -721,7 +723,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       }
       item.value = v;
       item.next_processes = cleanProcesses;
-      item.draftNextProcesses = cleanProcesses.map((p) => ({ ...p }));
+      item.draftNextProcesses = cleanProcesses.map((p) => ({ ...p, _key: nextRowKey() }));
       item.editing = false;
       this.flash("Part number diperbarui.");
     },

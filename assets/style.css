@@ -221,14 +221,18 @@ thead th {
   letter-spacing: 0.04em;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   padding: 8px 10px;
   white-space: nowrap;
 }
+thead th:last-child { border-right: none; }
 tbody td {
   padding: 9px 10px;
   border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   white-space: nowrap;
 }
+tbody td:last-child { border-right: none; }
 tbody tr:hover { background: var(--panel-2); }
 td.mono, .mono { font-family: var(--font-mono); }
 .row-actions { display: flex; gap: 6px; }
@@ -377,6 +381,91 @@ td.mono, .mono { font-family: var(--font-mono); }
   gap: 6px;
   flex-shrink: 0;
 }
+
+/* ---------- Multi-stasiun (Tandem / PC200t) ---------- */
+.station-card {
+  border-left: 3px solid var(--amber-dim);
+}
+.classification-box {
+  background: rgba(232,163,61,0.08);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.classification-title {
+  font-weight: 700;
+  color: var(--amber);
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+/* ---------- Combobox custom (ganti <datalist>, lebih konsisten di HP) ---------- */
+.combo { position: relative; }
+.combo input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 9px 10px;
+  font-size: 14px;
+  font-family: var(--font-body);
+}
+.combo input:focus { outline: none; border-color: var(--amber); }
+.combo-list {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 50;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.combo-item {
+  padding: 9px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.combo-item:hover { background: var(--bg); color: var(--amber); }
+
+/* ---------- Baris "Proses Selanjutnya" (bisa lebih dari satu) ---------- */
+.next-process-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.next-process-row select {
+  flex: 1;
+  min-width: 150px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 9px 10px;
+  font-size: 13px;
+}
+.next-process-row .combo { flex: 1; min-width: 150px; }
+
+/* ---------- Tampilan Proses Selanjutnya (setelah tersimpan) ---------- */
+.next-process-display {
+  margin-top: 6px;
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.next-process-chip {
+  font-size: 12px;
+  color: var(--text);
+}
+.next-process-chip .hint { display: inline; }
 .error-msg {
   background: rgba(229,87,92,0.12);
   border: 1px solid var(--red);

@@ -868,6 +868,24 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       if (dari && ke) return `${dari} → ${ke}`;
       return dari || ke || "-";
     },
+    jenisProduksiLabel(row) {
+      if (row._tipe === "produksi") return row.extra?.work_class === "trial" ? "Trial" : "Produksi";
+      return "Non Produksi";
+    },
+    isBreakRow(row) {
+      return row._tipe === "dandori" && (row.keterangan || "").toLowerCase().includes("break");
+    },
+    durasiProduksiCell(row) {
+      return row._tipe === "produksi" ? this.durasiMenit(row.waktu_awal, row.waktu_akhir) : "-";
+    },
+    durasiDandoriCell(row) {
+      if (row._tipe !== "dandori" || this.isBreakRow(row)) return "-";
+      return this.durasiMenit(row.waktu_awal, row.waktu_akhir);
+    },
+    breakCell(row) {
+      if (!this.isBreakRow(row)) return "-";
+      return this.durasiMenit(row.waktu_awal, row.waktu_akhir);
+    },
     editRiwayat(row) {
       if (row._tipe === "produksi") this.editProduction(row);
       else this.editNonProduksi(row);

@@ -72,6 +72,38 @@ const MACHINE_OPTIONS = [
   { key: "pc200t", label: "PC200t" },
 ];
 
+// ---------- Dropdown custom (ganti <datalist> bawaan HTML) ----------
+// <datalist> HTML render-nya tidak konsisten di HP (kadang jadi list
+// geser ke samping, bukan dropdown ke bawah) — jadi dibikin sendiri
+// pakai Alpine, tampilannya konsisten di semua device.
+document.addEventListener("alpine:init", () => {
+  Alpine.data("comboBox", (getOptions, getValue, setValue) => ({
+    open: false,
+    query: "",
+    init() {
+      this.query = getValue() || "";
+      this.$watch(() => getValue(), (v) => {
+        if (v !== this.query) this.query = v || "";
+      });
+    },
+    filtered() {
+      const q = (this.query || "").toLowerCase();
+      const opts = getOptions() || [];
+      if (!q) return opts.slice(0, 50);
+      return opts.filter((o) => o.toLowerCase().includes(q)).slice(0, 50);
+    },
+    select(opt) {
+      this.query = opt;
+      setValue(opt);
+      this.open = false;
+    },
+    onInput() {
+      setValue(this.query);
+      this.open = true;
+    },
+  }));
+});
+
 // ---------- Persist state (per mesin) supaya tidak hilang saat pindah halaman ----------
 function timerStorageKey(machineKey) { return "timer_state_v2_" + machineKey; }
 function saveTimerStateFor(machineKey, state) {
@@ -614,11 +646,11 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     // ================= MASTER DATA (Part Number & Problem) =================
     async fetchPartNumbers() {
       const { data, error } = await supabaseClient
-        .from("part_numbers").select("id, value, next_line, next_part_number").eq("mesin", machineKey).order("value");
+        .from("part_numbers").select("id, value, next_processes").eq("mesin", machineKey).order("value");
       if (!error && data) {
         this.partNumberList = data.map((r) => ({
           ...r, editing: false, draft: r.value,
-          draftNextLine: r.next_line || "", draftNextPartNumber: r.next_part_number || "",
+          draftNextProcesses: (r.next_processes || []).map((p) => ({ ...p })),
         }));
       }
     },
@@ -632,7 +664,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       if (this.partNumberList.some((r) => r.value.toLowerCase() === value.toLowerCase())) return;
       const { data, error } = await supabaseClient.from("part_numbers").insert({ mesin: machineKey, value }).select().single();
       if (!error && data) {
-        this.partNumberList.push({ ...data, editing: false, draft: data.value, draftNextLine: "", draftNextPartNumber: "" });
+        this.partNumberList.push({ ...data, editing: false, draft: data.value, draftNextProcesses: [] });
       }
     },
     async learnProblem(value) {
@@ -646,37 +678,44 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       if (!v) return;
       const { data, error } = await supabaseClient.from("part_numbers").insert({ mesin: machineKey, value: v }).select().single();
       if (error) { this.flash("Gagal tambah (mungkin sudah ada): " + error.message, true); return; }
-      this.partNumberList.push({ ...data, editing: false, draft: data.value, draftNextLine: "", draftNextPartNumber: "" });
+      this.partNumberList.push({ ...data, editing: false, draft: data.value, draftNextProcesses: [] });
       this.partNumberList.sort((a, b) => a.value.localeCompare(b.value));
       this.newPartNumberValue = "";
       this.flash("Part number ditambahkan.");
     },
     startEditPartNumber(item) {
       item.draft = item.value;
-      item.draftNextLine = item.next_line || "";
-      item.draftNextPartNumber = item.next_part_number || "";
-      if (item.draftNextLine) this.ensurePartNumbersForLine(item.draftNextLine);
+      item.draftNextProcesses = (item.next_processes || []).map((p) => ({ ...p }));
+      item.draftNextProcesses.forEach((p) => { if (p.line) this.ensurePartNumbersForLine(p.line); });
       item.editing = true;
     },
     cancelEditPartNumber(item) {
       item.draft = item.value;
-      item.draftNextLine = item.next_line || "";
-      item.draftNextPartNumber = item.next_part_number || "";
+      item.draftNextProcesses = (item.next_processes || []).map((p) => ({ ...p }));
       item.editing = false;
+    },
+    addNextProcessRow(item) {
+      item.draftNextProcesses.push({ line: "", part_number: "" });
+    },
+    removeNextProcessRow(item, idx) {
+      item.draftNextProcesses.splice(idx, 1);
     },
     async saveMasterPartNumber(item) {
       const v = (item.draft || "").trim();
       if (!v) { this.flash("Part number tidak boleh kosong.", true); return; }
-      const payload = {
-        value: v,
-        next_line: item.draftNextLine || null,
-        next_part_number: item.draftNextLine ? (item.draftNextPartNumber || null) : null,
-      };
-      const { error } = await supabaseClient.from("part_numbers").update(payload).eq("id", item.id);
+      const cleanProcesses = item.draftNextProcesses
+        .filter((p) => p.line && p.part_number)
+        .map((p) => ({ line: p.line, part_number: p.part_number }));
+      const payload = { value: v, next_processes: cleanProcesses };
+      const { data, error } = await supabaseClient.from("part_numbers").update(payload).eq("id", item.id).select();
       if (error) { this.flash("Gagal simpan (mungkin sudah ada yang sama): " + error.message, true); return; }
+      if (!data || data.length === 0) {
+        this.flash("Gagal simpan — perubahan tidak masuk ke database (kemungkinan izin akses). Coba lagi atau kabari admin.", true);
+        return;
+      }
       item.value = v;
-      item.next_line = payload.next_line;
-      item.next_part_number = payload.next_part_number;
+      item.next_processes = cleanProcesses;
+      item.draftNextProcesses = cleanProcesses.map((p) => ({ ...p }));
       item.editing = false;
       this.flash("Part number diperbarui.");
     },
@@ -690,6 +729,12 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
     machineLabel(key) {
       return this.machineOptions.find((m) => m.key === key)?.label || key;
+    },
+    nextProcessesLabel(item) {
+      if (!item.next_processes || item.next_processes.length === 0) return "";
+      return item.next_processes
+        .map((p) => this.machineLabel(p.line) + (p.part_number ? " — " + p.part_number : ""))
+        .join("  •  ");
     },
     async deleteMasterPartNumber(id) {
       if (!confirm("Hapus part number ini dari daftar pilihan?")) return;
@@ -713,8 +758,12 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     async saveMasterProblem(item) {
       const v = (item.draft || "").trim();
       if (!v) { this.flash("Problem tidak boleh kosong.", true); return; }
-      const { error } = await supabaseClient.from("downtime_problems").update({ value: v }).eq("id", item.id);
+      const { data, error } = await supabaseClient.from("downtime_problems").update({ value: v }).eq("id", item.id).select();
       if (error) { this.flash("Gagal simpan (mungkin sudah ada yang sama): " + error.message, true); return; }
+      if (!data || data.length === 0) {
+        this.flash("Gagal simpan — perubahan tidak masuk ke database (kemungkinan izin akses). Coba lagi atau kabari admin.", true);
+        return;
+      }
       item.value = v; item.editing = false;
       this.flash("Problem diperbarui.");
     },

@@ -88,12 +88,7 @@
             — <a href="#" @click.prevent="tandemVariant = null">ganti line</a>
           </p>
 
-          <datalist id="partNumberList-transfer_2000t">
-            <template x-for="opt in partNumberList" :key="opt.id">
-              <option :value="opt.value"></option>
-            </template>
-          </datalist>
-
+          
           <template x-for="st in stationList()" :key="st.id">
             <div class="panel station-card">
               <p class="panel-title" x-show="st.label"><span x-text="st.label"></span></p>
@@ -114,11 +109,25 @@
                   </div>
                   <div class="field">
                     <label>Part Dari</label>
-                    <input type="text" list="partNumberList-transfer_2000t" x-model="lines[st.id].classification.part_dari">
+                    <div class="combo" x-data="comboBox(() => partNumberList.map(p => p.value), () => lines[st.id].classification.part_dari, (v) => lines[st.id].classification.part_dari = v)" @click.outside="open = false">
+                      <input type="text" x-model="query" @input="onInput()" @focus="open = true" placeholder="Ketik atau pilih...">
+                      <div class="combo-list" x-show="open && filtered().length > 0" x-cloak>
+                        <template x-for="opt in filtered()" :key="opt">
+                          <div class="combo-item" @mousedown.prevent="select(opt)" x-text="opt"></div>
+                        </template>
+                      </div>
+                    </div>
                   </div>
                   <div class="field">
                     <label>Part Ke</label>
-                    <input type="text" list="partNumberList-transfer_2000t" x-model="lines[st.id].classification.part_ke">
+                    <div class="combo" x-data="comboBox(() => partNumberList.map(p => p.value), () => lines[st.id].classification.part_ke, (v) => lines[st.id].classification.part_ke = v)" @click.outside="open = false">
+                      <input type="text" x-model="query" @input="onInput()" @focus="open = true" placeholder="Ketik atau pilih...">
+                      <div class="combo-list" x-show="open && filtered().length > 0" x-cloak>
+                        <template x-for="opt in filtered()" :key="opt">
+                          <div class="combo-item" @mousedown.prevent="select(opt)" x-text="opt"></div>
+                        </template>
+                      </div>
+                    </div>
                   </div>
                   <div class="field" style="grid-column: 1 / -1;">
                     <label>Keterangan (opsional)</label>
@@ -156,7 +165,14 @@
                 <div class="form-grid">
                   <div class="field">
                     <label>Part Number</label>
-                    <input type="text" list="partNumberList-transfer_2000t" x-model="lines[st.id].form.part_number" placeholder="Ketik atau pilih...">
+                    <div class="combo" x-data="comboBox(() => partNumberList.map(p => p.value), () => lines[st.id].form.part_number, (v) => lines[st.id].form.part_number = v)" @click.outside="open = false">
+                      <input type="text" x-model="query" @input="onInput()" @focus="open = true" placeholder="Ketik atau pilih...">
+                      <div class="combo-list" x-show="open && filtered().length > 0" x-cloak>
+                        <template x-for="opt in filtered()" :key="opt">
+                          <div class="combo-item" @mousedown.prevent="select(opt)" x-text="opt"></div>
+                        </template>
+                      </div>
+                    </div>
                   </div>
                   <div class="field"><label>Qty</label><input type="number" x-model="lines[st.id].form.qty"></div>
                   <div class="field"><label>NG</label><input type="number" x-model="lines[st.id].form.ng"></div>
@@ -279,12 +295,14 @@
                 </div>
                 <div class="field" style="grid-column: span 2;">
                   <label>Problem</label>
-                  <input type="text" list="problemList-transfer_2000t" x-model="downtimeForm.problem" placeholder="Ketik atau pilih...">
-                  <datalist id="problemList-transfer_2000t">
-                    <template x-for="opt in problemList" :key="opt.id">
-                      <option :value="opt.value"></option>
-                    </template>
-                  </datalist>
+                  <div class="combo" x-data="comboBox(() => problemList.map(p => p.value), () => downtimeForm.problem, (v) => downtimeForm.problem = v)" @click.outside="open = false">
+                    <input type="text" x-model="query" @input="onInput()" @focus="open = true" placeholder="Ketik atau pilih...">
+                    <div class="combo-list" x-show="open && filtered().length > 0" x-cloak>
+                      <template x-for="opt in filtered()" :key="opt">
+                        <div class="combo-item" @mousedown.prevent="select(opt)" x-text="opt"></div>
+                      </template>
+                    </div>
+                  </div>
                 </div>
                 <div class="field" style="grid-column: span 2;">
                   <label>Penyebab</label>
@@ -424,30 +442,47 @@
                   <template x-if="!item.editing">
                     <div style="flex:1;">
                       <span class="master-value" x-text="item.value"></span>
-                      <div class="hint" x-show="item.next_line" style="padding:0 10px;">
-                        <span x-text="'→ Proses selanjutnya: ' + machineLabel(item.next_line) + (item.next_part_number ? ' — ' + item.next_part_number : '')"></span>
+                      <div class="next-process-display" x-show="item.next_processes && item.next_processes.length">
+                        <template x-for="(p, i) in item.next_processes" :key="i">
+                          <div class="next-process-chip">
+                            <span class="hint">next proses:</span> <b x-text="machineLabel(p.line)"></b>
+                            <span class="hint">· part number:</span> <span x-text="p.part_number"></span>
+                          </div>
+                        </template>
                       </div>
                     </div>
                   </template>
                   <template x-if="item.editing">
-                    <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+                    <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
                       <input type="text" x-model="item.draft" placeholder="Part number" @keyup.enter="saveMasterPartNumber(item)">
-                      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <select x-model="item.draftNextLine" @change="ensurePartNumbersForLine(item.draftNextLine)" style="flex:1;min-width:160px;">
-                          <option value="">- Proses selanjutnya (opsional) -</option>
-                          <template x-for="m in machineOptions" :key="m.key">
-                            <option :value="m.key" x-text="m.label"></option>
-                          </template>
-                        </select>
-                        <template x-if="item.draftNextLine">
-                          <input type="text" :list="'nextPartList-' + item.id" x-model="item.draftNextPartNumber"
-                                 placeholder="Part number di line itu" style="flex:1;min-width:160px;">
+                      <div>
+                        <label class="hint" style="display:block;margin-bottom:6px;">Proses Selanjutnya (boleh lebih dari satu, mis. part yang separating)</label>
+                        <template x-for="proc in item.draftNextProcesses" :key="proc._key">
+                          <div class="next-process-row">
+                            <div style="flex:1;min-width:150px;">
+                              <label class="hint" style="display:block;margin-bottom:4px;">Ke Line</label>
+                              <select x-model="proc.line" @change="ensurePartNumbersForLine(proc.line)">
+                                <option value="">- pilih line -</option>
+                                <template x-for="m in machineOptions" :key="m.key">
+                                  <option :value="m.key" x-text="m.label"></option>
+                                </template>
+                              </select>
+                            </div>
+                            <div style="flex:1;min-width:150px;">
+                              <label class="hint" style="display:block;margin-bottom:4px;">Part Number di line itu</label>
+                            <div class="combo" x-data="comboBox(() => (partNumbersByLine[proc.line] || []), () => proc.part_number, (v) => proc.part_number = v)" @click.outside="open = false">
+                              <input type="text" x-model="query" @input="onInput()" @focus="open = true" placeholder="Part number di line itu">
+                              <div class="combo-list" x-show="open && filtered().length > 0" x-cloak>
+                                <template x-for="opt in filtered()" :key="opt">
+                                  <div class="combo-item" @mousedown.prevent="select(opt)" x-text="opt"></div>
+                                </template>
+                              </div>
+                            </div>
+                            </div>
+                            <button type="button" class="btn-danger btn-sm" style="margin-top:20px;" @click="removeNextProcessRow(item, proc._key)">✕</button>
+                          </div>
                         </template>
-                        <datalist :id="'nextPartList-' + item.id">
-                          <template x-for="opt in (partNumbersByLine[item.draftNextLine] || [])" :key="opt">
-                            <option :value="opt"></option>
-                          </template>
-                        </datalist>
+                        <button type="button" class="btn-secondary btn-sm" @click="addNextProcessRow(item)">+ Tambah proses selanjutnya</button>
                       </div>
                     </div>
                   </template>

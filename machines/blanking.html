@@ -243,14 +243,14 @@
                   <tr>
                     <th>Kode</th>
                     <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
-                    <th>Waktu Awal</th><th>Waktu Akhir</th><th>Durasi</th>
-                    <th>Jenis</th>
-                    <th>Part Number / Perubahan</th>
+                    <th>Waktu Awal</th><th>Waktu Akhir</th>
+                    <th>Jenis Produksi</th>
+                    <th>Part Number</th>
                     <th>Qty</th><th>NG</th><th>Kategori NG</th>
+                    <th>Durasi Produksi</th><th>Durasi Dandori</th><th>Break</th>
+                    <th x-show="routingMax > 0">Routing</th>
                     <th>Top Coil</th>
                     <th>Berat Coil (kg)</th>
-                    <th x-show="routingMax > 0">Routing</th>
-                    <th>Keterangan</th>
                     <th>Aksi</th>
                   </tr>
                 </thead>
@@ -261,19 +261,17 @@
                       <td class="mono" x-show="stationConfig.mode !== 'none'" x-text="row.stasiun || '-'"></td>
                       <td class="mono" x-text="fmt(row.waktu_awal)"></td>
                       <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
-                      <td class="mono" x-text="durasiMenit(row.waktu_awal, row.waktu_akhir)"></td>
-                      <td>
-                        <span class="badge" x-show="row._tipe === 'produksi'">Produksi</span>
-                        <span class="badge" x-show="row._tipe === 'dandori'" x-text="kategoriNonProduksiLabel(row.kategori)"></span>
-                      </td>
+                      <td x-text="jenisProduksiLabel(row)"></td>
                       <td x-text="detailRiwayat(row)"></td>
                       <td x-text="row._tipe === 'produksi' ? (row.qty ?? '-') : '-'"></td>
                       <td x-text="row._tipe === 'produksi' ? (row.ng ?? '-') : '-'"></td>
                       <td x-text="row._tipe === 'produksi' ? (row.kategori_ng || '-') : '-'"></td>
+                      <td class="mono" x-text="durasiProduksiCell(row)"></td>
+                      <td class="mono" x-text="durasiDandoriCell(row)"></td>
+                      <td class="mono" x-text="breakCell(row)"></td>
+                      <td x-show="routingMax > 0" x-text="row._tipe === 'produksi' ? routingLabel(row) : '-'"></td>
                       <td x-text="row.extra?.top_coil ?? '-'"></td>
                       <td x-text="row.extra?.berat_coil ?? '-'"></td>
-                      <td x-show="routingMax > 0" x-text="row._tipe === 'produksi' ? routingLabel(row) : '-'"></td>
-                      <td x-text="row._tipe === 'dandori' ? (row.keterangan || '-') : '-'"></td>
                       <td>
                         <span class="badge" x-show="row._pending">⏳ Belum sinkron</span>
                         <div class="row-actions" x-show="!row._pending">

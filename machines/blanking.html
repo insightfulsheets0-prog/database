@@ -195,9 +195,10 @@
                     </select>
                   </div>
                 </div>
-                <p class="hint">Klik "Mulai Produksi" begitu part berikutnya mau dikerjakan — ini otomatis menutup non-produksi ini.</p>
-                <div class="form-actions">
+                <p class="hint">"Mulai Produksi" kalau part berikutnya mau dikerjakan sekarang (otomatis menutup non-produksi ini). "Selesai (Tutup Shift)" kalau mesin memang berhenti beroperasi sampai shift berikutnya.</p>
+                <div class="form-actions" style="justify-content:flex-start;">
                   <button type="button" class="btn-primary" @click="clickMulai(st.id)">▶ Mulai Produksi</button>
+                  <button type="button" class="btn-secondary" @click="endNonProduksiAndStop(st.id)">⏹ Selesai (Tutup Shift)</button>
                 </div>
               </div>
 

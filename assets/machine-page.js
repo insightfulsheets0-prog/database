@@ -464,17 +464,33 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       const m = String(stasiun).match(/(\d+)$/);
       return m ? parseInt(m[1], 10) : 0;
     },
-    riwayatGabungan() {
+    // Gabung produksi + non-produksi, urut: HARI dulu (terbaru duluan),
+    // di dalam hari yang sama urut STASIUN (PA/PC kecil ke besar), lalu
+    // di dalam stasiun yang sama urut WAKTU (kronologis) — persis alur
+    // baca laporan Nippo per hari.
+    combinedAll() {
       const prod = this.productionRows.map((r) => ({ ...r, _tipe: "produksi" }));
       const nonProd = this.nonProduksiRows.map((r) => ({ ...r, _tipe: "nonproduksi" }));
       let combined = [...prod, ...nonProd];
 
-      // batasi ke stasiun yang termasuk varian Tandem yang sedang dipilih
       if (this.stationConfig.mode === "variant" && this.tandemVariant) {
         const active = new Set(this.stationConfig.variants[this.tandemVariant]);
         combined = combined.filter((r) => active.has(r.stasiun));
       }
 
+      combined.sort((a, b) => {
+        const dayA = a.waktu_awal.slice(0, 10), dayB = b.waktu_awal.slice(0, 10);
+        if (dayA !== dayB) return dayB.localeCompare(dayA); // hari terbaru duluan
+        if (this.stationConfig.mode !== "none") {
+          const sa = this.stationSortKey(a.stasiun), sb = this.stationSortKey(b.stasiun);
+          if (sa !== sb) return sa - sb; // stasiun kecil ke besar
+        }
+        return new Date(a.waktu_awal) - new Date(b.waktu_awal); // kronologis dalam hari+stasiun yang sama
+      });
+      return combined;
+    },
+    riwayatGabungan() {
+      let combined = this.combinedAll();
       const f = this.riwayatFilter;
       if (f.dari) combined = combined.filter((r) => r.waktu_awal >= f.dari);
       if (f.sampai) combined = combined.filter((r) => r.waktu_awal <= f.sampai + "T23:59:59");
@@ -482,18 +498,12 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         const q = f.part_number.toLowerCase();
         combined = combined.filter((r) => (r._tipe === "produksi" ? r.part_number : r.part_ke || r.part_dari || "").toLowerCase().includes(q));
       }
-
-      if (this.stationConfig.mode !== "none") {
-        // urut stasiun (PA-1..PA-10 numerik) dulu, baru waktu (ascending) di dalam stasiun yang sama
-        combined.sort((a, b) => {
-          const sa = this.stationSortKey(a.stasiun), sb = this.stationSortKey(b.stasiun);
-          if (sa !== sb) return sa - sb;
-          return new Date(a.waktu_awal) - new Date(b.waktu_awal);
-        });
-      } else {
-        combined.sort((a, b) => new Date(b.waktu_awal) - new Date(a.waktu_awal));
-      }
       return combined;
+    },
+    // Cuma buat tab Input Produksi — riwayat hari ini saja, tanpa filter.
+    riwayatHariIni() {
+      const today = new Date().toISOString().slice(0, 10);
+      return this.combinedAll().filter((r) => r.waktu_awal.slice(0, 10) === today);
     },
     resetRiwayatFilter() { this.riwayatFilter = { dari: "", sampai: "", part_number: "" }; },
 

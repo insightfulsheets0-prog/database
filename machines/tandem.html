@@ -50,7 +50,8 @@
     <div class="page-header">
       <h1 class="page-title"><span class="eyebrow">Mesin</span>Tandem</h1>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn-secondary btn-sm" :class="tab==='produksi' ? 'btn-primary' : ''" @click="tab='produksi'">Produksi</button>
+        <button class="btn-secondary btn-sm" :class="tab==='produksi' ? 'btn-primary' : ''" @click="tab='produksi'">Input Produksi</button>
+        <button class="btn-secondary btn-sm" :class="tab==='riwayat' ? 'btn-primary' : ''" @click="tab='riwayat'">Riwayat Produksi</button>
         <button class="btn-secondary btn-sm" :class="tab==='downtime' ? 'btn-primary' : ''" @click="tab='downtime'">Downtime</button>
         <button class="btn-secondary btn-sm" :class="tab==='master' ? 'btn-primary' : ''" @click="tab='master'">Master Data</button>
       </div>
@@ -265,6 +266,56 @@
             </div>
           </template>
 
+          <div class="panel">
+            <p class="panel-title">Riwayat Hari Ini <span class="count" x-text="riwayatHariIni().length + ' baris'"></span></p>
+            <p class="hint" style="margin-bottom:12px;">Riwayat lengkap semua tanggal ada di tab "Riwayat Produksi".</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Kode</th>
+                    <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
+                    <th>Waktu Awal</th><th>Waktu Akhir</th>
+                    <th>Part Number</th><th>Qty</th><th>MP</th>
+                    <th>Dandori</th><th>Downtime</th><th>Break</th>
+                    <th x-show="routingMax > 0">Routing</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in riwayatHariIni()" :key="row._tipe + '-' + row.id">
+                    <tr :class="row._pending ? 'row-pending' : ''">
+                      <td class="mono" x-text="row._tipe === 'produksi' ? (row.kode || (row._pending ? '⏳' : '-')) : '-'"></td>
+                      <td class="mono" x-show="stationConfig.mode !== 'none'" x-text="row.stasiun || '-'"></td>
+                      <td class="mono" x-text="fmt(row.waktu_awal)"></td>
+                      <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
+                      <td x-text="detailRiwayat(row)"></td>
+                      <td x-text="row._tipe === 'produksi' ? (row.qty ?? '-') : '-'"></td>
+                      <td x-text="row._tipe === 'produksi' ? (row.manpower ?? '-') : '-'"></td>
+                      <td class="mono" x-text="row._tipe === 'produksi' ? ((row.dandori_menit ?? 0) + ' mnt') : '-'"></td>
+                      <td class="mono" x-text="row._tipe === 'produksi' ? ((row.downtime_menit ?? 0) + ' mnt') : '-'"></td>
+                      <td class="mono" x-text="row._tipe === 'produksi' ? ((row.break_menit ?? 0) + ' mnt') : '-'"></td>
+                      <td x-show="routingMax > 0" x-text="row._tipe === 'produksi' && row.extra?.routing_type ? (row.extra.routing_type + (row.extra.routing_numbers ? ' ' + row.extra.routing_numbers.join(',') : '')) : '-'"></td>
+                      <td>
+                        <span class="badge" x-show="row._pending">⏳ Belum sinkron</span>
+                        <div class="row-actions" x-show="!row._pending">
+                          <button class="btn-secondary btn-sm" @click="editRiwayat(row)">Edit</button>
+                          <button class="btn-danger btn-sm" @click="deleteRiwayat(row)">Hapus</button>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                  <tr x-show="riwayatHariIni().length === 0">
+                    <td colspan="20" class="empty-state">Belum ada data untuk hari ini.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== TAB RIWAYAT PRODUKSI ===================== -->
+        <div x-show="tab === 'riwayat'">
           <div class="panel" x-show="editingNonProduksiId" x-cloak>
             <p class="panel-title">Edit Data Non-Produksi</p>
             <div class="form-grid">
@@ -285,7 +336,7 @@
           </div>
 
           <div class="panel">
-            <p class="panel-title">Riwayat</p>
+            <p class="panel-title">Riwayat Produksi</p>
             <div class="filter-row">
               <input type="date" x-model="riwayatFilter.dari" title="Dari tanggal">
               <input type="date" x-model="riwayatFilter.sampai" title="Sampai tanggal">

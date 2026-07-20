@@ -6,13 +6,35 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 REBUILD BESAR — Framework Start/Finish baru (baca sebelum upload)
+## 🔧 Yang perlu dikerjakan sekarang (Riwayat per-line, Std MP/CT, edit Non-Produksi)
 
-Konsepnya beda dari sebelumnya: **Dandori/Downtime/Break sekarang jadi
-kolom durasi di baris produksi yang sama** (bukan baris terpisah), waktu
-Mulai/Selesai pakai jam sistem (tidak bisa diketik manual kecuali mode
-edit koreksi), dan ada **Planning Produksi** (rencana part yang disiapkan
-admin/leader, operator tinggal pilih).
+### 1. Jalankan migrasi database
+Di Supabase SQL Editor, jalankan **`migration_std_mp_ct.sql`** (query
+baru). Ini nambah kolom `std_mp` & `std_ct` di `part_numbers`.
+
+### 2. Upload semua file ke GitHub
+Banyak yang berubah — paling aman timpa seluruh isi folder.
+
+### 3. Yang berubah
+- **Riwayat Tandem** sekarang cuma nampilin stasiun sesuai line yang
+  dipilih (TDM Lama = PA-1..5 saja, TDM Baru = PA-6..10 saja), urut dari
+  PA terkecil ke terbesar dulu baru waktu produksi.
+- **Tombol Edit di baris Non-Produksi sekarang benar-benar berfungsi**
+  (kemarin memang belum ada form-nya — sudah ditambahkan).
+- **Master Data > Part Number** sekarang ada field **Std MP** dan
+  **Std CT** (menit/stroke) — **SPM dihitung otomatis** (1 ÷ Std CT).
+- Begitu pilih Part Number di form Produksi, **Jumlah MP otomatis terisi**
+  dari Std MP part itu (operator tetap bisa revisi manual).
+Setelah upload → redeploy → hard refresh:
+- Saat status **Non-Produksi berjalan** (misal "Meeting Akhir Shift"),
+  sekarang ada **2 tombol**: **"Mulai Produksi"** (kalau part berikutnya
+  langsung dikerjakan) dan **"Selesai (Tutup Shift)"** (kalau mesin
+  memang berhenti beroperasi sampai shift berikutnya — mengakhiri
+  operasi hari itu tanpa membuka fase produksi baru).
+
+---
+
+## Ringkasan framework Start/Finish (dari rebuild sebelumnya)
 
 ### 1. Jalankan migrasi database dulu
 Di Supabase SQL Editor, jalankan **`migration_framework_v2.sql`** (query

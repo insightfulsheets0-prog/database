@@ -47,7 +47,7 @@ const MACHINE_OPTIONS = [
 
 // ---------- Combobox custom (ganti <datalist>) ----------
 document.addEventListener("alpine:init", () => {
-  Alpine.data("comboBox", (getOptions, getValue, setValue) => ({
+  Alpine.data("comboBox", (getOptions, getValue, setValue, onChange) => ({
     open: false, query: "",
     init() {
       this.query = getValue() || "";
@@ -59,8 +59,8 @@ document.addEventListener("alpine:init", () => {
       if (!q) return opts.slice(0, 50);
       return opts.filter((o) => o.toLowerCase().includes(q)).slice(0, 50);
     },
-    select(opt) { this.query = opt; setValue(opt); this.open = false; },
-    onInput() { setValue(this.query); this.open = true; },
+    select(opt) { this.query = opt; setValue(opt); if (onChange) onChange(opt); this.open = false; },
+    onInput() { setValue(this.query); if (onChange) onChange(this.query); this.open = true; },
   }));
 });
 
@@ -302,6 +302,16 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       this.lines[stationId].form.part_number = planItem.part_number;
       this.lines[stationId].form.qty = planItem.qty_rencana ?? "";
       this.lines[stationId]._planningId = planItem.id;
+      this.autofillManpower(stationId, planItem.part_number);
+    },
+
+    // Isi Jumlah MP otomatis dari Std MP part number itu (kalau ada) —
+    // operator tetap bisa revisi manual kalau beda dari standar.
+    autofillManpower(stationId, partNumberValue) {
+      const entry = this.partNumberList.find((p) => p.value === partNumberValue);
+      if (entry && entry.std_mp !== null && entry.std_mp !== undefined && entry.std_mp !== "") {
+        this.lines[stationId].form.manpower = entry.std_mp;
+      }
     },
 
     confirmActualStart(stationId) {
@@ -449,10 +459,22 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
 
     // ================= RIWAYAT gabungan + FILTER =================
+    stationSortKey(stasiun) {
+      if (!stasiun) return 0;
+      const m = String(stasiun).match(/(\d+)$/);
+      return m ? parseInt(m[1], 10) : 0;
+    },
     riwayatGabungan() {
       const prod = this.productionRows.map((r) => ({ ...r, _tipe: "produksi" }));
       const nonProd = this.nonProduksiRows.map((r) => ({ ...r, _tipe: "nonproduksi" }));
       let combined = [...prod, ...nonProd];
+
+      // batasi ke stasiun yang termasuk varian Tandem yang sedang dipilih
+      if (this.stationConfig.mode === "variant" && this.tandemVariant) {
+        const active = new Set(this.stationConfig.variants[this.tandemVariant]);
+        combined = combined.filter((r) => active.has(r.stasiun));
+      }
+
       const f = this.riwayatFilter;
       if (f.dari) combined = combined.filter((r) => r.waktu_awal >= f.dari);
       if (f.sampai) combined = combined.filter((r) => r.waktu_awal <= f.sampai + "T23:59:59");
@@ -460,7 +482,17 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         const q = f.part_number.toLowerCase();
         combined = combined.filter((r) => (r._tipe === "produksi" ? r.part_number : r.part_ke || r.part_dari || "").toLowerCase().includes(q));
       }
-      combined.sort((a, b) => new Date(b.waktu_awal) - new Date(a.waktu_awal));
+
+      if (this.stationConfig.mode !== "none") {
+        // urut stasiun (PA-1..PA-10 numerik) dulu, baru waktu (ascending) di dalam stasiun yang sama
+        combined.sort((a, b) => {
+          const sa = this.stationSortKey(a.stasiun), sb = this.stationSortKey(b.stasiun);
+          if (sa !== sb) return sa - sb;
+          return new Date(a.waktu_awal) - new Date(b.waktu_awal);
+        });
+      } else {
+        combined.sort((a, b) => new Date(b.waktu_awal) - new Date(a.waktu_awal));
+      }
       return combined;
     },
     resetRiwayatFilter() { this.riwayatFilter = { dari: "", sampai: "", part_number: "" }; },
@@ -470,6 +502,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       return row.part_ke || row.part_dari || "-";
     },
     fmt(iso) {
+
       if (!iso) return "-";
       return new Date(iso).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
     },
@@ -646,9 +679,13 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
 
     // ================= MASTER DATA =================
     async fetchPartNumbers() {
-      const { data, error } = await supabaseClient.from("part_numbers").select("id, value, next_processes").eq("mesin", machineKey).order("value");
+      const { data, error } = await supabaseClient.from("part_numbers").select("id, value, next_processes, std_mp, std_ct").eq("mesin", machineKey).order("value");
       if (error) { this.flash("Gagal memuat Part Number: " + error.message, true); return; }
-      this.partNumberList = data.map((r) => ({ ...r, editing: false, draft: r.value, draftNextProcesses: (r.next_processes || []).map((p) => ({ ...p, _key: Math.random().toString(36).slice(2) })) }));
+      this.partNumberList = data.map((r) => ({
+        ...r, editing: false, draft: r.value,
+        draftStdMp: r.std_mp ?? "", draftStdCt: r.std_ct ?? "",
+        draftNextProcesses: (r.next_processes || []).map((p) => ({ ...p, _key: Math.random().toString(36).slice(2) })),
+      }));
     },
     async fetchProblems() {
       const { data, error } = await supabaseClient.from("downtime_problems").select("id, value").eq("mesin", machineKey).order("value");
@@ -658,7 +695,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     async learnPartNumber(value) {
       if (!value || this.partNumberList.some((r) => r.value.toLowerCase() === value.toLowerCase())) return;
       const { data, error } = await supabaseClient.from("part_numbers").insert({ mesin: machineKey, value }).select().single();
-      if (!error && data) this.partNumberList.push({ ...data, editing: false, draft: data.value, draftNextProcesses: [] });
+      if (!error && data) this.partNumberList.push({ ...data, editing: false, draft: data.value, draftStdMp: "", draftStdCt: "", draftNextProcesses: [] });
     },
     async learnProblem(value) {
       if (!value || this.problemList.some((r) => r.value.toLowerCase() === value.toLowerCase())) return;
@@ -669,12 +706,14 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       const v = (this.newPartNumberValue || "").trim(); if (!v) return;
       const { data, error } = await supabaseClient.from("part_numbers").insert({ mesin: machineKey, value: v }).select().single();
       if (error) { this.flash("Gagal tambah: " + error.message, true); return; }
-      this.partNumberList.push({ ...data, editing: false, draft: data.value, draftNextProcesses: [] });
+      this.partNumberList.push({ ...data, editing: false, draft: data.value, draftStdMp: "", draftStdCt: "", draftNextProcesses: [] });
       this.partNumberList.sort((a, b) => a.value.localeCompare(b.value));
       this.newPartNumberValue = ""; this.flash("Part number ditambahkan.");
     },
     startEditPartNumber(item) {
       item.draft = item.value;
+      item.draftStdMp = item.std_mp ?? "";
+      item.draftStdCt = item.std_ct ?? "";
       item.draftNextProcesses = (item.next_processes || []).map((p) => ({ ...p, _key: Math.random().toString(36).slice(2) }));
       item.draftNextProcesses.forEach((p) => { if (p.line) this.ensurePartNumbersForLine(p.line); });
       item.editing = true;
@@ -682,13 +721,25 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     cancelEditPartNumber(item) { item.draft = item.value; item.editing = false; },
     addNextProcessRow(item) { item.draftNextProcesses.push({ line: "", part_number: "", _key: Math.random().toString(36).slice(2) }); },
     removeNextProcessRow(item, key) { item.draftNextProcesses = item.draftNextProcesses.filter((p) => p._key !== key); },
+    spmFromCt(ct) {
+      const n = Number(ct);
+      if (!n || n <= 0) return "-";
+      return (1 / n).toFixed(2);
+    },
     async saveMasterPartNumber(item) {
       const v = (item.draft || "").trim(); if (!v) { this.flash("Tidak boleh kosong.", true); return; }
       const clean = item.draftNextProcesses.filter((p) => p.line && p.part_number).map((p) => ({ line: p.line, part_number: p.part_number }));
-      const { data, error } = await supabaseClient.from("part_numbers").update({ value: v, next_processes: clean }).eq("id", item.id).select();
+      const payload = {
+        value: v, next_processes: clean,
+        std_mp: item.draftStdMp === "" ? null : Number(item.draftStdMp),
+        std_ct: item.draftStdCt === "" ? null : Number(item.draftStdCt),
+      };
+      const { data, error } = await supabaseClient.from("part_numbers").update(payload).eq("id", item.id).select();
       if (error) { this.flash("Gagal simpan: " + error.message, true); return; }
       if (!data || data.length === 0) { this.flash("Gagal simpan — cek izin akses.", true); return; }
-      item.value = v; item.next_processes = clean; item.editing = false;
+      item.value = v; item.next_processes = clean;
+      item.std_mp = payload.std_mp; item.std_ct = payload.std_ct;
+      item.editing = false;
       this.flash("Part number diperbarui.");
     },
     async deleteMasterPartNumber(id) {

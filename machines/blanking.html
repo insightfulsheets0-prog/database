@@ -168,7 +168,7 @@
                 <div class="timer-badge">
                   <span class="timer-dot timer-dot-live"></span>
                   <span>Produksi <b x-text="lines[st.id].form.part_number"></b> — mulai aktual <b x-text="fmtClock(lines[st.id].actualStartConfirmedAt)"></b></span>
-                  <button type="button" class="btn-secondary btn-sm" @click="stopProduksi(st.id)">⏹ Selesai Produksi</button>
+                  <button type="button" class="btn-danger btn-finish" @click="stopProduksi(st.id)">⏹ Selesai Produksi</button>
                 </div>
               </div>
 
@@ -259,6 +259,13 @@
                 <div class="planning-col">
                   <p class="panel-subtitle">Aktual Produksi (Hari Ini)</p>
                   <div class="planning-list">
+                    <template x-if="['awaiting_actual_start','running'].includes(lines[st.id].state) && lines[st.id].form.part_number">
+                      <div class="planning-item planning-current">
+                        <span class="timer-dot timer-dot-live"></span>
+                        <span x-text="lines[st.id].form.part_number"></span>
+                        <span class="hint" x-text="(lines[st.id].state === 'running' ? 'sedang produksi' : 'sedang dandori') + ' · mulai ' + fmtClock(lines[st.id].entryStart)"></span>
+                      </div>
+                    </template>
                     <template x-for="r in productionRows.filter(r => (r.stasiun||null) === dbStasiun(st.id) && r.waktu_awal.slice(0,10) === new Date().toISOString().slice(0,10))" :key="r.id">
                       <div class="planning-item">
                         <span x-text="r.part_number"></span>
@@ -304,7 +311,7 @@
                       <td x-text="row._tipe === 'produksi' ? (row.manpower ?? '-') : '-'"></td>
                       <td class="mono" x-text="row._tipe === 'produksi' ? ((row.dandori_menit ?? 0) + ' mnt') : '-'"></td>
                       <td class="mono" x-text="row._tipe === 'produksi' ? ((row.downtime_menit ?? 0) + ' mnt') : '-'"></td>
-                      <td class="mono" x-text="row._tipe === 'produksi' ? ((row.break_menit ?? 0) + ' mnt') : durasiMenit(row.waktu_awal, row.waktu_akhir)"></td>
+                      <td class="mono" x-text="row._tipe === 'produksi' ? ((row.break_menit ?? 0) + ' mnt') : '-'"></td>
                       <td x-show="routingMax > 0" x-text="row._tipe === 'produksi' && row.extra?.routing_type ? (row.extra.routing_type + (row.extra.routing_numbers ? ' ' + row.extra.routing_numbers.join(',') : '')) : '-'"></td>
                       <td>
                         <span class="badge" x-show="row._pending">⏳ Belum sinkron</span>

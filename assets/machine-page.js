@@ -152,6 +152,13 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
 
     editingDowntimeId: null, dtForm: {},
     riwayatFilter: { dari: "", sampai: "", part_number: "" },
+    downtimeFilterProductionId: null, downtimeFilterLabel: "",
+
+    // ---- Performance dashboard ----
+    perfMode: "harian", // 'tahunan' | 'bulanan' | 'harian'
+    perfAnchor: new Date().toISOString().slice(0, 10),
+    perfLoading: false,
+    perfData: null,
 
     isLeaderOrAdmin() {
       return this.profile && ["admin", "leader"].includes(this.profile.role);
@@ -177,6 +184,8 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         this.restoreLocalState();
         this.watchAndAutosave();
         this.refreshPendingCount();
+        this.fetchPerfMetrics();
+        this.$watch("tandemVariant", () => this.fetchPerfMetrics());
         await this.syncNow();
       } catch (err) {
         this.flash("Gagal memuat halaman: " + (err.message || err), true);
@@ -438,6 +447,95 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       const { data, error } = await supabaseClient.from("production_log").select("*").eq("mesin", machineKey).order("waktu_awal", { ascending: false }).limit(500);
       if (error) { this.flash("Gagal memuat data produksi: " + error.message, true); return; }
       this.productionRows = data;
+    },
+    // Diklik dari angka Downtime di tabel Riwayat — loncat ke tab Downtime,
+    // difilter cuma nampilin downtime yang nempel di baris produksi itu.
+    viewDowntimeForProduction(row) {
+      this.downtimeFilterProductionId = row.id;
+      this.downtimeFilterLabel = (row.part_number || "-") + " (" + this.fmt(row.waktu_awal) + ")";
+      this.tab = "downtime";
+    },
+    clearDowntimeFilter() {
+      this.downtimeFilterProductionId = null;
+      this.downtimeFilterLabel = "";
+    },
+    downtimeRowsFiltered() {
+      if (!this.downtimeFilterProductionId) return this.downtimeRows;
+      return this.downtimeRows.filter((r) => r.production_log_id === this.downtimeFilterProductionId);
+    },
+
+    // ================= PERFORMANCE (Tahunan/Bulanan/Harian) =================
+    perfPeriodBounds() {
+      const d = new Date(this.perfAnchor + "T00:00:00");
+      let start, end;
+      if (this.perfMode === "tahunan") {
+        start = new Date(d.getFullYear(), 0, 1);
+        end = new Date(d.getFullYear() + 1, 0, 1);
+      } else if (this.perfMode === "bulanan") {
+        start = new Date(d.getFullYear(), d.getMonth(), 1);
+        end = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      } else {
+        start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      }
+      return { start, end };
+    },
+    perfLabel() {
+      const { start } = this.perfPeriodBounds();
+      if (this.perfMode === "tahunan") return String(start.getFullYear());
+      if (this.perfMode === "bulanan") return start.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+      return start.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
+    },
+    setPerfMode(mode) {
+      this.perfMode = mode;
+      this.fetchPerfMetrics();
+    },
+    shiftPerf(dir) {
+      const d = new Date(this.perfAnchor + "T00:00:00");
+      if (this.perfMode === "tahunan") d.setFullYear(d.getFullYear() + dir);
+      else if (this.perfMode === "bulanan") d.setMonth(d.getMonth() + dir);
+      else d.setDate(d.getDate() + dir);
+      this.perfAnchor = d.toISOString().slice(0, 10);
+      this.fetchPerfMetrics();
+    },
+    async fetchPerfMetrics() {
+      this.perfLoading = true;
+      const { start, end } = this.perfPeriodBounds();
+      let query = supabaseClient
+        .from("production_log")
+        .select("waktu_awal, waktu_akhir, qty, ng, dandori_menit, downtime_menit, break_menit, stasiun")
+        .eq("mesin", machineKey)
+        .gte("waktu_awal", start.toISOString())
+        .lt("waktu_awal", end.toISOString())
+        .limit(50000);
+      const { data, error } = await query;
+      this.perfLoading = false;
+      if (error) { this.flash("Gagal memuat data performance: " + error.message, true); return; }
+
+      let rows = data || [];
+      if (this.stationConfig.mode === "variant" && this.tandemVariant) {
+        const active = new Set(this.stationConfig.variants[this.tandemVariant]);
+        rows = rows.filter((r) => active.has(r.stasiun));
+      }
+
+      let stroke = 0, ng = 0, dandori = 0, downtime = 0, brk = 0, durasiMenitTotal = 0;
+      rows.forEach((r) => {
+        stroke += Number(r.qty) || 0;
+        ng += Number(r.ng) || 0;
+        dandori += Number(r.dandori_menit) || 0;
+        downtime += Number(r.downtime_menit) || 0;
+        brk += Number(r.break_menit) || 0;
+        durasiMenitTotal += (new Date(r.waktu_akhir) - new Date(r.waktu_awal)) / 60000;
+      });
+      const whMenit = Math.max(durasiMenitTotal - brk, 0);
+      const whJam = whMenit / 60;
+      const gsph = whJam > 0 ? stroke / whJam : 0;
+
+      this.perfData = {
+        jumlahBaris: rows.length, stroke, ng, dandoriMenit: Math.round(dandori),
+        downtimeMenit: Math.round(downtime), breakMenit: Math.round(brk),
+        whJam: whJam.toFixed(1), gsph: gsph.toFixed(1),
+      };
     },
     async fetchDowntime() {
       const { data, error } = await supabaseClient.from("downtime_log").select("*").eq("mesin", machineKey).order("waktu_awal", { ascending: false }).limit(300);

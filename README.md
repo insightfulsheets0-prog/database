@@ -6,7 +6,7 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (urutan Riwayat + tab baru)
+## 🔧 Yang perlu dikerjakan sekarang (Performance, hyperlink Downtime, freeze header)
 
 **Tidak ada perubahan database** kali ini.
 
@@ -14,15 +14,18 @@ sinyal (mode offline).
 seluruh isi folder).
 
 ### Yang berubah
-- **Urutan Riwayat diperbaiki** — sekarang grupnya **per hari dulu**
-  (terbaru duluan), baru di dalam hari itu urut stasiun (PA/PC kecil ke
-  besar), baru urut waktu — bukan per stasiun lintas semua tanggal
-  seperti kemarin.
-- **Tab baru: "Riwayat Produksi"** — riwayat lengkap semua tanggal +
-  filter (dari/sampai/Part Number) pindah ke sini.
-- Tab **"Input Produksi"** (nama baru dari "Produksi") sekarang cuma
-  fokus ke hari berjalan: Mulai/Selesai, Planning vs Aktual, dan
-  **"Riwayat Hari Ini"** (tanpa filter, cuma data hari ini) di bawahnya.
+- **Panel Performance** (di tab Riwayat Produksi) — GSPH, Stroke, NG,
+  Total Downtime, Total Dandori, Total Break, Jam Kerja. Bisa digeser
+  **Tahunan / Bulanan / Harian**, navigasi ← Sebelumnya / Berikutnya →.
+- **Angka Downtime** di tabel Riwayat sekarang jadi **link** (kalau > 0)
+  — klik langsung loncat ke tab Downtime, sudah difilter ke downtime
+  milik baris itu saja. Ada tombol "✕ Tampilkan semua" buat lepas filter.
+- **Header tabel di-freeze** — sekarang nempel di atas pas discroll,
+  jadi nama kolom (Kode..Aksi) tetap kelihatan di tabel yang panjang.
+
+---
+
+## Ringkasan pembaruan sebelumnya
 Setelah upload → redeploy → hard refresh:
 - Saat status **Non-Produksi berjalan** (misal "Meeting Akhir Shift"),
   sekarang ada **2 tombol**: **"Mulai Produksi"** (kalau part berikutnya

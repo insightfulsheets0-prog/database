@@ -211,9 +211,13 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 
 /* ---------- Tables ---------- */
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; overflow-y: auto; max-height: 620px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--panel);
   text-align: left;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -529,6 +533,66 @@ td.mono, .mono { font-family: var(--font-mono); }
   font-size: 13px;
 }
 .next-process-row .combo { flex: 1; min-width: 150px; }
+
+/* ---------- Performance dashboard ---------- */
+.perf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.perf-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.perf-period-label {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--amber);
+  min-width: 160px;
+  text-align: center;
+}
+.perf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+.perf-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.perf-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.perf-value {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ---------- Link angka Downtime di Riwayat ---------- */
+.downtime-link {
+  cursor: pointer;
+  color: var(--amber);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.downtime-link:hover { color: var(--text); }
 
 /* ---------- Tampilan Proses Selanjutnya (setelah tersimpan) ---------- */
 .next-process-display {

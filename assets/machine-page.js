@@ -350,6 +350,22 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       this.openPartSelection(stationId, payload.waktu_akhir);
     },
 
+    // Tutup non-produksi (mis. Meeting Akhir Shift) TANPA membuka fase
+    // produksi baru — dipakai untuk mengakhiri operasi mesin di shift ini.
+    async endNonProduksiAndStop(stationId) {
+      const line = this.lines[stationId];
+      const nama = line.nonProdForm.nama;
+      if (!nama) { this.flash("Pilih jenis non-produksi dulu.", true); return; }
+      const payload = {
+        mesin: machineKey, stasiun: this.dbStasiun(stationId),
+        waktu_awal: line.nonProdActiveStart, waktu_akhir: new Date().toISOString(),
+        kategori: "OTHER", part_dari: null, part_ke: nama, keterangan: nama,
+      };
+      await this.saveNonProduksiRow(payload);
+      this.lines[stationId] = this.freshLine();
+      this.flash("Shift ditutup — mesin dianggap tidak beroperasi sampai Mulai Produksi ditekan lagi.");
+    },
+
     async commitProductionRow(stationId) {
       const line = this.lines[stationId];
       const dandoriMenit = Math.round((new Date(line.actualStartConfirmedAt) - new Date(line.entryStart)) / 60000);

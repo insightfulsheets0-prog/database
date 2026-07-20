@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="../assets/style.css">
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="../assets/supabaseClient.js"></script>
 <script src="../assets/machine-page.js"></script>
 </head>
@@ -52,6 +53,7 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn-secondary btn-sm" :class="tab==='produksi' ? 'btn-primary' : ''" @click="tab='produksi'">Input Produksi</button>
         <button class="btn-secondary btn-sm" :class="tab==='riwayat' ? 'btn-primary' : ''" @click="tab='riwayat'">Riwayat Produksi</button>
+        <button class="btn-secondary btn-sm" :class="tab==='performance' ? 'btn-primary' : ''" @click="openPerformanceTab()">Performance</button>
         <button class="btn-secondary btn-sm" :class="tab==='downtime' ? 'btn-primary' : ''" @click="tab='downtime'">Downtime</button>
         <button class="btn-secondary btn-sm" :class="tab==='master' ? 'btn-primary' : ''" @click="tab='master'">Master Data</button>
       </div>
@@ -290,18 +292,18 @@
                       <td class="mono" x-text="fmt(row.waktu_awal)"></td>
                       <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
                       <td x-text="detailRiwayat(row)"></td>
-                      <td x-text="row._tipe === 'produksi' ? (row.qty ?? '-') : '-'"></td>
-                      <td x-text="row._tipe === 'produksi' ? (row.manpower ?? '-') : '-'"></td>
-                      <td class="mono" x-text="row._tipe === 'produksi' ? ((row.dandori_menit ?? 0) + ' mnt') : '-'"></td>
+                      <td x-text="row._tipe === 'produksi' ? fmtNum(row.qty) : '-'"></td>
+                      <td x-text="row._tipe === 'produksi' ? fmtNum(row.manpower) : '-'"></td>
+                      <td class="mono" x-text="row._tipe === 'produksi' ? (fmtNum(row.dandori_menit ?? 0) + ' mnt') : '-'"></td>
                       <td class="mono">
                         <template x-if="row._tipe === 'produksi' && (row.downtime_menit ?? 0) > 0">
-                          <span class="downtime-link" @click="viewDowntimeForProduction(row)" x-text="row.downtime_menit + ' mnt'"></span>
+                          <span class="downtime-link" @click="viewDowntimeForProduction(row)" x-text="fmtNum(row.downtime_menit) + ' mnt'"></span>
                         </template>
                         <template x-if="!(row._tipe === 'produksi' && (row.downtime_menit ?? 0) > 0)">
-                          <span x-text="row._tipe === 'produksi' ? ((row.downtime_menit ?? 0) + ' mnt') : '-'"></span>
+                          <span x-text="row._tipe === 'produksi' ? (fmtNum(row.downtime_menit ?? 0) + ' mnt') : '-'"></span>
                         </template>
                       </td>
-                      <td class="mono" x-text="row._tipe === 'produksi' ? ((row.break_menit ?? 0) + ' mnt') : '-'"></td>
+                      <td class="mono" x-text="row._tipe === 'produksi' ? (fmtNum(row.break_menit ?? 0) + ' mnt') : '-'"></td>
                       <td x-show="routingMax > 0" x-text="row._tipe === 'produksi' && row.extra?.routing_type ? (row.extra.routing_type + (row.extra.routing_numbers ? ' ' + row.extra.routing_numbers.join(',') : '')) : '-'"></td>
                       <td>
                         <span class="badge" x-show="row._pending">⏳ Belum sinkron</span>
@@ -323,35 +325,6 @@
 
         <!-- ===================== TAB RIWAYAT PRODUKSI ===================== -->
         <div x-show="tab === 'riwayat'">
-
-          <div class="panel">
-            <div class="perf-header">
-              <p class="panel-title" style="margin:0;">Performance</p>
-              <div class="chip-row">
-                <button type="button" class="chip" :class="perfMode==='tahunan' ? 'chip-active' : ''" @click="setPerfMode('tahunan')">Tahunan</button>
-                <button type="button" class="chip" :class="perfMode==='bulanan' ? 'chip-active' : ''" @click="setPerfMode('bulanan')">Bulanan</button>
-                <button type="button" class="chip" :class="perfMode==='harian' ? 'chip-active' : ''" @click="setPerfMode('harian')">Harian</button>
-              </div>
-            </div>
-            <div class="perf-nav">
-              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf(-1)">← Sebelumnya</button>
-              <span class="perf-period-label" x-text="perfLabel()"></span>
-              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf(1)">Berikutnya →</button>
-            </div>
-            <template x-if="perfLoading"><p class="empty-state">Menghitung...</p></template>
-            <template x-if="!perfLoading && perfData">
-              <div class="perf-grid">
-                <div class="perf-card"><span class="perf-label">GSPH</span><span class="perf-value" x-text="perfData.gsph"></span></div>
-                <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="perfData.stroke"></span></div>
-                <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="perfData.ng"></span></div>
-                <div class="perf-card"><span class="perf-label">Total Downtime</span><span class="perf-value" x-text="perfData.downtimeMenit + ' mnt'"></span></div>
-                <div class="perf-card"><span class="perf-label">Total Dandori</span><span class="perf-value" x-text="perfData.dandoriMenit + ' mnt'"></span></div>
-                <div class="perf-card"><span class="perf-label">Total Break</span><span class="perf-value" x-text="perfData.breakMenit + ' mnt'"></span></div>
-                <div class="perf-card"><span class="perf-label">Jam Kerja (WH)</span><span class="perf-value" x-text="perfData.whJam + ' jam'"></span></div>
-                <div class="perf-card"><span class="perf-label">Jumlah Data</span><span class="perf-value" x-text="perfData.jumlahBaris"></span></div>
-              </div>
-            </template>
-          </div>
 
           <div class="panel" x-show="editingNonProduksiId" x-cloak>
             <p class="panel-title">Edit Data Non-Produksi</p>
@@ -401,18 +374,18 @@
                       <td class="mono" x-text="fmt(row.waktu_awal)"></td>
                       <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
                       <td x-text="detailRiwayat(row)"></td>
-                      <td x-text="row._tipe === 'produksi' ? (row.qty ?? '-') : '-'"></td>
-                      <td x-text="row._tipe === 'produksi' ? (row.manpower ?? '-') : '-'"></td>
-                      <td class="mono" x-text="row._tipe === 'produksi' ? ((row.dandori_menit ?? 0) + ' mnt') : '-'"></td>
+                      <td x-text="row._tipe === 'produksi' ? fmtNum(row.qty) : '-'"></td>
+                      <td x-text="row._tipe === 'produksi' ? fmtNum(row.manpower) : '-'"></td>
+                      <td class="mono" x-text="row._tipe === 'produksi' ? (fmtNum(row.dandori_menit ?? 0) + ' mnt') : '-'"></td>
                       <td class="mono">
                         <template x-if="row._tipe === 'produksi' && (row.downtime_menit ?? 0) > 0">
-                          <span class="downtime-link" @click="viewDowntimeForProduction(row)" x-text="row.downtime_menit + ' mnt'"></span>
+                          <span class="downtime-link" @click="viewDowntimeForProduction(row)" x-text="fmtNum(row.downtime_menit) + ' mnt'"></span>
                         </template>
                         <template x-if="!(row._tipe === 'produksi' && (row.downtime_menit ?? 0) > 0)">
-                          <span x-text="row._tipe === 'produksi' ? ((row.downtime_menit ?? 0) + ' mnt') : '-'"></span>
+                          <span x-text="row._tipe === 'produksi' ? (fmtNum(row.downtime_menit ?? 0) + ' mnt') : '-'"></span>
                         </template>
                       </td>
-                      <td class="mono" x-text="row._tipe === 'produksi' ? ((row.break_menit ?? 0) + ' mnt') : '-'"></td>
+                      <td class="mono" x-text="row._tipe === 'produksi' ? (fmtNum(row.break_menit ?? 0) + ' mnt') : '-'"></td>
                       <td x-show="routingMax > 0" x-text="row._tipe === 'produksi' && row.extra?.routing_type ? (row.extra.routing_type + (row.extra.routing_numbers ? ' ' + row.extra.routing_numbers.join(',') : '')) : '-'"></td>
                       <td>
                         <span class="badge" x-show="row._pending">⏳ Belum sinkron</span>
@@ -430,6 +403,89 @@
               </table>
             </div>
           </div>
+        </div>
+
+        <!-- ===================== TAB PERFORMANCE ===================== -->
+        <div x-show="tab === 'performance'">
+          <div class="panel">
+            <div class="perf-header">
+              <p class="panel-title" style="margin:0;">Performance Tahunan</p>
+            </div>
+            <div class="perf-nav">
+              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf('tahunan', -1)">← Sebelumnya</button>
+              <span class="perf-period-label" x-text="perfLabel('tahunan')"></span>
+              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf('tahunan', 1)">Berikutnya →</button>
+            </div>
+            <template x-if="perf.tahunan.loading"><p class="empty-state">Menghitung...</p></template>
+            <template x-if="!perf.tahunan.loading && perf.tahunan.data">
+              <div>
+                <div class="perf-grid">
+                  <div class="perf-card"><span class="perf-label">GSPH</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.gsph)"></span></div>
+                  <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.stroke)"></span></div>
+                  <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.ng)"></span></div>
+                  <div class="perf-card"><span class="perf-label">Total Downtime</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.downtimeMenit) + ' mnt'"></span></div>
+                  <div class="perf-card"><span class="perf-label">Total Dandori</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.dandoriMenit) + ' mnt'"></span></div>
+                  <div class="perf-card"><span class="perf-label">Total Break</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.breakMenit) + ' mnt'"></span></div>
+                  <div class="perf-card"><span class="perf-label">Jam Kerja (WH)</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.whJam) + ' jam'"></span></div>
+                  <div class="perf-card"><span class="perf-label">Jumlah Data</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.jumlahBaris)"></span></div>
+                </div>
+                <div class="perf-chart-wrap"><canvas id="perfChart_transfer_2000t_tahunan"></canvas></div>
+              </div>
+            </template>
+          </div>
+          <div class="panel">
+            <div class="perf-header">
+              <p class="panel-title" style="margin:0;">Performance Bulanan</p>
+            </div>
+            <div class="perf-nav">
+              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf('bulanan', -1)">← Sebelumnya</button>
+              <span class="perf-period-label" x-text="perfLabel('bulanan')"></span>
+              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf('bulanan', 1)">Berikutnya →</button>
+            </div>
+            <template x-if="perf.bulanan.loading"><p class="empty-state">Menghitung...</p></template>
+            <template x-if="!perf.bulanan.loading && perf.bulanan.data">
+              <div>
+                <div class="perf-grid">
+                  <div class="perf-card"><span class="perf-label">GSPH</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.gsph)"></span></div>
+                  <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.stroke)"></span></div>
+                  <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.ng)"></span></div>
+                  <div class="perf-card"><span class="perf-label">Total Downtime</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.downtimeMenit) + ' mnt'"></span></div>
+                  <div class="perf-card"><span class="perf-label">Total Dandori</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.dandoriMenit) + ' mnt'"></span></div>
+                  <div class="perf-card"><span class="perf-label">Total Break</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.breakMenit) + ' mnt'"></span></div>
+                  <div class="perf-card"><span class="perf-label">Jam Kerja (WH)</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.whJam) + ' jam'"></span></div>
+                  <div class="perf-card"><span class="perf-label">Jumlah Data</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.jumlahBaris)"></span></div>
+                </div>
+                <div class="perf-chart-wrap"><canvas id="perfChart_transfer_2000t_bulanan"></canvas></div>
+              </div>
+            </template>
+          </div>
+          <div class="panel">
+            <div class="perf-header">
+              <p class="panel-title" style="margin:0;">Performance Harian</p>
+            </div>
+            <div class="perf-nav">
+              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf('harian', -1)">← Sebelumnya</button>
+              <span class="perf-period-label" x-text="perfLabel('harian')"></span>
+              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf('harian', 1)">Berikutnya →</button>
+            </div>
+            <template x-if="perf.harian.loading"><p class="empty-state">Menghitung...</p></template>
+            <template x-if="!perf.harian.loading && perf.harian.data">
+              <div>
+                <div class="perf-grid">
+                  <div class="perf-card"><span class="perf-label">GSPH</span><span class="perf-value" x-text="fmtNum(perf.harian.data.gsph)"></span></div>
+                  <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="fmtNum(perf.harian.data.stroke)"></span></div>
+                  <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="fmtNum(perf.harian.data.ng)"></span></div>
+                  <div class="perf-card"><span class="perf-label">Total Downtime</span><span class="perf-value" x-text="fmtNum(perf.harian.data.downtimeMenit) + ' mnt'"></span></div>
+                  <div class="perf-card"><span class="perf-label">Total Dandori</span><span class="perf-value" x-text="fmtNum(perf.harian.data.dandoriMenit) + ' mnt'"></span></div>
+                  <div class="perf-card"><span class="perf-label">Total Break</span><span class="perf-value" x-text="fmtNum(perf.harian.data.breakMenit) + ' mnt'"></span></div>
+                  <div class="perf-card"><span class="perf-label">Jam Kerja (WH)</span><span class="perf-value" x-text="fmtNum(perf.harian.data.whJam) + ' jam'"></span></div>
+                  <div class="perf-card"><span class="perf-label">Jumlah Data</span><span class="perf-value" x-text="fmtNum(perf.harian.data.jumlahBaris)"></span></div>
+                </div>
+                <div class="perf-chart-wrap"><canvas id="perfChart_transfer_2000t_harian"></canvas></div>
+              </div>
+            </template>
+          </div>
+
         </div>
 
         <!-- ===================== TAB DOWNTIME ===================== -->

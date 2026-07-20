@@ -119,6 +119,12 @@ function computeBreakMinutes(waIso, wkIso) {
   return Math.round(total);
 }
 
+function fmtNum(n) {
+  if (n === null || n === undefined || n === "") return "-";
+  const num = Number(n);
+  if (Number.isNaN(num)) return "-";
+  return num.toLocaleString("en-US", { maximumFractionDigits: 1 });
+}
 function fmtClock(iso) {
   if (!iso) return "";
   return new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
@@ -154,11 +160,12 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     riwayatFilter: { dari: "", sampai: "", part_number: "" },
     downtimeFilterProductionId: null, downtimeFilterLabel: "",
 
-    // ---- Performance dashboard ----
-    perfMode: "harian", // 'tahunan' | 'bulanan' | 'harian'
-    perfAnchor: new Date().toISOString().slice(0, 10),
-    perfLoading: false,
-    perfData: null,
+    // ---- Performance dashboard (3 seksi independen) ----
+    perf: {
+      tahunan: { anchor: new Date().toISOString().slice(0, 10), loading: false, data: null, trend: [], chart: null },
+      bulanan: { anchor: new Date().toISOString().slice(0, 10), loading: false, data: null, trend: [], chart: null },
+      harian: { anchor: new Date().toISOString().slice(0, 10), loading: false, data: null, trend: [], chart: null },
+    },
 
     isLeaderOrAdmin() {
       return this.profile && ["admin", "leader"].includes(this.profile.role);
@@ -184,8 +191,8 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         this.restoreLocalState();
         this.watchAndAutosave();
         this.refreshPendingCount();
-        this.fetchPerfMetrics();
-        this.$watch("tandemVariant", () => this.fetchPerfMetrics());
+        this.fetchAllPerf();
+        this.$watch("tandemVariant", () => this.fetchAllPerf());
         await this.syncNow();
       } catch (err) {
         this.flash("Gagal memuat halaman: " + (err.message || err), true);
@@ -465,51 +472,91 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
 
     // ================= PERFORMANCE (Tahunan/Bulanan/Harian) =================
-    perfPeriodBounds() {
-      const d = new Date(this.perfAnchor + "T00:00:00");
-      let start, end;
-      if (this.perfMode === "tahunan") {
-        start = new Date(d.getFullYear(), 0, 1);
-        end = new Date(d.getFullYear() + 1, 0, 1);
-      } else if (this.perfMode === "bulanan") {
-        start = new Date(d.getFullYear(), d.getMonth(), 1);
-        end = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-      } else {
-        start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
-      }
-      return { start, end };
+    // Konfigurasi tiap seksi: satuan waktu & berapa periode ditampilkan di grafik tren.
+    PERF_CONFIG: {
+      tahunan: { unit: "year", trendCount: 5 },
+      bulanan: { unit: "month", trendCount: 12 },
+      harian: { unit: "day", trendCount: 14 },
     },
-    perfLabel() {
-      const { start } = this.perfPeriodBounds();
-      if (this.perfMode === "tahunan") return String(start.getFullYear());
-      if (this.perfMode === "bulanan") return start.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+    perfBounds(unit, anchorStr, offset = 0) {
+      const d = new Date(anchorStr + "T00:00:00");
+      if (unit === "year") {
+        const y = d.getFullYear() + offset;
+        return { start: new Date(y, 0, 1), end: new Date(y + 1, 0, 1) };
+      }
+      if (unit === "month") {
+        const y = d.getFullYear(), m = d.getMonth() + offset;
+        return { start: new Date(y, m, 1), end: new Date(y, m + 1, 1) };
+      }
+      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate() + offset);
+      return { start, end: new Date(d.getFullYear(), d.getMonth(), d.getDate() + offset + 1) };
+    },
+    perfPeriodLabel(unit, start) {
+      if (unit === "year") return String(start.getFullYear());
+      if (unit === "month") return start.toLocaleDateString("id-ID", { month: "short", year: "numeric" });
+      return start.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+    },
+    perfLabel(section) {
+      const cfg = this.PERF_CONFIG[section];
+      const { start } = this.perfBounds(cfg.unit, this.perf[section].anchor, 0);
+      if (cfg.unit === "year") return String(start.getFullYear());
+      if (cfg.unit === "month") return start.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
       return start.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
     },
-    setPerfMode(mode) {
-      this.perfMode = mode;
-      this.fetchPerfMetrics();
-    },
-    shiftPerf(dir) {
-      const d = new Date(this.perfAnchor + "T00:00:00");
-      if (this.perfMode === "tahunan") d.setFullYear(d.getFullYear() + dir);
-      else if (this.perfMode === "bulanan") d.setMonth(d.getMonth() + dir);
+    shiftPerf(section, dir) {
+      const cfg = this.PERF_CONFIG[section];
+      const d = new Date(this.perf[section].anchor + "T00:00:00");
+      if (cfg.unit === "year") d.setFullYear(d.getFullYear() + dir);
+      else if (cfg.unit === "month") d.setMonth(d.getMonth() + dir);
       else d.setDate(d.getDate() + dir);
-      this.perfAnchor = d.toISOString().slice(0, 10);
-      this.fetchPerfMetrics();
+      this.perf[section].anchor = d.toISOString().slice(0, 10);
+      this.fetchPerfSection(section);
     },
-    async fetchPerfMetrics() {
-      this.perfLoading = true;
-      const { start, end } = this.perfPeriodBounds();
-      let query = supabaseClient
+    // Kelompokkan baris per (stasiun,waktu_awal,waktu_akhir) — supaya stroke
+    // part "separating" (pasangan, waktu sama) tidak dobel hitung (1 stroke
+    // fisik = 1x hitung, walau ada 2+ part number tercatat di waktu yg sama).
+    aggregateBatches(rows) {
+      const batches = new Map();
+      rows.forEach((r) => {
+        const key = (r.stasiun || "") + "|" + r.waktu_awal + "|" + r.waktu_akhir;
+        if (!batches.has(key)) {
+          batches.set(key, {
+            stroke: Number(r.qty) || 0, ng: 0, dandori: Number(r.dandori_menit) || 0,
+            downtime: 0, brk: Number(r.break_menit) || 0,
+            durasiMenit: (new Date(r.waktu_akhir) - new Date(r.waktu_awal)) / 60000,
+          });
+        }
+        const b = batches.get(key);
+        b.ng += Number(r.ng) || 0;
+        b.downtime += Number(r.downtime_menit) || 0; // aman dijumlah, downtime ter-link ke 1 baris spesifik
+      });
+      let stroke = 0, ng = 0, dandori = 0, downtime = 0, brk = 0, durasiMenitTotal = 0;
+      batches.forEach((b) => {
+        stroke += b.stroke; ng += b.ng; dandori += b.dandori;
+        downtime += b.downtime; brk += b.brk; durasiMenitTotal += b.durasiMenit;
+      });
+      const whMenit = Math.max(durasiMenitTotal - brk, 0);
+      const whJam = whMenit / 60;
+      return {
+        stroke, ng, dandoriMenit: Math.round(dandori), downtimeMenit: Math.round(downtime),
+        breakMenit: Math.round(brk), whJam: whJam, gsph: whJam > 0 ? stroke / whJam : 0,
+        jumlahBaris: batches.size,
+      };
+    },
+    async fetchPerfSection(section) {
+      const cfg = this.PERF_CONFIG[section];
+      const st = this.perf[section];
+      st.loading = true;
+      const trendStartBounds = this.perfBounds(cfg.unit, st.anchor, -(cfg.trendCount - 1));
+      const currentBounds = this.perfBounds(cfg.unit, st.anchor, 0);
+      const { data, error } = await supabaseClient
         .from("production_log")
         .select("waktu_awal, waktu_akhir, qty, ng, dandori_menit, downtime_menit, break_menit, stasiun")
         .eq("mesin", machineKey)
-        .gte("waktu_awal", start.toISOString())
-        .lt("waktu_awal", end.toISOString())
+        .gte("waktu_awal", trendStartBounds.start.toISOString())
+        .lt("waktu_awal", currentBounds.end.toISOString())
         .limit(50000);
-      const { data, error } = await query;
-      this.perfLoading = false;
+      st.loading = false;
       if (error) { this.flash("Gagal memuat data performance: " + error.message, true); return; }
 
       let rows = data || [];
@@ -518,24 +565,49 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         rows = rows.filter((r) => active.has(r.stasiun));
       }
 
-      let stroke = 0, ng = 0, dandori = 0, downtime = 0, brk = 0, durasiMenitTotal = 0;
-      rows.forEach((r) => {
-        stroke += Number(r.qty) || 0;
-        ng += Number(r.ng) || 0;
-        dandori += Number(r.dandori_menit) || 0;
-        downtime += Number(r.downtime_menit) || 0;
-        brk += Number(r.break_menit) || 0;
-        durasiMenitTotal += (new Date(r.waktu_akhir) - new Date(r.waktu_awal)) / 60000;
+      const trend = [];
+      for (let i = -(cfg.trendCount - 1); i <= 0; i++) {
+        const { start, end } = this.perfBounds(cfg.unit, st.anchor, i);
+        const periodRows = rows.filter((r) => r.waktu_awal >= start.toISOString() && r.waktu_awal < end.toISOString());
+        const agg = this.aggregateBatches(periodRows);
+        trend.push({ label: this.perfPeriodLabel(cfg.unit, start), ...agg });
+      }
+      st.trend = trend;
+      st.data = trend[trend.length - 1];
+      this.$nextTick(() => this.renderPerfChart(section));
+    },
+    fetchAllPerf() {
+      Object.keys(this.PERF_CONFIG).forEach((s) => this.fetchPerfSection(s));
+    },
+    openPerformanceTab() {
+      this.tab = "performance";
+      this.$nextTick(() => Object.keys(this.PERF_CONFIG).forEach((s) => this.renderPerfChart(s)));
+    },
+    renderPerfChart(section) {
+      const st = this.perf[section];
+      if (!st.trend || st.trend.length === 0) return;
+      const canvasId = "perfChart_" + machineKey + "_" + section;
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || typeof Chart === "undefined") return;
+      if (st.chart) st.chart.destroy();
+      st.chart = new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: st.trend.map((t) => t.label),
+          datasets: [{
+            label: "GSPH", data: st.trend.map((t) => Number(t.gsph.toFixed(1))),
+            backgroundColor: "#e0a63a", borderRadius: 3,
+          }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: "#9aa3ad" }, grid: { display: false } },
+            y: { ticks: { color: "#9aa3ad" }, grid: { color: "#2a2f36" }, beginAtZero: true },
+          },
+        },
       });
-      const whMenit = Math.max(durasiMenitTotal - brk, 0);
-      const whJam = whMenit / 60;
-      const gsph = whJam > 0 ? stroke / whJam : 0;
-
-      this.perfData = {
-        jumlahBaris: rows.length, stroke, ng, dandoriMenit: Math.round(dandori),
-        downtimeMenit: Math.round(downtime), breakMenit: Math.round(brk),
-        whJam: whJam.toFixed(1), gsph: gsph.toFixed(1),
-      };
     },
     async fetchDowntime() {
       const { data, error } = await supabaseClient.from("downtime_log").select("*").eq("mesin", machineKey).order("waktu_awal", { ascending: false }).limit(300);
@@ -615,6 +687,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       return new Date(iso).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
     },
     fmtClock,
+    fmtNum,
     durasiMenit(a, b) {
       if (!a || !b) return "-";
       const d = (new Date(b) - new Date(a)) / 60000;

@@ -6,22 +6,25 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (Performance, hyperlink Downtime, freeze header)
+## 🔧 Yang perlu dikerjakan sekarang (tab Performance terpisah + grafik + koreksi GSPH)
 
-**Tidak ada perubahan database** kali ini.
+**Tidak ada perubahan database.**
 
 **Upload semua file** ke GitHub (banyak yang berubah, paling aman timpa
 seluruh isi folder).
 
 ### Yang berubah
-- **Panel Performance** (di tab Riwayat Produksi) — GSPH, Stroke, NG,
-  Total Downtime, Total Dandori, Total Break, Jam Kerja. Bisa digeser
-  **Tahunan / Bulanan / Harian**, navigasi ← Sebelumnya / Berikutnya →.
-- **Angka Downtime** di tabel Riwayat sekarang jadi **link** (kalau > 0)
-  — klik langsung loncat ke tab Downtime, sudah difilter ke downtime
-  milik baris itu saja. Ada tombol "✕ Tampilkan semua" buat lepas filter.
-- **Header tabel di-freeze** — sekarang nempel di atas pas discroll,
-  jadi nama kolom (Kode..Aksi) tetap kelihatan di tabel yang panjang.
+- **Tab baru "Performance"** (terpisah dari Riwayat Produksi) — isinya
+  **3 bagian sekaligus**: Tahunan, Bulanan, Harian — masing-masing punya
+  navigasi ← Sebelumnya / Berikutnya → sendiri-sendiri, tidak saling
+  toggle.
+- Tiap bagian sekarang tampil **angka + grafik batang** (tren GSPH
+  beberapa periode terakhir — 5 tahun / 12 bulan / 14 hari).
+- **Koreksi bug GSPH**: sebelumnya stroke part "separating" (pasangan,
+  waktu sama) ke-dobel-hitung. Sekarang dihitung sekali per waktu
+  produksi, sesuai cara sumber datanya sendiri menghitung.
+- **Angka besar sekarang pakai pemisah ribuan** (14,000 bukan 14000) di
+  tabel Riwayat maupun panel Performance.
 
 ---
 

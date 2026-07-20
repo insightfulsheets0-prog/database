@@ -445,6 +445,17 @@ td.mono, .mono { font-family: var(--font-mono); }
 }
 .planning-item.planning-done { opacity: 0.5; text-decoration: line-through; }
 .planning-item .hint { margin-left: auto; }
+.planning-item.planning-current {
+  background: rgba(76,175,125,0.12);
+  border: 1px solid var(--green);
+}
+
+/* Tombol Selesai Produksi — sengaja dibikin menonjol */
+.btn-finish {
+  padding: 12px 22px;
+  font-size: 14px;
+  box-shadow: 0 0 0 1px rgba(229,87,92,0.3);
+}
 
 /* ---------- Filter Riwayat ---------- */
 .filter-row {

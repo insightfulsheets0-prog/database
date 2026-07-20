@@ -426,9 +426,8 @@
               <p class="panel-title" style="margin:0;">Performance Tahunan</p>
             </div>
             <div class="perf-nav">
-              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf('tahunan', -1)">← Sebelumnya</button>
+              <input type="number" min="2000" max="2100" :value="perfYearValue('tahunan')" @change="setPerfYear('tahunan', $event.target.value)">
               <span class="perf-period-label" x-text="perfLabel('tahunan')"></span>
-              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf('tahunan', 1)">Berikutnya →</button>
             </div>
             <template x-if="perf.tahunan.loading"><p class="empty-state">Menghitung...</p></template>
             <template x-if="!perf.tahunan.loading && perf.tahunan.data">
@@ -452,9 +451,8 @@
               <p class="panel-title" style="margin:0;">Performance Bulanan</p>
             </div>
             <div class="perf-nav">
-              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf('bulanan', -1)">← Sebelumnya</button>
+              <input type="month" :value="perfMonthValue('bulanan')" @change="setPerfMonth('bulanan', $event.target.value)">
               <span class="perf-period-label" x-text="perfLabel('bulanan')"></span>
-              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf('bulanan', 1)">Berikutnya →</button>
             </div>
             <template x-if="perf.bulanan.loading"><p class="empty-state">Menghitung...</p></template>
             <template x-if="!perf.bulanan.loading && perf.bulanan.data">
@@ -478,9 +476,8 @@
               <p class="panel-title" style="margin:0;">Performance Harian</p>
             </div>
             <div class="perf-nav">
-              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf('harian', -1)">← Sebelumnya</button>
+              <input type="date" :value="perf.harian.anchor" @change="setPerfDate('harian', $event.target.value)">
               <span class="perf-period-label" x-text="perfLabel('harian')"></span>
-              <button type="button" class="btn-secondary btn-sm" @click="shiftPerf('harian', 1)">Berikutnya →</button>
             </div>
             <template x-if="perf.harian.loading"><p class="empty-state">Menghitung...</p></template>
             <template x-if="!perf.harian.loading && perf.harian.data">

@@ -503,75 +503,72 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       if (cfg.unit === "month") return start.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
       return start.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
     },
-    shiftPerf(section, dir) {
-      const cfg = this.PERF_CONFIG[section];
+    // ---- Picker langsung (ganti tombol geser) ----
+    perfYearValue(section) {
+      return new Date(this.perf[section].anchor + "T00:00:00").getFullYear();
+    },
+    perfMonthValue(section) {
+      return this.perf[section].anchor.slice(0, 7); // 'YYYY-MM'
+    },
+    setPerfYear(section, val) {
+      const y = parseInt(val, 10);
+      if (!y || y < 1900) return;
       const d = new Date(this.perf[section].anchor + "T00:00:00");
-      if (cfg.unit === "year") d.setFullYear(d.getFullYear() + dir);
-      else if (cfg.unit === "month") d.setMonth(d.getMonth() + dir);
-      else d.setDate(d.getDate() + dir);
+      d.setFullYear(y);
       this.perf[section].anchor = d.toISOString().slice(0, 10);
       this.fetchPerfSection(section);
     },
-    // Kelompokkan baris per (stasiun,waktu_awal,waktu_akhir) — supaya stroke
-    // part "separating" (pasangan, waktu sama) tidak dobel hitung (1 stroke
-    // fisik = 1x hitung, walau ada 2+ part number tercatat di waktu yg sama).
-    aggregateBatches(rows) {
-      const batches = new Map();
-      rows.forEach((r) => {
-        const key = (r.stasiun || "") + "|" + r.waktu_awal + "|" + r.waktu_akhir;
-        if (!batches.has(key)) {
-          batches.set(key, {
-            stroke: Number(r.qty) || 0, ng: 0, dandori: Number(r.dandori_menit) || 0,
-            downtime: 0, brk: Number(r.break_menit) || 0,
-            durasiMenit: (new Date(r.waktu_akhir) - new Date(r.waktu_awal)) / 60000,
-          });
-        }
-        const b = batches.get(key);
-        b.ng += Number(r.ng) || 0;
-        b.downtime += Number(r.downtime_menit) || 0; // aman dijumlah, downtime ter-link ke 1 baris spesifik
-      });
-      let stroke = 0, ng = 0, dandori = 0, downtime = 0, brk = 0, durasiMenitTotal = 0;
-      batches.forEach((b) => {
-        stroke += b.stroke; ng += b.ng; dandori += b.dandori;
-        downtime += b.downtime; brk += b.brk; durasiMenitTotal += b.durasiMenit;
-      });
-      const whMenit = Math.max(durasiMenitTotal - brk, 0);
-      const whJam = whMenit / 60;
-      return {
-        stroke, ng, dandoriMenit: Math.round(dandori), downtimeMenit: Math.round(downtime),
-        breakMenit: Math.round(brk), whJam: whJam, gsph: whJam > 0 ? stroke / whJam : 0,
-        jumlahBaris: batches.size,
-      };
+    setPerfMonth(section, val) {
+      if (!val) return; // val = 'YYYY-MM'
+      this.perf[section].anchor = val + "-01";
+      this.fetchPerfSection(section);
     },
+    setPerfDate(section, val) {
+      if (!val) return; // val = 'YYYY-MM-DD'
+      this.perf[section].anchor = val;
+      this.fetchPerfSection(section);
+    },
+    // ---- Ambil agregat lewat fungsi database (bukan tarik baris mentah ke
+    // browser) — supaya tidak kepotong batas baris utk periode/mesin besar. ----
     async fetchPerfSection(section) {
       const cfg = this.PERF_CONFIG[section];
       const st = this.perf[section];
       st.loading = true;
-      const trendStartBounds = this.perfBounds(cfg.unit, st.anchor, -(cfg.trendCount - 1));
-      const currentBounds = this.perfBounds(cfg.unit, st.anchor, 0);
-      const { data, error } = await supabaseClient
-        .from("production_log")
-        .select("waktu_awal, waktu_akhir, qty, ng, dandori_menit, downtime_menit, break_menit, stasiun")
-        .eq("mesin", machineKey)
-        .gte("waktu_awal", trendStartBounds.start.toISOString())
-        .lt("waktu_awal", currentBounds.end.toISOString())
-        .limit(50000);
-      st.loading = false;
-      if (error) { this.flash("Gagal memuat data performance: " + error.message, true); return; }
 
-      let rows = data || [];
-      if (this.stationConfig.mode === "variant" && this.tandemVariant) {
-        const active = new Set(this.stationConfig.variants[this.tandemVariant]);
-        rows = rows.filter((r) => active.has(r.stasiun));
-      }
+      const stasiunList = (this.stationConfig.mode === "variant" && this.tandemVariant)
+        ? this.stationConfig.variants[this.tandemVariant]
+        : null;
 
-      const trend = [];
+      const periods = [];
       for (let i = -(cfg.trendCount - 1); i <= 0; i++) {
         const { start, end } = this.perfBounds(cfg.unit, st.anchor, i);
-        const periodRows = rows.filter((r) => r.waktu_awal >= start.toISOString() && r.waktu_awal < end.toISOString());
-        const agg = this.aggregateBatches(periodRows);
-        trend.push({ label: this.perfPeriodLabel(cfg.unit, start), ...agg });
+        periods.push({ start, end, label: this.perfPeriodLabel(cfg.unit, start) });
       }
+
+      const results = await Promise.all(periods.map((p) =>
+        supabaseClient.rpc("performance_aggregate", {
+          p_mesin: machineKey, p_stasiun_list: stasiunList,
+          p_start: p.start.toISOString(), p_end: p.end.toISOString(),
+        })
+      ));
+      st.loading = false;
+
+      const anyError = results.find((r) => r.error);
+      if (anyError) { this.flash("Gagal memuat data performance: " + anyError.error.message, true); return; }
+
+      const trend = periods.map((p, idx) => {
+        const row = (results[idx].data && results[idx].data[0]) || {};
+        const whJam = (Number(row.wh_menit) || 0) / 60;
+        const stroke = Number(row.stroke) || 0;
+        return {
+          label: p.label, stroke, ng: Number(row.ng) || 0,
+          dandoriMenit: Math.round(Number(row.dandori_menit) || 0),
+          downtimeMenit: Math.round(Number(row.downtime_menit) || 0),
+          breakMenit: Math.round(Number(row.break_menit) || 0),
+          whJam, gsph: whJam > 0 ? stroke / whJam : 0,
+          jumlahBaris: Number(row.jumlah_baris) || 0,
+        };
+      });
       st.trend = trend;
       st.data = trend[trend.length - 1];
       this.$nextTick(() => this.renderPerfChart(section));

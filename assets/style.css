@@ -549,6 +549,17 @@ td.mono, .mono { font-family: var(--font-mono); }
   gap: 14px;
   margin-bottom: 16px;
 }
+.perf-nav input[type="number"],
+.perf-nav input[type="month"],
+.perf-nav input[type="date"] {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+}
 .perf-period-label {
   font-family: var(--font-display);
   font-size: 15px;

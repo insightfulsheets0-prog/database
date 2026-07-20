@@ -6,25 +6,31 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (tab Performance terpisah + grafik + koreksi GSPH)
+## 🔧 Yang perlu dikerjakan sekarang (perbaikan bug agregasi Performance)
 
-**Tidak ada perubahan database.**
+### 1. Jalankan migrasi database
+Di Supabase SQL Editor, jalankan **`migration_performance_aggregate.sql`**
+(query baru). Ini bikin fungsi `performance_aggregate` yang menjumlahkan
+data **di database**, bukan ditarik mentah ke browser.
 
-**Upload semua file** ke GitHub (banyak yang berubah, paling aman timpa
-seluruh isi folder).
+### 2. Upload semua file ke GitHub
 
-### Yang berubah
-- **Tab baru "Performance"** (terpisah dari Riwayat Produksi) — isinya
-  **3 bagian sekaligus**: Tahunan, Bulanan, Harian — masing-masing punya
-  navigasi ← Sebelumnya / Berikutnya → sendiri-sendiri, tidak saling
-  toggle.
-- Tiap bagian sekarang tampil **angka + grafik batang** (tren GSPH
-  beberapa periode terakhir — 5 tahun / 12 bulan / 14 hari).
-- **Koreksi bug GSPH**: sebelumnya stroke part "separating" (pasangan,
-  waktu sama) ke-dobel-hitung. Sekarang dihitung sekali per waktu
-  produksi, sesuai cara sumber datanya sendiri menghitung.
-- **Angka besar sekarang pakai pemisah ribuan** (14,000 bukan 14000) di
-  tabel Riwayat maupun panel Performance.
+### Yang diperbaiki
+- **Bug ketemu**: grafik & angka Performance sebelumnya menarik SEMUA
+  baris mentah ke browser lalu dijumlah di sana, dibatasi 50.000 baris
+  **tanpa urutan yang jelas** — untuk mesin/periode dengan data banyak,
+  batas itu kepotong di tengah dan bulan-bulan lama hilang dari
+  perhitungan (ini penyebab grafik Maret 2026 cuma nampilin Nov-Mar, dan
+  kemungkinan besar juga penyebab GSPH salah di Blanking). Sekarang
+  penjumlahan dipindah ke database — tidak ada lagi batas baris.
+- **Navigasi diganti jadi pilihan langsung** — Tahunan: pilih angka
+  tahun. Bulanan: date-picker bulan. Harian: date-picker tanggal.
+  Tombol geser Sebelumnya/Berikutnya dihapus.
+
+### Kalau GSPH Blanking masih salah setelah ini
+Kabari saya dengan **contoh angka konkret** (periode + angka yang
+tampil vs yang Anda harapkan) — supaya saya bisa lacak persis, karena
+saya tidak bisa melihat langsung tampilan di app Anda.
 
 ---
 

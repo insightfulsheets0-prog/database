@@ -400,6 +400,72 @@ td.mono, .mono { font-family: var(--font-mono); }
   font-size: 14px;
 }
 
+/* ---------- Planning vs Aktual ---------- */
+.planning-actual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+.panel-subtitle {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 10px;
+}
+.planning-add-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.planning-add-row input, .planning-add-row .combo {
+  flex: 1;
+  min-width: 100px;
+}
+.planning-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.planning-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-2);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.planning-item.planning-done { opacity: 0.5; text-decoration: line-through; }
+.planning-item .hint { margin-left: auto; }
+
+/* ---------- Filter Riwayat ---------- */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.filter-row input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+@media (max-width: 800px) {
+  .planning-actual-grid { grid-template-columns: 1fr; }
+}
+
 /* ---------- Combobox custom (ganti <datalist>, lebih konsisten di HP) ---------- */
 .combo { position: relative; }
 .combo input {

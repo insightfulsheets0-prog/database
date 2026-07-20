@@ -1,167 +1,108 @@
 # Sistem Input Produksi & Downtime
 
 Aplikasi web (HTML + Alpine.js + Supabase) untuk mencatat data produksi dan
-downtime 5 mesin: Tandem, Blanking, Transfer 2000t, Transfer 800t, PC200t.
-Tidak butuh `npm install` — semua library dipanggil lewat CDN. Bisa
-di-install seperti app di HP (PWA), dan tetap bisa dipakai walau sinyal
-sedang tidak ada (mode offline).
+downtime 5 mesin. Bisa diinstall di HP (PWA) dan tetap bisa dipakai tanpa
+sinyal (mode offline).
 
-## 1. Setup Supabase (5 menit)
+---
 
-1. Buat akun & project baru di https://supabase.com (gratis).
-2. Buka **SQL Editor** di dashboard Supabase → tempel isi file `schema.sql`
-   dari folder ini → klik **Run**. Ini membuat semua tabel yang dibutuhkan,
-   termasuk tabel master data untuk dropdown Part Number & Problem.
-3. Lanjut tempel isi file **`seed.sql`** → klik **Run** — ini mengisi
-   dropdown Part Number & Problem dengan data dari Excel lama Anda supaya
-   langsung terisi, tidak mulai dari kosong.
-4. Buka **Project Settings > API Keys** → salin:
-   - `Project URL` (ada di tab **Connect**, atau atas halaman API Keys)
-   - Kunci untuk client-side: kalau project baru, pakai
-     **`sb_publishable_...`** (tab *Publishable and secret API keys*); kalau
-     project lama, pakai `anon public` di tab *Legacy API Keys*. Keduanya
-     dipakai dengan cara yang sama.
-5. Buka file `assets/supabaseClient.js`, ganti:
-   ```js
-   const SUPABASE_URL = "GANTI_DENGAN_PROJECT_URL_ANDA";
-   const SUPABASE_ANON_KEY = "GANTI_DENGAN_ANON_KEY_ANDA";
-   ```
-   dengan nilai yang Anda salin tadi.
-6. (Disarankan untuk internal tool) Matikan verifikasi email supaya user
-   bisa langsung login setelah daftar: **Authentication > Providers >
-   Email** → matikan "Confirm email".
+## 🔧 REBUILD BESAR — Framework Start/Finish baru (baca sebelum upload)
 
-**Kalau Supabase Anda sudah berjalan sebelumnya** (sudah ada data produksi),
-jangan run `schema.sql` dari awal lagi (akan error karena tabel lama sudah
-ada). Cukup jalankan **`migration_add_master_data.sql`** untuk nambah dua
-tabel baru (part number & problem), lalu `seed.sql`.
+Konsepnya beda dari sebelumnya: **Dandori/Downtime/Break sekarang jadi
+kolom durasi di baris produksi yang sama** (bukan baris terpisah), waktu
+Mulai/Selesai pakai jam sistem (tidak bisa diketik manual kecuali mode
+edit koreksi), dan ada **Planning Produksi** (rencana part yang disiapkan
+admin/leader, operator tinggal pilih).
 
-## 2. Coba lokal dulu (opsional)
+### 1. Jalankan migrasi database dulu
+Di Supabase SQL Editor, jalankan **`migration_framework_v2.sql`** (query
+baru). Ini nambah kolom (`dandori_menit`, `downtime_menit`, `manpower` di
+`production_log`), role baru **`leader`**, tabel baru
+**`production_planning`** dan **`nonproduksi_types`**, plus validasi
+otomatis supaya Downtime tidak bisa melintasi 2 part sekaligus.
 
-Karena semua file di sini pakai `<script>` tag biasa (bukan ES module),
-Anda tidak perlu server apa pun — klik kanan `login.html` → **Open with**
-→ Chrome/Edge, lalu coba daftar akun langsung dari situ. Tekan `F12` →
-tab **Console** kalau ada error yang perlu dicek.
+### 2. Upload SEMUA file ke GitHub
+Timpa seluruh isi folder — paling aman upload ulang semuanya (bukan file
+tertentu saja), karena hampir semua bagian ikut berubah.
 
-## 3. Deploy gratis ke Vercel via GitHub
+### 3. Cara pakai alur baru
+- **Mulai Produksi** — kalau ada jeda sejak kejadian terakhir (dijepit ke
+  jadwal shift, tidak salah hitung lintas hari/shift), pilih dulu jenis
+  Non-Produksi-nya (Meeting Awal Shift, dll — kelola daftarnya di Master
+  Data). Habis itu pilih Part Number (dari Planning kalau sudah
+  disiapkan, atau ketik bebas) → masuk fase **"Dandori"**.
+- Begitu produksi aktual (stroke) betulan mulai, klik **"Konfirmasi
+  Produksi Mulai"** — sistem hitung otomatis berapa menit Dandori-nya.
+- **Selesai Produksi** → langsung pilih lanjut **Setup** (part
+  berikutnya) atau **Non-Produksi**.
+- **Break** terisi otomatis sesuai jadwal shift, tidak perlu input manual.
+- **Downtime** — sekarang wajib pilih Stasiun (Tandem/PC200t), dan
+  waktunya harus pas di dalam satu part; kalau melintasi 2 part, sistem
+  menolak dengan pesan error.
+- **Planning Produksi** — tampil di bawah tombol Mulai/Selesai tiap
+  stasiun; cuma **admin & leader** yang bisa nambah/hapus, operator cuma
+  lihat & pilih.
+- Role **leader** baru — jadikan seseorang leader lewat Supabase **Table
+  Editor > profiles** → ubah kolom `role` jadi `leader` (sama caranya
+  seperti menjadikan admin).
 
-1. Buat repo baru di GitHub → beri nama bebas → **Public** atau **Private**
-   sama-sama boleh.
-2. Masuk ke tab **Code** repo Anda → cari link **"uploading an existing
-   file"** (kalau repo masih kosong) atau tombol hijau **Add file > Upload
-   files** (kalau sudah ada isinya).
-3. **Penting:** buka folder project ini di komputer Anda, **select semua
-   isinya** (`login.html`, `index.html`, `schema.sql`, `seed.sql`,
-   `migration_add_master_data.sql`, `manifest.json`, `service-worker.js`,
-   `README.md`, folder `assets`, folder `machines`) — **jangan** drag
-   folder pembungkusnya sendiri, supaya semua file mendarat di root repo,
-   bukan terbungkus satu folder lagi.
-4. Commit changes.
-5. Buka https://vercel.com → login pakai akun GitHub → **Add New Project**
-   → pilih repo tadi → **Deploy**. Tidak perlu ubah setting apa pun.
-6. **Wajib dicek:** buka project di Vercel → **Settings > Deployment
-   Protection** → pastikan **Vercel Authentication** dalam keadaan
-   **Disabled**. Kalau menyala, app tidak bisa diakses publik/dari HP
-   (file CSS/JS akan diblokir).
-7. Pakai URL **Production** yang stabil (cek di **Settings > Domains**),
-   jangan URL per-deployment yang kodenya berubah tiap upload.
+### Yang saya TUNDA
+- **Export ke Excel** (format kolom A-W persis Nippo) — dibangun setelah
+  alur baru ini jalan lancar dan datanya konsisten dulu.
+- **Data historis (FY2024/Juni 2026)** belum disesuaikan ke skema baru
+  ini (kolom `dandori_menit` dll) — kabari kalau mau diproses ulang.
 
-## 4. Cara pakai
+---
 
-1. Buka `login.html` (atau URL Vercel Anda) → klik **Daftar di sini** untuk
-   buat akun pertama (jadi operator secara default).
-2. Untuk menjadikan seseorang **admin**: Supabase Dashboard → **Table
-   Editor > profiles** → ubah kolom `role` jadi `admin`.
-3. Pilih mesin dari sidebar → tab **Produksi** atau **Downtime**.
-4. Semua user bisa **edit** dan **hapus** baris data apa pun.
+## Setup awal (kalau install dari nol)
 
-## 5. Cara pakai fitur baru
+1. Buat project di https://supabase.com → **SQL Editor** → jalankan
+   `schema.sql`, lalu (query baru, terpisah) `seed.sql`, lalu semua
+   `migration_*.sql` secara berurutan sesuai tanggal file-nya.
+2. **Project Settings > API Keys** → salin `Project URL` dan key
+   `sb_publishable_...` (atau `anon public` untuk project lama) → isi ke
+   `assets/supabaseClient.js`.
+3. **Authentication > Providers > Email** → matikan "Confirm email".
+4. Upload semua isi folder ini ke repo GitHub baru (isi folder, bukan
+   folder pembungkusnya) → connect ke Vercel → Deploy.
+5. Di Vercel: **Settings > Deployment Protection** → pastikan **Vercel
+   Authentication = Disabled**.
+6. Buka `login.html` → Daftar akun pertama. Jadikan admin lewat Supabase
+   **Table Editor > profiles** → ubah `role` jadi `admin`.
 
-**Timer Start/Stop** — menggantikan input waktu manual untuk data baru:
-- Klik **▶ Mulai** saat produksi/downtime dimulai — waktu awal otomatis
-  tercatat.
-- Form (Part Number, Qty, Routing, dst untuk produksi; Kategori/Problem
-  untuk downtime) langsung muncul dan bisa diisi sambil proses berjalan.
-- Klik **⏹ Selesai** saat selesai — waktu akhir tercatat.
-- Klik **Simpan Data** untuk commit ke database.
-- Mengedit data lama tetap pakai waktu yang sudah tersimpan (tidak pakai
-  timer, karena itu untuk koreksi data, bukan pencatatan baru).
+## Fitur ringkas
 
-**Routing (Tandem 1-8, PC200t 1-2)** — muncul di form Produksi:
-1. Pilih **WIP** atau **FG** dulu.
-2. Setelah itu tombol angka routing muncul — bisa tap lebih dari satu
-   angka sekaligus.
+- **Start/Finish presisi per-shift** dengan klasifikasi jeda otomatis
+  (Non-Produksi) dan konfirmasi mulai aktual (Dandori tercatat otomatis).
+- **Multi-stasiun** — Tandem (TDM Lama PA-1..5 / TDM Baru PA-6..10) & PC200t
+  (PC-1, PC-2) jalan independen; mesin lain tetap 1 line.
+- **Planning Produksi** — rencana part (admin/leader) vs aktual, tampil
+  berdampingan per stasiun.
+- **Downtime tervalidasi** — wajib pas di satu baris produksi, tidak
+  boleh melintasi part lain.
+- **Riwayat gabungan** dengan filter tanggal & Part Number.
+- **Dropdown custom** (Part Number, Problem, Proses Selanjutnya) — bukan
+  `<datalist>` bawaan, konsisten di HP maupun desktop.
+- **Mode offline** — data baru tetap tersimpan tanpa sinyal, disinkron
+  otomatis saat online lagi.
+- **PWA** — bisa diinstall dari HP seperti app biasa.
 
-**Dropdown Part Number & Problem** — ketik untuk mencari dari daftar yang
-sudah ada (hasil seed dari Excel lama), atau ketik nilai baru yang belum
-ada di daftar — otomatis tersimpan untuk dipakai lagi di kemudian hari,
-tidak perlu tambah manual dulu di Supabase.
-
-**Mode offline** — kalau sinyal hilang saat isi form:
-- Data yang baru (bukan edit) tetap bisa disimpan — muncul badge
-  **⏳ Belum sinkron** di tabel riwayat.
-- Begitu HP terhubung internet lagi, data otomatis terkirim ke Supabase
-  (dicoba setiap 20 detik, dan langsung dicoba saat koneksi kembali).
-- Indikator 🟢 Online / 🔴 Offline ada di pojok kiri bawah (sidebar).
-- **Catatan:** ini menampung data di penyimpanan browser HP tsb, jadi
-  jangan hapus data browser/cache sebelum data sempat tersinkron. Edit dan
-  hapus data tetap butuh koneksi aktif (tidak diantrikan offline).
-
-## 6. Install sebagai app di HP (PWA)
-
-Bisa di-"install" dari browser HP dan buka seperti app biasa (ikon di
-homescreen, layar penuh), tanpa Play Store/App Store. Syaratnya app harus
-online lewat HTTPS (setelah deploy ke Vercel).
-
-**Android (Chrome):** buka URL Vercel Anda → login → Chrome menampilkan
-banner **"Install app"** di bawah, atau menu titik tiga (⋮) → **Install
-app**.
-
-**iPhone (Safari):** buka URL Vercel Anda di Safari → ikon **Share** →
-**"Add to Home Screen"**.
-
-Setelah ter-install: tampilan full-screen, menu hamburger (☰) menggantikan
-sidebar, target tombol/input diperbesar untuk operator di lapangan.
-
-## 7. Struktur project
+## Struktur project
 
 ```
-├── login.html                    # Halaman login & daftar akun
-├── index.html                     # Dashboard / menu pilih mesin
-├── manifest.json                   # Identitas PWA (ikon, nama app)
-├── service-worker.js               # Bikin app bisa di-install + cache tampilan
-├── schema.sql                      # Jalankan sekali di Supabase (project baru)
-├── migration_add_master_data.sql   # Jalankan ini kalau Supabase sudah berjalan
-├── seed.sql                        # Isi awal dropdown Part Number & Problem
-├── machines/
-│   ├── tandem.html
-│   ├── blanking.html
-│   ├── transfer-2000t.html
-│   ├── transfer-800t.html
-│   └── pc200t.html
+├── login.html / index.html
+├── manifest.json / service-worker.js          # PWA
+├── schema.sql                                  # Jalankan sekali (project baru)
+├── seed.sql                                     # Isi awal Part Number & Problem
+├── migration_*.sql                              # Jalankan berurutan kalau Supabase sudah berjalan
+├── machines/*.html                              # 5 halaman mesin
 └── assets/
-    ├── style.css                   # Tema tampilan
-    ├── supabaseClient.js           # ISI URL & KEY SUPABASE ANDA DI SINI
-    ├── machine-page.js             # Logika CRUD + timer + offline queue
-    └── icons/                      # Ikon PWA
+    ├── style.css
+    ├── supabaseClient.js                        # ISI URL & KEY SUPABASE DI SINI
+    └── machine-page.js
 ```
 
-## 8. Import data lama dari Excel (opsional)
+## Kalau ada bug/error
 
-Data lama di `Data_Downtime.xlsx` dan `Data_Laporan_Produksi.xlsx` bisa
-dimasukkan ke Supabase dengan export CSV per sheet lalu **Table Editor >
-Insert > Import data from CSV** di Supabase — kolom spesifik mesin (mis.
-`top_coil`) masuk sebagai JSON di kolom `extra`. Kalau datanya banyak dan
-rumit, lebih gampang minta bantuan lagi untuk dibuatkan script import
-otomatis.
-
-## 9. Kenapa arsitektur ini dipilih
-
-- **Supabase** = database Postgres asli, cepat walau data ribuan baris,
-  plus REST API otomatis & sistem login bawaan.
-- **Alpine.js** = alternatif ringan dari React, cukup tag `<script>`.
-- **Vercel + GitHub** = hosting gratis, auto-deploy setiap `git push`.
-- **Row Level Security (RLS)** di Supabase = aturan akses ditegakkan di
-  database, bukan cuma di kode frontend.
-- **Antrian offline di localStorage** = sederhana dan cukup untuk skala
-  pemakaian ini, tanpa perlu library tambahan.
+Kirim screenshot **tab Console** di browser (`F12` → Console) — itu paling
+cepat untuk saya lacak penyebabnya.

@@ -1,92 +1,57 @@
 // =========================================================
-// Komponen Alpine.js generik untuk halaman per-mesin.
-// Fitur: timer Start/Stop per stasiun (Tandem & PC200t bisa jalan
-// beberapa part number bersamaan), routing WIP/FG + nomor, dropdown
-// Part Number & Problem, antrian offline, dan notifikasi otomatis
-// "isi non-produksi dulu" (Dandori/Watari/Stop Line/Other) setiap
-// mau mulai produksi lagi kalau ada jeda dari produksi terakhir.
+// Framework baru — Start/Finish presisi per-shift.
+// Konsep: Dandori/Downtime/Break itu ATRIBUT (kolom durasi) di baris
+// produksi yang sama, bukan baris terpisah. Non-Produksi berdiri sendiri
+// sebagai baris terpisah (meeting, watari, 5S, dll). Klik Mulai/Selesai
+// pakai jam sistem, tidak bisa diketik manual (kecuali mode edit koreksi).
 // =========================================================
 
-// ---------- Utilitas antrian offline (localStorage, dipakai semua mesin) ----------
-const OFFLINE_QUEUE_KEY = "offline_queue_v1";
-
+// ---------- Offline queue (localStorage) ----------
+const OFFLINE_QUEUE_KEY = "offline_queue_v2";
 function loadOfflineQueue() {
-  try {
-    const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  try { const raw = localStorage.getItem(OFFLINE_QUEUE_KEY); return raw ? JSON.parse(raw) : []; }
+  catch { return []; }
 }
-function saveOfflineQueue(queue) {
-  try {
-    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-  } catch {
-    // storage penuh/tidak tersedia — abaikan, tidak fatal
-  }
+function saveOfflineQueue(q) {
+  try { localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q)); } catch {}
 }
 function enqueueOffline(table, payload) {
-  const queue = loadOfflineQueue();
-  queue.push({
-    localId: "local_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-    table, payload, created_at: new Date().toISOString(),
-  });
-  saveOfflineQueue(queue);
-  return queue;
+  const q = loadOfflineQueue();
+  q.push({ localId: "local_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8), table, payload, created_at: new Date().toISOString() });
+  saveOfflineQueue(q);
 }
 async function trySyncOfflineQueue() {
-  let queue = loadOfflineQueue();
-  if (queue.length === 0) return { synced: 0, remaining: 0 };
-  let synced = 0;
-  const remaining = [];
-  for (const item of queue) {
+  let q = loadOfflineQueue();
+  if (q.length === 0) return { synced: 0 };
+  let synced = 0; const remaining = [];
+  for (const item of q) {
     try {
       const { error } = await supabaseClient.from(item.table).insert(item.payload);
       if (error) throw error;
       synced++;
-    } catch {
-      remaining.push(item);
-    }
+    } catch { remaining.push(item); }
   }
   saveOfflineQueue(remaining);
-  return { synced, remaining: remaining.length };
+  return { synced };
 }
 function isNetworkError(err) {
   if (!navigator.onLine) return true;
-  const msg = (err && err.message) || String(err);
-  return /fetch|network|failed to fetch/i.test(msg);
+  return /fetch|network|failed to fetch/i.test((err && err.message) || String(err));
 }
-function nowIso() { return new Date().toISOString(); }
-function fmtClock(iso) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
-let _nextRowKeyCounter = 0;
-function nextRowKey() { return "row_" + Date.now() + "_" + (_nextRowKeyCounter++); }
 
-// Daftar semua line/mesin — dipakai untuk dropdown "Proses Selanjutnya"
-// di Master Data (butuh tahu semua line, bukan cuma mesin halaman ini).
 const MACHINE_OPTIONS = [
-  { key: "tandem", label: "Tandem" },
-  { key: "blanking", label: "Blanking" },
-  { key: "transfer_2000t", label: "Transfer 2000t" },
-  { key: "transfer_800t", label: "Transfer 800t" },
+  { key: "tandem", label: "Tandem" }, { key: "blanking", label: "Blanking" },
+  { key: "transfer_2000t", label: "Transfer 2000t" }, { key: "transfer_800t", label: "Transfer 800t" },
   { key: "pc200t", label: "PC200t" },
 ];
 
-// ---------- Dropdown custom (ganti <datalist> bawaan HTML) ----------
-// <datalist> HTML render-nya tidak konsisten di HP (kadang jadi list
-// geser ke samping, bukan dropdown ke bawah) — jadi dibikin sendiri
-// pakai Alpine, tampilannya konsisten di semua device.
+// ---------- Combobox custom (ganti <datalist>) ----------
 document.addEventListener("alpine:init", () => {
   Alpine.data("comboBox", (getOptions, getValue, setValue) => ({
-    open: false,
-    query: "",
+    open: false, query: "",
     init() {
       this.query = getValue() || "";
-      this.$watch(() => getValue(), (v) => {
-        if (v !== this.query) this.query = v || "";
-      });
+      this.$watch(() => getValue(), (v) => { if (v !== this.query) this.query = v || ""; });
     },
     filtered() {
       const q = (this.query || "").toLowerCase();
@@ -94,123 +59,124 @@ document.addEventListener("alpine:init", () => {
       if (!q) return opts.slice(0, 50);
       return opts.filter((o) => o.toLowerCase().includes(q)).slice(0, 50);
     },
-    select(opt) {
-      this.query = opt;
-      setValue(opt);
-      this.open = false;
-    },
-    onInput() {
-      setValue(this.query);
-      this.open = true;
-    },
+    select(opt) { this.query = opt; setValue(opt); this.open = false; },
+    onInput() { setValue(this.query); this.open = true; },
   }));
 });
 
-// ---------- Persist state (per mesin) supaya tidak hilang saat pindah halaman ----------
-function timerStorageKey(machineKey) { return "timer_state_v2_" + machineKey; }
-function saveTimerStateFor(machineKey, state) {
-  try { localStorage.setItem(timerStorageKey(machineKey), JSON.stringify(state)); } catch {}
-}
-function loadTimerStateFor(machineKey) {
-  try {
-    const raw = localStorage.getItem(timerStorageKey(machineKey));
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
+// ---------- Jadwal Shift & Break (tetap) ----------
+const SHIFT1_WEEKDAY = [[9,30,9,40],[12,5,12,45],[14,30,14,40],[16,0,16,15],[18,15,18,30]];
+const SHIFT1_FRIDAY  = [[9,30,9,40],[11,40,12,50],[14,30,14,40],[16,30,16,45],[18,15,18,30]];
+const SHIFT2_ALL     = [[21,30,21,40],[23,40,0,20],[2,20,2,30],[4,30,5,0]];
+
+function mkDate(base, h, m, addDay = 0) {
+  const x = new Date(base); x.setDate(x.getDate() + addDay); x.setHours(h, m, 0, 0); return x;
 }
 
-// input[type=datetime-local] (dipakai untuk koreksi manual waktu)
+// Tentukan shift (1/2) yang mencakup 'now', beserta batas nominal mulainya
+// (dipakai buat menjepit perhitungan jeda supaya tidak lompat hari/shift).
+function shiftPeriodFor(now) {
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const s1start = mkDate(base, 7, 0), s1end = mkDate(base, 19, 30);
+  if (now >= s1start && now < s1end) return { shift: 1, start: s1start, end: s1end };
+  if (now >= s1end) {
+    const s2end = mkDate(base, 7, 0, 1);
+    return { shift: 2, start: s1end, end: s2end };
+  }
+  const prevBase = mkDate(base, 0, 0, -1);
+  const prevS2start = mkDate(prevBase, 19, 30);
+  return { shift: 2, start: prevS2start, end: s1start };
+}
+
+function breakWindowsForPeriod(period) {
+  const dateAnchor = new Date(period.start); dateAnchor.setHours(0, 0, 0, 0);
+  const out = [];
+  if (period.shift === 1) {
+    const sched = dateAnchor.getDay() === 5 ? SHIFT1_FRIDAY : SHIFT1_WEEKDAY;
+    sched.forEach(([sh, sm, eh, em]) => out.push({ start: mkDate(dateAnchor, sh, sm), end: mkDate(dateAnchor, eh, em) }));
+  } else {
+    SHIFT2_ALL.forEach(([sh, sm, eh, em]) => {
+      out.push({
+        start: mkDate(dateAnchor, sh, sm, sh < 19 ? 1 : 0),
+        end: mkDate(dateAnchor, eh, em, eh < 19 ? 1 : 0),
+      });
+    });
+  }
+  return out;
+}
+
+// Berapa menit dari [wa,wk] yang jatuh di jadwal break resmi (otomatis).
+function computeBreakMinutes(waIso, wkIso) {
+  const wa = new Date(waIso), wk = new Date(wkIso);
+  const period = shiftPeriodFor(wa);
+  const windows = breakWindowsForPeriod(period);
+  let total = 0;
+  windows.forEach((w) => {
+    const os = Math.max(w.start.getTime(), wa.getTime());
+    const oe = Math.min(w.end.getTime(), wk.getTime());
+    if (oe > os) total += (oe - os) / 60000;
+  });
+  return Math.round(total);
+}
+
+function fmtClock(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+}
 function toLocalInput(iso) {
   if (!iso) return "";
   const d = new Date(iso);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 // =========================================================
-// Komponen utama halaman mesin
-// stationConfig:
-//   null / {mode:'none'}                                 -> 1 line implisit (mesin biasa)
-//   {mode:'fixed', stations:['PC-1','PC-2']}              -> PC200t
-//   {mode:'variant', variants:{lama:[...5], baru:[...5]}} -> Tandem
+// Komponen utama
 // =========================================================
 function machinePage(machineKey, machineLabel, extraFields, routingMax, kategoriOptions, stationConfig) {
   return {
-    // ---- state umum ----
-    session: null,
-    profile: null,
-    tab: "produksi",
-    loading: true,
-    errorMsg: "",
-    successMsg: "",
-    extraFields,
-    routingMax: routingMax || 0,
+    session: null, profile: null, tab: "produksi", loading: true,
+    errorMsg: "", successMsg: "",
+    extraFields, routingMax: routingMax || 0,
     kategoriOptions: kategoriOptions || ["MESIN", "DIES", "OTHER"],
     stationConfig: stationConfig || { mode: "none" },
-    tandemVariant: null, // 'lama' | 'baru' — hanya dipakai kalau mode 'variant'
+    tandemVariant: null,
     mobileNavOpen: false,
+    isOnline: navigator.onLine, pendingCount: 0, syncing: false,
 
-    // ---- lines produksi, satu entri per stasiun (key: id stasiun / '_single') ----
-    lines: {},
+    lines: {}, // per stasiun: state machine produksi
+    productionRows: [], downtimeRows: [], nonProduksiRows: [], planningRows: [],
+    partNumberList: [], problemList: [], nonProduksiTypeList: [],
+    newPartNumberValue: "", newProblemValue: "", newNonProduksiTypeValue: "",
+    machineOptions: MACHINE_OPTIONS, partNumbersByLine: {},
 
-    // ---- data tabel ----
-    productionRows: [],
-    downtimeRows: [],
-    nonProduksiRows: [],
+    editingDowntimeId: null, dtForm: {},
+    riwayatFilter: { dari: "", sampai: "", part_number: "" },
 
-    // ---- master data (Part Number & Problem) — {id, value}[] ----
-    partNumberList: [],
-    problemList: [],
-    newPartNumberValue: "",
-    newProblemValue: "",
-    machineOptions: MACHINE_OPTIONS,
-    partNumbersByLine: {}, // cache: {lineKey: [value, ...]} buat dropdown Proses Selanjutnya
-
-    // ---- offline ----
-    isOnline: navigator.onLine,
-    pendingCount: 0,
-    syncing: false,
-
-    // ---- form & timer DOWNTIME (tetap 1 per halaman, tidak per-stasiun) ----
-    editingDowntimeId: null,
-    dtState: "idle",
-    dtStart: null,
-    dtEnd: null,
-    downtimeForm: {},
-
-    // ---- edit Non-Produksi (cuma lihat & koreksi, tidak ada "mulai manual") ----
-    editingNonProduksiId: null,
-    nonProduksiEditForm: {},
+    isLeaderOrAdmin() {
+      return this.profile && ["admin", "leader"].includes(this.profile.role);
+    },
 
     async init() {
       this.session = await requireAuth();
       if (!this.session) return;
-
       window.addEventListener("online", () => { this.isOnline = true; this.syncNow(); });
       window.addEventListener("offline", () => { this.isOnline = false; });
-      this.refreshPendingCount();
       setInterval(() => this.syncNow(), 20000);
 
       try {
-        const { data: profile, error: profileError } = await supabaseClient
-          .from("profiles")
-          .select("*")
-          .eq("id", this.session.user.id)
-          .maybeSingle();
-        if (profileError) throw profileError;
+        const { data: profile, error: pErr } = await supabaseClient.from("profiles").select("*").eq("id", this.session.user.id).maybeSingle();
+        if (pErr) throw pErr;
         this.profile = profile;
 
-        const restoredDt = this.restoreState();
-        if (!restoredDt) this.resetDowntimeForm();
         this.ensureLines();
-        this.watchAndAutosave();
-
         await Promise.all([
-          this.fetchProduction(),
-          this.fetchDowntime(),
-          this.fetchNonProduksi(),
-          this.fetchPartNumbers(),
-          this.fetchProblems(),
+          this.fetchProduction(), this.fetchDowntime(), this.fetchNonProduksi(),
+          this.fetchPlanning(), this.fetchPartNumbers(), this.fetchProblems(), this.fetchNonProduksiTypes(),
         ]);
+        this.restoreLocalState();
+        this.watchAndAutosave();
+        this.refreshPendingCount();
         await this.syncNow();
       } catch (err) {
         this.flash("Gagal memuat halaman: " + (err.message || err), true);
@@ -220,15 +186,13 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
 
     flash(msg, isError = false) {
-      if (isError) { this.errorMsg = msg; this.successMsg = ""; }
-      else { this.successMsg = msg; this.errorMsg = ""; }
-      setTimeout(() => { this.errorMsg = ""; this.successMsg = ""; }, 3500);
+      if (isError) { this.errorMsg = msg; this.successMsg = ""; } else { this.successMsg = msg; this.errorMsg = ""; }
+      setTimeout(() => { this.errorMsg = ""; this.successMsg = ""; }, 4000);
     },
 
     refreshPendingCount() {
       this.pendingCount = loadOfflineQueue().filter((i) => i.payload.mesin === machineKey).length;
     },
-
     async syncNow() {
       if (this.syncing || !navigator.onLine) return;
       this.syncing = true;
@@ -241,7 +205,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       }
     },
 
-    // ================= STASIUN (multi-line Tandem/PC200t) =================
+    // ================= STASIUN =================
     stationList() {
       const cfg = this.stationConfig;
       if (cfg.mode === "fixed") return cfg.stations.map((id) => ({ id, label: id }));
@@ -251,102 +215,184 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       }
       return [{ id: "_single", label: null }];
     },
-    dbStasiun(stationId) {
-      return stationId === "_single" ? null : stationId;
-    },
-    freshProductionForm() {
-      const base = { part_number: "", qty: "", ng: "", kategori_ng: "", break_menit: "" };
-      this.extraFields.forEach((f) => (base[f.key] = ""));
-      return base;
-    },
+    dbStasiun(stationId) { return stationId === "_single" ? null : stationId; },
+    setTandemVariant(v) { this.tandemVariant = v; this.ensureLines(); },
+
     freshLine() {
       return {
-        state: "idle", // 'idle' | 'running' | 'stopped'
-        start: null,
-        end: null,
+        state: "idle", // idle | awaiting_gap | awaiting_actual_start | running | nonproduksi_running | edit
+        entryStart: null, entryEnd: null,
         editingId: null,
-        form: this.freshProductionForm(),
-        routingType: null,
-        routingNumbers: [],
-        pendingClassification: false,
-        classification: { kategori: "DANDORI", part_dari: "", part_ke: "", keterangan: "", gapStart: null, gapEnd: null },
+        form: { part_number: "", qty: "", manpower: "" },
+        gapInfo: null, // {gapStart, gapEnd}
+        gapForm: { nonproduksi_nama: "" },
+        afterFinishChoice: false, // munculkan pilihan Setup / Non-Produksi
+        nonProdForm: { nama: "" },
+        nonProdActiveStart: null,
+        routingType: null, routingNumbers: [],
       };
     },
     ensureLines() {
-      this.stationList().forEach((st) => {
-        if (!this.lines[st.id]) this.lines[st.id] = this.freshLine();
-      });
+      this.stationList().forEach((st) => { if (!this.lines[st.id]) this.lines[st.id] = this.freshLine(); });
     },
-    setTandemVariant(v) {
-      this.tandemVariant = v;
-      this.ensureLines();
-    },
-    routingRange() {
-      return Array.from({ length: this.routingMax }, (_, i) => i + 1);
-    },
+    routingRange() { return Array.from({ length: this.routingMax }, (_, i) => i + 1); },
+    setRoutingType(stationId, type) { this.lines[stationId].routingType = type; this.lines[stationId].routingNumbers = []; },
     toggleRoutingNumber(stationId, n) {
-      const line = this.lines[stationId];
-      const i = line.routingNumbers.indexOf(n);
-      if (i === -1) line.routingNumbers.push(n); else line.routingNumbers.splice(i, 1);
-    },
-    setRoutingType(stationId, type) {
-      const line = this.lines[stationId];
-      line.routingType = type;
-      line.routingNumbers = [];
+      const l = this.lines[stationId]; const i = l.routingNumbers.indexOf(n);
+      if (i === -1) l.routingNumbers.push(n); else l.routingNumbers.splice(i, 1);
     },
 
-    // Cari entri produksi terakhir yang SUDAH selesai di stasiun ini,
-    // buat tahu apakah ada jeda yang perlu diklasifikasi.
-    lastStopForStation(stationId) {
+    // Cari waktu_akhir TERAKHIR (produksi ATAU non-produksi) di stasiun ini.
+    lastEventEnd(stationId) {
       const want = this.dbStasiun(stationId);
-      const rows = this.productionRows.filter(
-        (r) => (r.stasiun || null) === want && r.waktu_akhir && !r._pending
-      );
-      if (rows.length === 0) return null;
-      rows.sort((a, b) => new Date(b.waktu_akhir) - new Date(a.waktu_akhir));
-      return rows[0];
+      const prodEnds = this.productionRows.filter((r) => (r.stasiun || null) === want && !r._pending).map((r) => new Date(r.waktu_akhir));
+      const npEnds = this.nonProduksiRows.filter((r) => (r.stasiun || null) === want && !r._pending).map((r) => new Date(r.waktu_akhir));
+      const all = [...prodEnds, ...npEnds];
+      if (all.length === 0) return null;
+      return new Date(Math.max(...all.map((d) => d.getTime())));
     },
 
-    // Diklik dari tombol "▶ Mulai Produksi"
-    clickMulaiProduksi(stationId) {
+    // ================= TOMBOL MULAI PRODUKSI =================
+    clickMulai(stationId) {
       const line = this.lines[stationId];
-      const last = this.lastStopForStation(stationId);
-      if (last) {
-        line.classification = {
-          kategori: "DANDORI",
-          part_dari: last.part_number || "",
-          part_ke: "",
-          keterangan: "",
-          gapStart: last.waktu_akhir,
-          gapEnd: nowIso(),
-        };
-        line.pendingClassification = true;
+      const now = new Date();
+
+      if (line.state === "nonproduksi_running") {
+        this.finalizeNonProduksi(stationId, now);
+        return;
+      }
+
+      if (line.state !== "idle") return;
+
+      const last = this.lastEventEnd(stationId);
+      const period = shiftPeriodFor(now);
+      const clampedStart = last && last > period.start ? last : period.start;
+
+      if (clampedStart < now) {
+        line.gapInfo = { gapStart: clampedStart.toISOString(), gapEnd: now.toISOString() };
+        line.state = "awaiting_gap";
       } else {
-        this.reallyStartProduction(stationId);
+        this.openPartSelection(stationId, now.toISOString());
       }
     },
-    cancelClassification(stationId) {
-      this.lines[stationId].pendingClassification = false;
-    },
-    async confirmClassificationAndStart(stationId) {
+
+    async confirmGapNonProduksi(stationId) {
       const line = this.lines[stationId];
-      const c = line.classification;
-      if (!c.kategori) { this.flash("Pilih kategori non-produksi dulu.", true); return; }
+      const nama = line.gapForm.nonproduksi_nama;
+      if (!nama) { this.flash("Pilih jenis non-produksi dulu.", true); return; }
+      const payload = {
+        mesin: machineKey, stasiun: this.dbStasiun(stationId),
+        waktu_awal: line.gapInfo.gapStart, waktu_akhir: line.gapInfo.gapEnd,
+        kategori: "OTHER", part_dari: null, part_ke: nama, keterangan: nama,
+      };
+      await this.saveNonProduksiRow(payload);
+      line.gapInfo = null; line.gapForm.nonproduksi_nama = "";
+      this.openPartSelection(stationId, payload.waktu_akhir);
+    },
+
+    openPartSelection(stationId, startIso) {
+      const line = this.lines[stationId];
+      line.entryStart = startIso; line.entryEnd = null;
+      line.form = { part_number: "", qty: "", manpower: "" };
+      line.routingType = null; line.routingNumbers = [];
+      line.state = "awaiting_actual_start";
+    },
+
+    choosePlannedPart(stationId, planItem) {
+      this.lines[stationId].form.part_number = planItem.part_number;
+      this.lines[stationId].form.qty = planItem.qty_rencana ?? "";
+      this.lines[stationId]._planningId = planItem.id;
+    },
+
+    confirmActualStart(stationId) {
+      const line = this.lines[stationId];
+      if (!line.form.part_number) { this.flash("Pilih Part Number dulu.", true); return; }
+      line.actualStartConfirmedAt = new Date().toISOString();
+      line.state = "running";
+    },
+
+    stopProduksi(stationId) {
+      const line = this.lines[stationId];
+      line.entryEnd = new Date().toISOString();
+      line.state = "finished";
+      line.afterFinishChoice = true;
+    },
+
+    cancelLine(stationId) { this.lines[stationId] = this.freshLine(); },
+
+    async chooseSetupNext(stationId) {
+      await this.commitProductionRow(stationId);
+      const line = this.lines[stationId];
+      line.afterFinishChoice = false;
+      this.openPartSelection(stationId, line.entryEnd || new Date().toISOString());
+    },
+    async chooseNonProduksiNext(stationId) {
+      await this.commitProductionRow(stationId);
+      const line = this.lines[stationId];
+      const endTime = line.entryEnd || new Date().toISOString();
+      line.afterFinishChoice = false;
+      line.state = "nonproduksi_running";
+      line.nonProdActiveStart = endTime;
+      line.nonProdForm = { nama: "" };
+    },
+
+    async finalizeNonProduksi(stationId, now) {
+      const line = this.lines[stationId];
+      const nama = line.nonProdForm.nama;
+      if (!nama) { this.flash("Pilih jenis non-produksi dulu sebelum lanjut.", true); return; }
+      const payload = {
+        mesin: machineKey, stasiun: this.dbStasiun(stationId),
+        waktu_awal: line.nonProdActiveStart, waktu_akhir: now.toISOString(),
+        kategori: "OTHER", part_dari: null, part_ke: nama, keterangan: nama,
+      };
+      await this.saveNonProduksiRow(payload);
+      line.state = "idle";
+      this.openPartSelection(stationId, payload.waktu_akhir);
+    },
+
+    async commitProductionRow(stationId) {
+      const line = this.lines[stationId];
+      const dandoriMenit = Math.round((new Date(line.actualStartConfirmedAt) - new Date(line.entryStart)) / 60000);
+      const breakMenit = computeBreakMinutes(line.entryStart, line.entryEnd);
+      const extra = {};
+      this.extraFields.forEach((f) => { if (line.form[f.key]) extra[f.key] = line.form[f.key]; });
+      if (this.routingMax > 0) { extra.routing_type = line.routingType; extra.routing_numbers = line.routingNumbers; }
 
       const payload = {
-        mesin: machineKey,
-        waktu_awal: c.gapStart,
-        waktu_akhir: c.gapEnd,
-        kategori: c.kategori,
-        stasiun: this.dbStasiun(stationId),
-        part_dari: c.part_dari || null,
-        part_ke: c.part_ke || null,
-        keterangan: c.keterangan || null,
-        created_by: this.session.user.id,
+        mesin: machineKey, stasiun: this.dbStasiun(stationId),
+        waktu_awal: line.entryStart, waktu_akhir: line.entryEnd,
+        part_number: line.form.part_number, qty: line.form.qty === "" ? null : Number(line.form.qty),
+        manpower: line.form.manpower === "" ? null : Number(line.form.manpower),
+        dandori_menit: dandoriMenit, downtime_menit: 0, break_menit: breakMenit,
+        ng: null, kategori_ng: null, extra: JSON.stringify(extra),
       };
+      if (line.form.part_number) this.learnPartNumber(line.form.part_number);
 
       try {
         if (!navigator.onLine) throw new Error("offline");
+        const { error } = await supabaseClient.from("production_log").insert(payload);
+        if (error) throw error;
+        if (line._planningId) {
+          await supabaseClient.from("production_planning").update({ status: "selesai" }).eq("id", line._planningId);
+        }
+        this.flash("Data produksi tersimpan.");
+        await Promise.all([this.fetchProduction(), this.fetchPlanning()]);
+      } catch (err) {
+        if (isNetworkError(err)) {
+          enqueueOffline("production_log", payload);
+          this.refreshPendingCount();
+          this.productionRows.unshift({ ...payload, id: "pending_" + Date.now(), _pending: true });
+          this.flash("Tidak ada jaringan — data disimpan di HP, disinkron otomatis nanti.");
+        } else {
+          this.flash("Gagal menyimpan produksi: " + (err.message || err), true);
+        }
+      }
+    },
+
+    async saveNonProduksiRow(payload) {
+      try {
+        if (!navigator.onLine) throw new Error("offline");
+        payload.created_by = this.session.user.id;
         const { error } = await supabaseClient.from("dandori_log").insert(payload);
         if (error) throw error;
         await this.fetchNonProduksi();
@@ -355,48 +401,78 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
           enqueueOffline("dandori_log", payload);
           this.refreshPendingCount();
           this.nonProduksiRows.unshift({ ...payload, id: "pending_" + Date.now(), _pending: true });
-          this.flash("Tidak ada jaringan — catatan non-produksi disimpan di HP dulu.");
         } else {
-          this.flash("Gagal simpan data non-produksi: " + (err.message || err), true);
-          return; // jangan mulai produksi kalau gagal simpan karena error asli (bukan offline)
+          this.flash("Gagal menyimpan non-produksi: " + (err.message || err), true);
         }
       }
-
-      if (c.part_ke) line.form.part_number = c.part_ke;
-      line.pendingClassification = false;
-      this.reallyStartProduction(stationId);
     },
 
-    reallyStartProduction(stationId) {
-      const line = this.lines[stationId];
-      line.state = "running";
-      line.start = nowIso();
-      line.end = null;
-    },
-    stopProduction(stationId) {
-      const line = this.lines[stationId];
-      line.state = "stopped";
-      line.end = nowIso();
-    },
-    cancelProductionTimer(stationId) {
-      this.lines[stationId] = this.freshLine();
-    },
-
+    // ================= FETCH =================
     async fetchProduction() {
-      const { data, error } = await supabaseClient
-        .from("production_log")
-        .select("*")
-        .eq("mesin", machineKey)
-        .order("waktu_awal", { ascending: false })
-        .limit(300);
+      const { data, error } = await supabaseClient.from("production_log").select("*").eq("mesin", machineKey).order("waktu_awal", { ascending: false }).limit(500);
       if (error) { this.flash("Gagal memuat data produksi: " + error.message, true); return; }
       this.productionRows = data;
     },
+    async fetchDowntime() {
+      const { data, error } = await supabaseClient.from("downtime_log").select("*").eq("mesin", machineKey).order("waktu_awal", { ascending: false }).limit(300);
+      if (error) { this.flash("Gagal memuat data downtime: " + error.message, true); return; }
+      this.downtimeRows = data;
+    },
+    async fetchNonProduksi() {
+      const { data, error } = await supabaseClient.from("dandori_log").select("*").eq("mesin", machineKey).order("waktu_awal", { ascending: false }).limit(500);
+      if (error) { this.flash("Gagal memuat data non-produksi: " + error.message, true); return; }
+      this.nonProduksiRows = data;
+    },
+    async fetchPlanning() {
+      const { data, error } = await supabaseClient.from("production_planning").select("*").eq("mesin", machineKey).order("jam_rencana_mulai", { ascending: true }).limit(200);
+      if (!error && data) this.planningRows = data;
+    },
+    async fetchNonProduksiTypes() {
+      const { data, error } = await supabaseClient.from("nonproduksi_types").select("id, nama").eq("mesin", machineKey).order("nama");
+      if (!error && data) this.nonProduksiTypeList = data;
+    },
 
+    // ================= RIWAYAT gabungan + FILTER =================
+    riwayatGabungan() {
+      const prod = this.productionRows.map((r) => ({ ...r, _tipe: "produksi" }));
+      const nonProd = this.nonProduksiRows.map((r) => ({ ...r, _tipe: "nonproduksi" }));
+      let combined = [...prod, ...nonProd];
+      const f = this.riwayatFilter;
+      if (f.dari) combined = combined.filter((r) => r.waktu_awal >= f.dari);
+      if (f.sampai) combined = combined.filter((r) => r.waktu_awal <= f.sampai + "T23:59:59");
+      if (f.part_number) {
+        const q = f.part_number.toLowerCase();
+        combined = combined.filter((r) => (r._tipe === "produksi" ? r.part_number : r.part_ke || r.part_dari || "").toLowerCase().includes(q));
+      }
+      combined.sort((a, b) => new Date(b.waktu_awal) - new Date(a.waktu_awal));
+      return combined;
+    },
+    resetRiwayatFilter() { this.riwayatFilter = { dari: "", sampai: "", part_number: "" }; },
+
+    detailRiwayat(row) {
+      if (row._tipe === "produksi") return row.part_number || "-";
+      return row.part_ke || row.part_dari || "-";
+    },
+    fmt(iso) {
+      if (!iso) return "-";
+      return new Date(iso).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    },
+    fmtClock,
+    durasiMenit(a, b) {
+      if (!a || !b) return "-";
+      const d = (new Date(b) - new Date(a)) / 60000;
+      return d >= 0 ? d + " mnt" : "-";
+    },
+
+    // ================= EDIT / HAPUS (riwayat, koreksi manual) =================
+    editRiwayat(row) {
+      if (row._tipe === "produksi") this.editProduction(row); else this.editNonProduksiRow(row);
+    },
+    deleteRiwayat(row) {
+      if (row._tipe === "produksi") this.deleteProduction(row.id); else this.deleteNonProduksiRow(row.id);
+    },
     editProduction(row) {
       const stationId = row.stasiun || "_single";
-      // kalau Tandem dan baris ini dari varian yang beda dari yang lagi
-      // dipilih, otomatis pindah varian biar kartunya kelihatan
       if (this.stationConfig.mode === "variant" && row.stasiun) {
         if (this.stationConfig.variants.lama.includes(row.stasiun)) this.setTandemVariant("lama");
         else if (this.stationConfig.variants.baru.includes(row.stasiun)) this.setTandemVariant("baru");
@@ -404,495 +480,275 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       if (!this.lines[stationId]) this.lines[stationId] = this.freshLine();
       const line = this.lines[stationId];
       line.editingId = row.id;
-      line.state = "stopped";
-      line.start = row.waktu_awal;
-      line.end = row.waktu_akhir;
-      line.form = {
-        part_number: row.part_number || "", qty: row.qty ?? "", ng: row.ng ?? "",
-        kategori_ng: row.kategori_ng || "", break_menit: row.break_menit ?? "",
+      line.state = "edit";
+      line.entryStart = row.waktu_awal; line.entryEnd = row.waktu_akhir;
+      line.editForm = {
+        waktu_awal: toLocalInput(row.waktu_awal), waktu_akhir: toLocalInput(row.waktu_akhir),
+        part_number: row.part_number || "", qty: row.qty ?? "", manpower: row.manpower ?? "",
+        dandori_menit: row.dandori_menit ?? "", break_menit: row.break_menit ?? "",
       };
-      this.extraFields.forEach((f) => (line.form[f.key] = row.extra?.[f.key] ?? ""));
+      this.extraFields.forEach((f) => (line.editForm[f.key] = row.extra?.[f.key] ?? ""));
       line.routingType = row.extra?.routing_type || null;
       line.routingNumbers = row.extra?.routing_numbers || [];
-      line.pendingClassification = false;
       this.tab = "produksi";
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
-
-    async submitProduction(stationId) {
+    async saveEditProduction(stationId) {
       const line = this.lines[stationId];
-      const f = line.form;
-      if (!line.start || !line.end) {
-        this.flash("Klik Mulai lalu Selesai dulu untuk catat waktunya.", true);
-        return;
-      }
+      const f = line.editForm;
       const extra = {};
       this.extraFields.forEach((field) => { extra[field.key] = f[field.key] === "" ? null : f[field.key]; });
-      if (this.routingMax > 0) {
-        extra.routing_type = line.routingType;
-        extra.routing_numbers = line.routingNumbers;
-      }
-
+      if (this.routingMax > 0) { extra.routing_type = line.routingType; extra.routing_numbers = line.routingNumbers; }
       const payload = {
-        mesin: machineKey,
-        stasiun: this.dbStasiun(stationId),
-        waktu_awal: line.start,
-        waktu_akhir: line.end,
-        part_number: f.part_number || null,
-        qty: f.qty === "" ? null : Number(f.qty),
-        ng: f.ng === "" ? null : Number(f.ng),
-        kategori_ng: f.kategori_ng || null,
+        waktu_awal: new Date(f.waktu_awal).toISOString(), waktu_akhir: new Date(f.waktu_akhir).toISOString(),
+        part_number: f.part_number || null, qty: f.qty === "" ? null : Number(f.qty),
+        manpower: f.manpower === "" ? null : Number(f.manpower),
+        dandori_menit: f.dandori_menit === "" ? null : Number(f.dandori_menit),
         break_menit: f.break_menit === "" ? null : Number(f.break_menit),
-        extra,
+        extra: JSON.stringify(extra),
       };
-
-      if (f.part_number) this.learnPartNumber(f.part_number);
-
-      if (line.editingId) {
-        try {
-          const { error } = await supabaseClient.from("production_log").update(payload).eq("id", line.editingId);
-          if (error) throw error;
-          this.flash("Data produksi diperbarui.");
-          this.lines[stationId] = this.freshLine();
-          await this.fetchProduction();
-        } catch (err) {
-          this.flash("Gagal menyimpan (butuh koneksi untuk edit): " + (err.message || err), true);
-        }
-        return;
-      }
-
-      payload.created_by = this.session.user.id;
-      try {
-        if (!navigator.onLine) throw new Error("offline");
-        const { error } = await supabaseClient.from("production_log").insert(payload);
-        if (error) throw error;
-        this.flash("Data produksi ditambahkan.");
-        this.lines[stationId] = this.freshLine();
-        await this.fetchProduction();
-      } catch (err) {
-        if (isNetworkError(err)) {
-          enqueueOffline("production_log", payload);
-          this.refreshPendingCount();
-          this.productionRows.unshift({ ...payload, id: "pending_" + Date.now(), _pending: true });
-          this.flash("Tidak ada jaringan — data disimpan di HP, akan disinkron otomatis nanti.");
-          this.lines[stationId] = this.freshLine();
-        } else {
-          this.flash("Gagal menyimpan: " + (err.message || err), true);
-        }
-      }
+      const { error } = await supabaseClient.from("production_log").update(payload).eq("id", line.editingId);
+      if (error) { this.flash("Gagal simpan (butuh koneksi): " + error.message, true); return; }
+      this.flash("Data produksi diperbarui.");
+      this.lines[stationId] = this.freshLine();
+      await this.fetchProduction();
     },
-
     async deleteProduction(id) {
-      if (String(id).startsWith("pending_")) {
-        this.flash("Data ini masih menunggu sinkron, tunggu online dulu sebelum menghapus.", true);
-        return;
-      }
-      if (!confirm("Hapus baris data produksi ini?")) return;
+      if (String(id).startsWith("pending_")) { this.flash("Masih menunggu sinkron.", true); return; }
+      if (!confirm("Hapus baris produksi ini?")) return;
       const { error } = await supabaseClient.from("production_log").delete().eq("id", id);
       if (error) { this.flash("Gagal menghapus: " + error.message, true); return; }
       this.flash("Data produksi dihapus.");
       await this.fetchProduction();
     },
-
-    // ================= DOWNTIME (tetap 1 per halaman) =================
-    resetDowntimeForm() {
-      this.downtimeForm = { kategori: "", problem: "", penyebab: "", countermeasure: "" };
-      this.editingDowntimeId = null;
-      this.dtState = "idle";
-      this.dtStart = null;
-      this.dtEnd = null;
-    },
-    startDowntime() { this.dtState = "running"; this.dtStart = nowIso(); },
-    stopDowntime() { this.dtState = "stopped"; this.dtEnd = nowIso(); },
-    cancelDowntimeTimer() { this.resetDowntimeForm(); },
-
-    async fetchDowntime() {
-      const { data, error } = await supabaseClient
-        .from("downtime_log").select("*").eq("mesin", machineKey)
-        .order("waktu_awal", { ascending: false }).limit(200);
-      if (error) { this.flash("Gagal memuat data downtime: " + error.message, true); return; }
-      this.downtimeRows = data;
-    },
-
-    editDowntime(row) {
-      this.editingDowntimeId = row.id;
-      this.dtState = "stopped";
-      this.dtStart = row.waktu_awal;
-      this.dtEnd = row.waktu_akhir;
-      this.downtimeForm = {
-        kategori: row.kategori || "", problem: row.problem || "",
-        penyebab: row.penyebab || "", countermeasure: row.countermeasure || "",
-      };
-      this.tab = "downtime";
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
-
-    async submitDowntime() {
-      if (!this.dtStart || !this.dtEnd) {
-        this.flash("Klik Mulai lalu Selesai dulu untuk catat waktunya.", true);
-        return;
-      }
-      const f = this.downtimeForm;
-      const payload = {
-        mesin: machineKey, waktu_awal: this.dtStart, waktu_akhir: this.dtEnd,
-        kategori: f.kategori || null, problem: f.problem || null,
-        penyebab: f.penyebab || null, countermeasure: f.countermeasure || null,
-      };
-      if (f.problem) this.learnProblem(f.problem);
-
-      if (this.editingDowntimeId) {
-        try {
-          const { error } = await supabaseClient.from("downtime_log").update(payload).eq("id", this.editingDowntimeId);
-          if (error) throw error;
-          this.flash("Data downtime diperbarui.");
-          this.resetDowntimeForm();
-          await this.fetchDowntime();
-        } catch (err) {
-          this.flash("Gagal menyimpan (butuh koneksi untuk edit): " + (err.message || err), true);
-        }
-        return;
-      }
-
-      payload.created_by = this.session.user.id;
-      try {
-        if (!navigator.onLine) throw new Error("offline");
-        const { error } = await supabaseClient.from("downtime_log").insert(payload);
-        if (error) throw error;
-        this.flash("Data downtime ditambahkan.");
-        this.resetDowntimeForm();
-        await this.fetchDowntime();
-      } catch (err) {
-        if (isNetworkError(err)) {
-          enqueueOffline("downtime_log", payload);
-          this.refreshPendingCount();
-          this.downtimeRows.unshift({ ...payload, id: "pending_" + Date.now(), _pending: true });
-          this.flash("Tidak ada jaringan — data disimpan di HP, akan disinkron otomatis nanti.");
-          this.resetDowntimeForm();
-        } else {
-          this.flash("Gagal menyimpan: " + (err.message || err), true);
-        }
-      }
-    },
-
-    async deleteDowntime(id) {
-      if (String(id).startsWith("pending_")) {
-        this.flash("Data ini masih menunggu sinkron, tunggu online dulu sebelum menghapus.", true);
-        return;
-      }
-      if (!confirm("Hapus baris data downtime ini?")) return;
-      const { error } = await supabaseClient.from("downtime_log").delete().eq("id", id);
-      if (error) { this.flash("Gagal menghapus: " + error.message, true); return; }
-      this.flash("Data downtime dihapus.");
-      await this.fetchDowntime();
-    },
-
-    // ================= NON-PRODUKSI (Dandori/Watari/Stop Line/Other) =================
-    // Dibuat otomatis dari alur "Mulai Produksi". Di sini cuma lihat &
-    // koreksi (edit/hapus) kalau kategorinya salah atau perlu diperbaiki.
-    async fetchNonProduksi() {
-      const { data, error } = await supabaseClient
-        .from("dandori_log").select("*").eq("mesin", machineKey)
-        .order("waktu_awal", { ascending: false }).limit(200);
-      if (error) { this.flash("Gagal memuat data non-produksi: " + error.message, true); return; }
-      this.nonProduksiRows = data;
-    },
-    editNonProduksi(row) {
+    editNonProduksiRow(row) {
       this.editingNonProduksiId = row.id;
       this.nonProduksiEditForm = {
-        waktu_awal: toLocalInput(row.waktu_awal),
-        waktu_akhir: toLocalInput(row.waktu_akhir),
-        kategori: row.kategori || "DANDORI",
-        stasiun: row.stasiun || "",
-        part_dari: row.part_dari || "",
-        part_ke: row.part_ke || "",
-        keterangan: row.keterangan || "",
+        waktu_awal: toLocalInput(row.waktu_awal), waktu_akhir: toLocalInput(row.waktu_akhir),
+        nama: row.part_ke || row.keterangan || "",
       };
     },
-    cancelEditNonProduksi() {
-      this.editingNonProduksiId = null;
-      this.nonProduksiEditForm = {};
-    },
+    cancelEditNonProduksi() { this.editingNonProduksiId = null; this.nonProduksiEditForm = {}; },
     async saveNonProduksiEdit() {
       const f = this.nonProduksiEditForm;
-      if (!f.waktu_awal || !f.waktu_akhir) { this.flash("Waktu awal/akhir wajib diisi.", true); return; }
       const payload = {
-        waktu_awal: new Date(f.waktu_awal).toISOString(),
-        waktu_akhir: new Date(f.waktu_akhir).toISOString(),
-        kategori: f.kategori || "OTHER",
-        stasiun: f.stasiun || null,
-        part_dari: f.part_dari || null,
-        part_ke: f.part_ke || null,
-        keterangan: f.keterangan || null,
+        waktu_awal: new Date(f.waktu_awal).toISOString(), waktu_akhir: new Date(f.waktu_akhir).toISOString(),
+        part_ke: f.nama, keterangan: f.nama,
       };
       const { error } = await supabaseClient.from("dandori_log").update(payload).eq("id", this.editingNonProduksiId);
-      if (error) { this.flash("Gagal menyimpan (butuh koneksi): " + error.message, true); return; }
+      if (error) { this.flash("Gagal simpan: " + error.message, true); return; }
       this.flash("Data non-produksi diperbarui.");
       this.cancelEditNonProduksi();
       await this.fetchNonProduksi();
     },
-    async deleteNonProduksi(id) {
-      if (String(id).startsWith("pending_")) {
-        this.flash("Data ini masih menunggu sinkron, tunggu online dulu sebelum menghapus.", true);
-        return;
-      }
+    async deleteNonProduksiRow(id) {
+      if (String(id).startsWith("pending_")) { this.flash("Masih menunggu sinkron.", true); return; }
       if (!confirm("Hapus catatan non-produksi ini?")) return;
       const { error } = await supabaseClient.from("dandori_log").delete().eq("id", id);
       if (error) { this.flash("Gagal menghapus: " + error.message, true); return; }
       this.flash("Data non-produksi dihapus.");
       await this.fetchNonProduksi();
     },
-    kategoriNonProduksiLabel(k) {
-      return { DANDORI: "Dandori", WATARI: "Watari", STOP_LINE: "Stop Line Terencana", OTHER: "Other" }[k] || k;
+
+    // ================= DOWNTIME (Start/Stop + validasi tabrakan part) =================
+    dtState: "idle", dtStart: null,
+    startDowntime() { this.dtState = "running"; this.dtStart = new Date().toISOString(); },
+    cancelDowntime() { this.dtState = "idle"; this.dtStart = null; this.editingDowntimeId = null; this.dtForm = {}; },
+    stopDowntime() {
+      this.dtState = "stopped"; this.dtEnd = new Date().toISOString();
+      this.dtForm = { kategori: "", problem: "", penyebab: "", countermeasure: "", stasiun: "" };
+    },
+    async submitDowntime() {
+      const f = this.dtForm;
+      const payload = {
+        mesin: machineKey, waktu_awal: this.dtStart, waktu_akhir: this.dtEnd,
+        stasiun: f.stasiun || null, kategori: f.kategori || null, problem: f.problem || null,
+        penyebab: f.penyebab || null, countermeasure: f.countermeasure || null,
+      };
+      if (f.problem) this.learnProblem(f.problem);
+      if (this.editingDowntimeId) {
+        const { error } = await supabaseClient.from("downtime_log").update(payload).eq("id", this.editingDowntimeId);
+        if (error) { this.flash("Gagal simpan: " + error.message, true); return; }
+        this.flash("Data downtime diperbarui.");
+      } else {
+        payload.created_by = this.session.user.id;
+        const { error } = await supabaseClient.from("downtime_log").insert(payload);
+        if (error) {
+          this.flash("Gagal menyimpan downtime: " + error.message, true);
+          return;
+        }
+        this.flash("Data downtime tersimpan.");
+      }
+      this.cancelDowntime();
+      await Promise.all([this.fetchDowntime(), this.fetchProduction()]);
+    },
+    editDowntime(row) {
+      this.editingDowntimeId = row.id;
+      this.dtState = "stopped";
+      this.dtStart = row.waktu_awal; this.dtEnd = row.waktu_akhir;
+      this.dtForm = {
+        kategori: row.kategori || "", problem: row.problem || "", penyebab: row.penyebab || "",
+        countermeasure: row.countermeasure || "", stasiun: row.stasiun || "",
+      };
+      this.tab = "downtime";
+    },
+    async deleteDowntime(id) {
+      if (!confirm("Hapus data downtime ini?")) return;
+      const { error } = await supabaseClient.from("downtime_log").delete().eq("id", id);
+      if (error) { this.flash("Gagal menghapus: " + error.message, true); return; }
+      this.flash("Data downtime dihapus.");
+      await Promise.all([this.fetchDowntime(), this.fetchProduction()]);
     },
 
-    // ================= MASTER DATA (Part Number & Problem) =================
+    // ================= PLANNING PRODUKSI =================
+    newPlanning: { part_number: "", qty_rencana: "", jam_mulai: "", jam_selesai: "", stasiun: "" },
+    async addPlanning() {
+      const f = this.newPlanning;
+      if (!f.part_number || !f.jam_mulai || !f.jam_selesai) { this.flash("Part Number, jam mulai & selesai wajib diisi.", true); return; }
+      const payload = {
+        mesin: machineKey, stasiun: f.stasiun || null, part_number: f.part_number,
+        qty_rencana: f.qty_rencana === "" ? null : Number(f.qty_rencana),
+        jam_rencana_mulai: new Date(f.jam_mulai).toISOString(), jam_rencana_selesai: new Date(f.jam_selesai).toISOString(),
+        created_by: this.session.user.id,
+      };
+      const { error } = await supabaseClient.from("production_planning").insert(payload);
+      if (error) { this.flash("Gagal tambah planning: " + error.message, true); return; }
+      this.flash("Planning ditambahkan.");
+      this.newPlanning = { part_number: "", qty_rencana: "", jam_mulai: "", jam_selesai: "", stasiun: "" };
+      await this.fetchPlanning();
+    },
+    async deletePlanning(id) {
+      if (!confirm("Hapus rencana ini?")) return;
+      const { error } = await supabaseClient.from("production_planning").delete().eq("id", id);
+      if (error) { this.flash("Gagal hapus: " + error.message, true); return; }
+      await this.fetchPlanning();
+    },
+    planningForStation(stationId) {
+      const want = this.dbStasiun(stationId);
+      return this.planningRows.filter((r) => (r.stasiun || null) === want);
+    },
+
+    // ================= MASTER DATA =================
     async fetchPartNumbers() {
-      const { data, error } = await supabaseClient
-        .from("part_numbers").select("id, value, next_processes").eq("mesin", machineKey).order("value");
-      if (error) {
-        this.flash("Gagal memuat daftar Part Number: " + error.message, true);
-        return;
-      }
-      this.partNumberList = data.map((r) => ({
-        ...r, editing: false, draft: r.value,
-        draftNextProcesses: (r.next_processes || []).map((p) => ({ ...p, _key: nextRowKey() })),
-      }));
+      const { data, error } = await supabaseClient.from("part_numbers").select("id, value, next_processes").eq("mesin", machineKey).order("value");
+      if (error) { this.flash("Gagal memuat Part Number: " + error.message, true); return; }
+      this.partNumberList = data.map((r) => ({ ...r, editing: false, draft: r.value, draftNextProcesses: (r.next_processes || []).map((p) => ({ ...p, _key: Math.random().toString(36).slice(2) })) }));
     },
     async fetchProblems() {
-      const { data, error } = await supabaseClient
-        .from("downtime_problems").select("id, value").eq("mesin", machineKey).order("value");
-      if (error) {
-        this.flash("Gagal memuat daftar Problem: " + error.message, true);
-        return;
-      }
+      const { data, error } = await supabaseClient.from("downtime_problems").select("id, value").eq("mesin", machineKey).order("value");
+      if (error) { this.flash("Gagal memuat Problem: " + error.message, true); return; }
       this.problemList = data.map((r) => ({ ...r, editing: false, draft: r.value }));
     },
     async learnPartNumber(value) {
-      if (!value) return;
-      if (this.partNumberList.some((r) => r.value.toLowerCase() === value.toLowerCase())) return;
+      if (!value || this.partNumberList.some((r) => r.value.toLowerCase() === value.toLowerCase())) return;
       const { data, error } = await supabaseClient.from("part_numbers").insert({ mesin: machineKey, value }).select().single();
-      if (!error && data) {
-        this.partNumberList.push({ ...data, editing: false, draft: data.value, draftNextProcesses: [] });
-      }
+      if (!error && data) this.partNumberList.push({ ...data, editing: false, draft: data.value, draftNextProcesses: [] });
     },
     async learnProblem(value) {
-      if (!value) return;
-      if (this.problemList.some((r) => r.value.toLowerCase() === value.toLowerCase())) return;
+      if (!value || this.problemList.some((r) => r.value.toLowerCase() === value.toLowerCase())) return;
       const { data, error } = await supabaseClient.from("downtime_problems").insert({ mesin: machineKey, value }).select().single();
       if (!error && data) this.problemList.push({ ...data, editing: false, draft: data.value });
     },
     async addMasterPartNumber() {
-      const v = (this.newPartNumberValue || "").trim();
-      if (!v) return;
+      const v = (this.newPartNumberValue || "").trim(); if (!v) return;
       const { data, error } = await supabaseClient.from("part_numbers").insert({ mesin: machineKey, value: v }).select().single();
-      if (error) { this.flash("Gagal tambah (mungkin sudah ada): " + error.message, true); return; }
+      if (error) { this.flash("Gagal tambah: " + error.message, true); return; }
       this.partNumberList.push({ ...data, editing: false, draft: data.value, draftNextProcesses: [] });
       this.partNumberList.sort((a, b) => a.value.localeCompare(b.value));
-      this.newPartNumberValue = "";
-      this.flash("Part number ditambahkan.");
+      this.newPartNumberValue = ""; this.flash("Part number ditambahkan.");
     },
     startEditPartNumber(item) {
       item.draft = item.value;
-      item.draftNextProcesses = (item.next_processes || []).map((p) => ({ ...p, _key: nextRowKey() }));
+      item.draftNextProcesses = (item.next_processes || []).map((p) => ({ ...p, _key: Math.random().toString(36).slice(2) }));
       item.draftNextProcesses.forEach((p) => { if (p.line) this.ensurePartNumbersForLine(p.line); });
       item.editing = true;
     },
-    cancelEditPartNumber(item) {
-      item.draft = item.value;
-      item.draftNextProcesses = (item.next_processes || []).map((p) => ({ ...p, _key: nextRowKey() }));
-      item.editing = false;
-    },
-    addNextProcessRow(item) {
-      item.draftNextProcesses.push({ line: "", part_number: "", _key: nextRowKey() });
-    },
-    removeNextProcessRow(item, key) {
-      item.draftNextProcesses = item.draftNextProcesses.filter((p) => p._key !== key);
-    },
+    cancelEditPartNumber(item) { item.draft = item.value; item.editing = false; },
+    addNextProcessRow(item) { item.draftNextProcesses.push({ line: "", part_number: "", _key: Math.random().toString(36).slice(2) }); },
+    removeNextProcessRow(item, key) { item.draftNextProcesses = item.draftNextProcesses.filter((p) => p._key !== key); },
     async saveMasterPartNumber(item) {
-      const v = (item.draft || "").trim();
-      if (!v) { this.flash("Part number tidak boleh kosong.", true); return; }
-      const cleanProcesses = item.draftNextProcesses
-        .filter((p) => p.line && p.part_number)
-        .map((p) => ({ line: p.line, part_number: p.part_number }));
-      const payload = { value: v, next_processes: cleanProcesses };
-      const { data, error } = await supabaseClient.from("part_numbers").update(payload).eq("id", item.id).select();
-      if (error) { this.flash("Gagal simpan (mungkin sudah ada yang sama): " + error.message, true); return; }
-      if (!data || data.length === 0) {
-        this.flash("Gagal simpan — perubahan tidak masuk ke database (kemungkinan izin akses). Coba lagi atau kabari admin.", true);
-        return;
-      }
-      item.value = v;
-      item.next_processes = cleanProcesses;
-      item.draftNextProcesses = cleanProcesses.map((p) => ({ ...p, _key: nextRowKey() }));
-      item.editing = false;
+      const v = (item.draft || "").trim(); if (!v) { this.flash("Tidak boleh kosong.", true); return; }
+      const clean = item.draftNextProcesses.filter((p) => p.line && p.part_number).map((p) => ({ line: p.line, part_number: p.part_number }));
+      const { data, error } = await supabaseClient.from("part_numbers").update({ value: v, next_processes: clean }).eq("id", item.id).select();
+      if (error) { this.flash("Gagal simpan: " + error.message, true); return; }
+      if (!data || data.length === 0) { this.flash("Gagal simpan — cek izin akses.", true); return; }
+      item.value = v; item.next_processes = clean; item.editing = false;
       this.flash("Part number diperbarui.");
     },
-
-    // Cache daftar part number per line, dipakai dropdown "Proses Selanjutnya"
-    async ensurePartNumbersForLine(lineKey) {
-      if (!lineKey || this.partNumbersByLine[lineKey]) return;
-      const { data, error } = await supabaseClient
-        .from("part_numbers").select("value").eq("mesin", lineKey).order("value");
-      if (!error && data) this.partNumbersByLine[lineKey] = data.map((r) => r.value);
-    },
-    machineLabel(key) {
-      return this.machineOptions.find((m) => m.key === key)?.label || key;
-    },
-    nextProcessesLabel(item) {
-      if (!item.next_processes || item.next_processes.length === 0) return "";
-      return item.next_processes
-        .map((p) => this.machineLabel(p.line) + (p.part_number ? " — " + p.part_number : ""))
-        .join("  •  ");
-    },
     async deleteMasterPartNumber(id) {
-      if (!confirm("Hapus part number ini dari daftar pilihan?")) return;
+      if (!confirm("Hapus part number ini?")) return;
       const { error } = await supabaseClient.from("part_numbers").delete().eq("id", id);
       if (error) { this.flash("Gagal hapus: " + error.message, true); return; }
       this.partNumberList = this.partNumberList.filter((r) => r.id !== id);
-      this.flash("Part number dihapus dari daftar.");
     },
+    async ensurePartNumbersForLine(lineKey) {
+      if (!lineKey || this.partNumbersByLine[lineKey]) return;
+      const { data, error } = await supabaseClient.from("part_numbers").select("value").eq("mesin", lineKey).order("value");
+      if (!error && data) this.partNumbersByLine[lineKey] = data.map((r) => r.value);
+    },
+    machineLabel(key) { return this.machineOptions.find((m) => m.key === key)?.label || key; },
+
     async addMasterProblem() {
-      const v = (this.newProblemValue || "").trim();
-      if (!v) return;
+      const v = (this.newProblemValue || "").trim(); if (!v) return;
       const { data, error } = await supabaseClient.from("downtime_problems").insert({ mesin: machineKey, value: v }).select().single();
-      if (error) { this.flash("Gagal tambah (mungkin sudah ada): " + error.message, true); return; }
+      if (error) { this.flash("Gagal tambah: " + error.message, true); return; }
       this.problemList.push({ ...data, editing: false, draft: data.value });
       this.problemList.sort((a, b) => a.value.localeCompare(b.value));
-      this.newProblemValue = "";
-      this.flash("Problem ditambahkan.");
+      this.newProblemValue = ""; this.flash("Problem ditambahkan.");
     },
     startEditProblem(item) { item.draft = item.value; item.editing = true; },
     cancelEditProblem(item) { item.draft = item.value; item.editing = false; },
     async saveMasterProblem(item) {
-      const v = (item.draft || "").trim();
-      if (!v) { this.flash("Problem tidak boleh kosong.", true); return; }
+      const v = (item.draft || "").trim(); if (!v) { this.flash("Tidak boleh kosong.", true); return; }
       const { data, error } = await supabaseClient.from("downtime_problems").update({ value: v }).eq("id", item.id).select();
-      if (error) { this.flash("Gagal simpan (mungkin sudah ada yang sama): " + error.message, true); return; }
-      if (!data || data.length === 0) {
-        this.flash("Gagal simpan — perubahan tidak masuk ke database (kemungkinan izin akses). Coba lagi atau kabari admin.", true);
-        return;
-      }
+      if (error) { this.flash("Gagal simpan: " + error.message, true); return; }
+      if (!data || data.length === 0) { this.flash("Gagal simpan — cek izin akses.", true); return; }
       item.value = v; item.editing = false;
-      this.flash("Problem diperbarui.");
     },
     async deleteMasterProblem(id) {
-      if (!confirm("Hapus problem ini dari daftar pilihan?")) return;
+      if (!confirm("Hapus problem ini?")) return;
       const { error } = await supabaseClient.from("downtime_problems").delete().eq("id", id);
       if (error) { this.flash("Gagal hapus: " + error.message, true); return; }
       this.problemList = this.problemList.filter((r) => r.id !== id);
-      this.flash("Problem dihapus dari daftar.");
     },
 
-    // ================= Persistensi timer & form (localStorage) =================
-    restoreState() {
-      const saved = loadTimerStateFor(machineKey);
-      if (!saved) return false;
-      if (saved.tandemVariant) this.tandemVariant = saved.tandemVariant;
-      this.ensureLines();
-      if (saved.lines) {
-        Object.entries(saved.lines).forEach(([id, savedLine]) => {
-          if (!savedLine || savedLine.state === "idle") return;
+    async addMasterNonProduksiType() {
+      const v = (this.newNonProduksiTypeValue || "").trim(); if (!v) return;
+      const { data, error } = await supabaseClient.from("nonproduksi_types").insert({ mesin: machineKey, nama: v }).select().single();
+      if (error) { this.flash("Gagal tambah: " + error.message, true); return; }
+      this.nonProduksiTypeList.push(data);
+      this.nonProduksiTypeList.sort((a, b) => a.nama.localeCompare(b.nama));
+      this.newNonProduksiTypeValue = ""; this.flash("Jenis non-produksi ditambahkan.");
+    },
+    async deleteMasterNonProduksiType(id) {
+      if (!confirm("Hapus jenis ini?")) return;
+      const { error } = await supabaseClient.from("nonproduksi_types").delete().eq("id", id);
+      if (error) { this.flash("Gagal hapus: " + error.message, true); return; }
+      this.nonProduksiTypeList = this.nonProduksiTypeList.filter((r) => r.id !== id);
+    },
+
+    // ================= persist state (localStorage) supaya tahan pindah halaman =================
+    restoreLocalState() {
+      try {
+        const raw = localStorage.getItem("linestate_v3_" + machineKey);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (saved.tandemVariant) { this.tandemVariant = saved.tandemVariant; this.ensureLines(); }
+        Object.entries(saved.lines || {}).forEach(([id, l]) => {
+          if (!l || l.state === "idle") return;
           if (!this.lines[id]) this.lines[id] = this.freshLine();
-          Object.assign(this.lines[id], savedLine);
+          Object.assign(this.lines[id], l);
         });
-      }
-      let restoredDt = false;
-      if (saved.dtState && saved.dtState !== "idle") {
-        this.dtState = saved.dtState;
-        this.dtStart = saved.dtStart;
-        this.dtEnd = saved.dtEnd;
-        this.downtimeForm = saved.downtimeForm || this.downtimeForm;
-        restoredDt = true;
-      }
-      return restoredDt;
+      } catch {}
     },
     watchAndAutosave() {
       const persist = () => {
         const state = { tandemVariant: this.tandemVariant, lines: {} };
-        Object.entries(this.lines).forEach(([id, line]) => {
-          if (line.editingId) return; // jangan timpa penyimpanan kalau lagi mode edit koreksi
-          state.lines[id] = line;
-        });
-        if (!this.editingDowntimeId) {
-          state.dtState = this.dtState; state.dtStart = this.dtStart; state.dtEnd = this.dtEnd;
-          state.downtimeForm = this.downtimeForm;
-        } else {
-          const prev = loadTimerStateFor(machineKey) || {};
-          state.dtState = prev.dtState; state.dtStart = prev.dtStart; state.dtEnd = prev.dtEnd;
-          state.downtimeForm = prev.downtimeForm;
-        }
-        saveTimerStateFor(machineKey, state);
+        Object.entries(this.lines).forEach(([id, l]) => { if (l.state !== "edit") state.lines[id] = l; });
+        try { localStorage.setItem("linestate_v3_" + machineKey, JSON.stringify(state)); } catch {}
       };
       this.$watch("lines", persist);
       this.$watch("tandemVariant", persist);
-      this.$watch("dtState", persist);
-      this.$watch("dtStart", persist);
-      this.$watch("dtEnd", persist);
-      this.$watch("downtimeForm", persist);
-    },
-
-    // ================= util tampilan =================
-    fmt(iso) {
-      if (!iso) return "-";
-      return new Date(iso).toLocaleString("id-ID", {
-        day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
-      });
-    },
-    fmtClock,
-    durasiMenit(awal, akhir) {
-      if (!awal || !akhir) return "-";
-      const diff = (new Date(akhir) - new Date(awal)) / 60000;
-      return diff >= 0 ? diff + " mnt" : "-";
-    },
-    routingLabel(row) {
-      const t = row.extra?.routing_type;
-      const n = row.extra?.routing_numbers;
-      if (!t) return "-";
-      return t + (n && n.length ? " · " + n.join(",") : "");
-    },
-    // Jeda otomatis dari selesainya part sebelumnya (di stasiun yang SAMA)
-    // ke mulainya part ini — cuma referensi, bukan pengganti catatan
-    // Non-Produksi (yang sudah wajib diisi tiap mulai produksi lagi).
-    // Gabungan Riwayat Produksi + Non-Produksi, urut waktu — gaya Nippo
-    // (satu tabel, bukan dua terpisah, biar alurnya kelihatan runtut).
-    riwayatGabungan() {
-      const prod = this.productionRows.map((r) => ({ ...r, _tipe: "produksi" }));
-      const nonProd = this.nonProduksiRows.map((r) => ({ ...r, _tipe: "dandori" }));
-      const combined = [...prod, ...nonProd];
-      combined.sort((a, b) => new Date(b.waktu_awal) - new Date(a.waktu_awal));
-      return combined;
-    },
-    detailRiwayat(row) {
-      if (row._tipe === "produksi") return row.part_number || "-";
-      const dari = row.part_dari, ke = row.part_ke;
-      if (dari && ke) return `${dari} → ${ke}`;
-      return dari || ke || "-";
-    },
-    jenisProduksiLabel(row) {
-      if (row._tipe === "produksi") return row.extra?.work_class === "trial" ? "Trial" : "Produksi";
-      return "Non Produksi";
-    },
-    isBreakRow(row) {
-      return row._tipe === "dandori" && (row.keterangan || "").toLowerCase().includes("break");
-    },
-    durasiProduksiCell(row) {
-      return row._tipe === "produksi" ? this.durasiMenit(row.waktu_awal, row.waktu_akhir) : "-";
-    },
-    durasiDandoriCell(row) {
-      if (row._tipe !== "dandori" || this.isBreakRow(row)) return "-";
-      return this.durasiMenit(row.waktu_awal, row.waktu_akhir);
-    },
-    breakCell(row) {
-      if (!this.isBreakRow(row)) return "-";
-      return this.durasiMenit(row.waktu_awal, row.waktu_akhir);
-    },
-    editRiwayat(row) {
-      if (row._tipe === "produksi") this.editProduction(row);
-      else this.editNonProduksi(row);
-    },
-    deleteRiwayat(row) {
-      if (row._tipe === "produksi") this.deleteProduction(row.id);
-      else this.deleteNonProduksi(row.id);
     },
 
     logout,

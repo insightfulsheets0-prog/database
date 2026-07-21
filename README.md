@@ -6,29 +6,39 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (Performance 1 halaman + OEE + Dashboard baru)
+## 🔧 Yang perlu dikerjakan sekarang (Dashboard baru + mode terang/gelap)
 
-**Tidak ada perubahan database** — semua tabel/fungsi yang dipakai sudah
-ada dari migrasi sebelumnya (`migration_performance_v2.sql`).
+### 1. Jalankan migrasi database
+Di Supabase SQL Editor, jalankan **`migration_dashboard_v3.sql`** (query
+baru). Ini bikin fungsi `gsph_hourly` (trend per jam) dan
+`machine_live_status`.
 
-**Upload semua file** ke GitHub (termasuk `index.html` yang dirombak
-total).
+### 2. Upload semua file ke GitHub
 
-### Yang berubah
-- **Performance sekarang beneran 1 halaman** — Tahunan/Bulanan/Harian
-  jadi tombol pilihan di atas (cuma 1 yang tampil sekaligus, bukan
-  ditumpuk 3-3nya), jadi jauh lebih ringkas, tidak perlu scroll panjang.
-- **OEE ditambahkan** — Availability × Performance × Quality, metrik
-  standar manufaktur, jadi angka utama paling besar di kartu.
-- **Dashboard utama (halaman awal) dirombak total** — sekarang isinya:
-  - OEE rata-rata + total Stroke/Downtime/NG seluruh line
-  - Kartu tiap line (klik langsung ke mesinnya), warna berdasarkan OEE
-    (hijau/kuning/merah)
-  - Grafik Downtime per Kategori × Line (semua mesin sekaligus)
-  - 10 Downtime terburuk lintas semua line
-  - Bisa pilih periode: Hari Ini / Bulan Ini / Tahun Ini
-- Sidebar makin ramping — bisa diciutkan di semua halaman termasuk
-  Dashboard.
+### 3. Yang berubah
+- **Dashboard dirombak jadi gaya control-room** mengikuti referensi:
+  KPI strip di atas (Stroke, GSPH, OEE, Downtime, Dandori, Line Aktif),
+  Trend GSPH per jam, Pareto Downtime, OEE Breakdown (3 donut +
+  total), tabel Status Line, grafik Downtime per Kategori × Line, dan
+  10 Downtime terburuk.
+- **Filter tanggal + shift** (Semua/Shift 1/Shift 2) di kanan atas.
+- **Mode terang & gelap** — tombol 🌙/☀️ di kanan atas (Dashboard maupun
+  halaman mesin). Pilihan tersimpan, konsisten di semua halaman, dan
+  grafik ikut menyesuaikan warnanya.
+
+### Panel yang BELUM dibangun (data belum ada di sistem)
+Ini yang ada di gambar referensi tapi tabelnya belum ada di database:
+- **Target Hari Ini / Achievement** — perlu tabel target harian per mesin
+- **NG Rate & Pareto NG** — kolom `ng` sudah ada tapi semua kosong
+  (sumber Excel tidak punya data NG)
+- **Material Status (Coil)** — perlu tabel material/coil
+- **Die Life (Stroke)** — perlu tabel dies + counter stroke
+- **Manpower (Hadir/Absen/OT)** — perlu tabel absensi
+- **Andon Alert real-time** — perlu mekanisme status mesin live
+- **Operator per baris produksi** — belum disimpan di `production_log`
+
+Masing-masing perlu tabel + alur input sendiri. Kabari mau mulai dari
+yang mana, nanti saya bangun bertahap.
 
 ---
 

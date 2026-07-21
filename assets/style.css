@@ -2,6 +2,15 @@
    Sistem Input Produksi & Downtime — tema industrial/pabrik
    ========================================================= */
 :root {
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --radius: 6px;
+  --blue: #4d7cf5;
+}
+
+/* ---------- Tema Terang (default) ---------- */
+:root, [data-theme="light"] {
   --bg: #f4f5f7;
   --panel: #ffffff;
   --panel-2: #f0f2f5;
@@ -12,12 +21,34 @@
   --amber-dim: #fbe7c4;
   --green: #2f9e63;
   --red: #d1454b;
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-body: 'IBM Plex Sans', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
-  --radius: 6px;
   --shadow-sm: 0 1px 2px rgba(16,24,32,0.06);
   --shadow-md: 0 2px 10px rgba(16,24,32,0.08);
+  --chart-grid: #eceff2;
+  --chart-tick: #6b7480;
+  --oee-card-bg: #1c2126;
+  --oee-card-text: #ffffff;
+  --oee-card-muted: #9aa3ad;
+}
+
+/* ---------- Tema Gelap ---------- */
+[data-theme="dark"] {
+  --bg: #0f1620;
+  --panel: #16202c;
+  --panel-2: #1d2937;
+  --border: #2a3849;
+  --text: #e8ecf1;
+  --muted: #8b96a5;
+  --amber: #e8a33d;
+  --amber-dim: #4a3a1c;
+  --green: #34d399;
+  --red: #f05a60;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 2px 12px rgba(0,0,0,0.4);
+  --chart-grid: #263344;
+  --chart-tick: #8b96a5;
+  --oee-card-bg: #0b111a;
+  --oee-card-text: #ffffff;
+  --oee-card-muted: #8b96a5;
 }
 
 * { box-sizing: border-box; }
@@ -620,21 +651,21 @@ td.mono, .mono { font-family: var(--font-mono); }
 .machine-card-stats b { font-family: var(--font-mono); font-size: 13px; }
 .chip-lg { padding: 10px 22px; font-size: 14px; }
 .perf-card-oee {
-  background: #1c2126;
-  border-color: #1c2126;
+  background: var(--oee-card-bg);
+  border-color: var(--oee-card-bg);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.perf-card-oee .perf-label { color: #b7bec7; }
-.perf-value-xl { font-size: 30px !important; color: #fff !important; }
+.perf-card-oee .perf-label { color: var(--oee-card-muted); }
+.perf-value-xl { font-size: 30px !important; color: var(--oee-card-text) !important; }
 .perf-oee-breakdown {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: #9aa3ad;
+  color: var(--oee-card-muted);
   margin-top: 2px;
 }
-.perf-oee-breakdown b { color: #fff; }
+.perf-oee-breakdown b { color: var(--oee-card-text); }
 
 .perf-header {
   display: flex;
@@ -863,3 +894,180 @@ td.mono, .mono { font-family: var(--font-mono); }
   .mobile-topbar, .sidebar-overlay { display: none; }
 }
 
+
+/* =========================================================
+   DASHBOARD BARU (gaya control-room)
+   ========================================================= */
+.dash-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.dash-title-block h1 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+.dash-title-block p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.dash-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dash-controls select,
+.dash-controls input[type="date"] {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: var(--font-body);
+}
+.theme-toggle {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.theme-toggle:hover { border-color: var(--amber); }
+
+/* ---------- KPI strip ---------- */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.kpi-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kpi-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.kpi-icon {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.kpi-icon-green { background: rgba(47,158,99,0.15); }
+.kpi-icon-amber { background: rgba(201,130,15,0.15); }
+.kpi-icon-red { background: rgba(209,69,75,0.15); }
+.kpi-icon-blue { background: rgba(77,124,245,0.15); }
+.kpi-value {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.kpi-sub { font-size: 11px; color: var(--muted); }
+.kpi-delta { font-size: 11px; font-family: var(--font-mono); }
+.kpi-delta-up { color: var(--green); }
+.kpi-delta-down { color: var(--red); }
+
+/* ---------- Grid utama dashboard ---------- */
+.dash-main-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.dash-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+.dash-panel-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+.dash-chart-sm { height: 200px; position: relative; }
+
+/* ---------- Pareto bar ---------- */
+.pareto-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 70px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.pareto-label { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pareto-bar-track { background: var(--panel-2); border-radius: 3px; height: 18px; overflow: hidden; }
+.pareto-bar-fill { background: var(--red); height: 100%; border-radius: 3px; }
+.pareto-val { font-family: var(--font-mono); font-size: 11px; text-align: right; color: var(--muted); }
+
+/* ---------- Status mesin ---------- */
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.status-running { background: rgba(47,158,99,0.16); color: var(--green); }
+.status-stop { background: rgba(209,69,75,0.16); color: var(--red); }
+.status-idle { background: rgba(107,116,128,0.16); color: var(--muted); }
+
+/* ---------- OEE donut row ---------- */
+.oee-donut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.oee-donut-item { text-align: center; }
+.oee-donut-wrap { width: 84px; height: 84px; position: relative; margin: 0 auto 6px; }
+.oee-donut-label { font-size: 11px; color: var(--muted); }
+.oee-total {
+  text-align: center;
+  padding-left: 12px;
+  border-left: 1px dashed var(--border);
+}
+.oee-total-value {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+@media (max-width: 1200px) {
+  .dash-main-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 800px) {
+  .dash-main-grid { grid-template-columns: 1fr; }
+}

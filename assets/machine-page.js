@@ -119,6 +119,9 @@ function computeBreakMinutes(waIso, wkIso) {
   return Math.round(total);
 }
 
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
 function fmtNum(n) {
   if (n === null || n === undefined || n === "") return "-";
   const num = Number(n);
@@ -149,6 +152,16 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     tandemVariant: null,
     mobileNavOpen: false,
     sidebarCollapsed: true,
+    theme: localStorage.getItem("theme_v1") || "light",
+    toggleTheme() {
+      this.theme = this.theme === "dark" ? "light" : "dark";
+      localStorage.setItem("theme_v1", this.theme);
+      document.documentElement.setAttribute("data-theme", this.theme);
+      this.$nextTick(() => {
+        this.renderPerfChart(this.activePerfSection);
+        this.renderPerfPie(this.activePerfSection);
+      });
+    },
     isOnline: navigator.onLine, pendingCount: 0, syncing: false,
 
     lines: {}, // per stasiun: state machine produksi
@@ -651,20 +664,20 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
           datasets: [
             {
               type: "bar", label: "GSPH (Aktual)", data: st.trend.map((t) => Number(t.gsph.toFixed(1))),
-              backgroundColor: "#c9820f", borderRadius: 3, order: 2,
+              backgroundColor: cssVar("--amber"), borderRadius: 3, order: 2,
             },
             {
               type: "line", label: "GSPH (Target)", data: st.trend.map((t) => Number((t.targetGsph || 0).toFixed(1))),
-              borderColor: "#d1454b", borderWidth: 2, pointRadius: 0, tension: 0, order: 1,
+              borderColor: cssVar("--red"), borderWidth: 2, pointRadius: 0, tension: 0, order: 1,
             },
           ],
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: true, position: "top", labels: { color: "#1c2126", boxWidth: 12 } } },
+          plugins: { legend: { display: true, position: "top", labels: { color: cssVar("--text"), boxWidth: 12 } } },
           scales: {
-            x: { ticks: { color: "#6b7480" }, grid: { display: false } },
-            y: { ticks: { color: "#6b7480" }, grid: { color: "#eceff2" }, beginAtZero: true },
+            x: { ticks: { color: cssVar("--chart-tick") }, grid: { display: false } },
+            y: { ticks: { color: cssVar("--chart-tick") }, grid: { color: cssVar("--chart-grid") }, beginAtZero: true },
           },
         },
       });
@@ -677,19 +690,19 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       if (st.pieChart) st.pieChart.destroy();
       const data = st.byCategory || [];
       if (data.length === 0) return;
-      const colors = { MESIN: "#4d7cf5", DIES: "#d1454b", FINGER: "#2f9e63", OTHER: "#c9820f" };
+      const colors = { MESIN: cssVar("--blue"), DIES: cssVar("--red"), FINGER: cssVar("--green"), OTHER: cssVar("--amber") };
       st.pieChart = new Chart(canvas, {
         type: "pie",
         data: {
           labels: data.map((d) => d.kategori),
           datasets: [{
             data: data.map((d) => d.menit),
-            backgroundColor: data.map((d) => colors[d.kategori] || "#9aa3ad"),
+            backgroundColor: data.map((d) => colors[d.kategori] || cssVar("--muted")),
           }],
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: "right", labels: { color: "#1c2126" } } },
+          plugins: { legend: { position: "right", labels: { color: cssVar("--text") } } },
         },
       });
     },

@@ -60,11 +60,23 @@
       </div>
       <div class="dash-controls">
         <div class="perf-toggle-row" style="margin:0;">
-          <button type="button" class="chip" :class="periodMode==='harian' ? 'chip-active' : ''" @click="periodMode='harian'; fetchAll()">Harian</button>
-          <button type="button" class="chip" :class="periodMode==='bulanan' ? 'chip-active' : ''" @click="periodMode='bulanan'; fetchAll()">Bulanan</button>
-          <button type="button" class="chip" :class="periodMode==='tahunan' ? 'chip-active' : ''" @click="periodMode='tahunan'; fetchAll()">Tahunan</button>
+          <button type="button" class="chip" :class="periodMode==='harian' ? 'chip-active' : ''" @click="setPeriodMode('harian')">Harian</button>
+          <button type="button" class="chip" :class="periodMode==='bulanan' ? 'chip-active' : ''" @click="setPeriodMode('bulanan')">Bulanan</button>
+          <button type="button" class="chip" :class="periodMode==='tahunan' ? 'chip-active' : ''" @click="setPeriodMode('tahunan')">Tahunan</button>
         </div>
-        <input type="date" x-model="tanggal" @change="fetchAll()">
+        <input type="date" x-model="tanggal" @change="fetchAll()" x-show="periodMode==='harian'">
+        <template x-if="periodMode==='bulanan'">
+          <select x-model="bulanPilih" @change="applyBulan()">
+            <option value="0">Januari</option><option value="1">Februari</option>
+            <option value="2">Maret</option><option value="3">April</option>
+            <option value="4">Mei</option><option value="5">Juni</option>
+            <option value="6">Juli</option><option value="7">Agustus</option>
+            <option value="8">September</option><option value="9">Oktober</option>
+            <option value="10">November</option><option value="11">Desember</option>
+          </select>
+        </template>
+        <input type="number" min="2000" max="2100" x-model="tahunPilih" @change="applyTahun()"
+               x-show="periodMode==='bulanan' || periodMode==='tahunan'" style="max-width:100px;">
         <select x-model="shiftFilter" @change="fetchAll()" x-show="periodMode==='harian'">
           <option value="all">Semua Shift</option>
           <option value="1">Shift 1 (07:00–19:30)</option>
@@ -165,27 +177,27 @@
 
         <!-- Status mesin -->
         <div class="dash-panel" style="margin-bottom:18px;">
-          <p class="dash-panel-title">Status Line</p>
+          <p class="dash-panel-title">Line Status</p>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Line</th><th>Status</th><th>Part Terakhir</th>
-                  <th>Stroke</th><th>GSPH</th><th>OEE</th><th>Downtime</th>
+                  <th>Line</th><th>Stroke</th><th>Target GSPH</th><th>Actual GSPH</th>
+                  <th>NG</th><th>Performance</th><th>OEE</th><th>Downtime</th><th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 <template x-for="m in machines" :key="m.key">
                   <tr>
                     <td><b x-text="m.label"></b></td>
-                    <td>
-                      <span class="status-badge" :class="statusClass(m)" x-text="statusLabel(m)"></span>
-                    </td>
-                    <td x-text="m.lastPart || '-'"></td>
                     <td class="mono" x-text="fmtNum(m.data?.stroke)"></td>
+                    <td class="mono" x-text="fmtNum(m.data?.targetGsph)"></td>
                     <td class="mono" x-text="fmtNum(m.data?.gsph)"></td>
+                    <td class="mono" x-text="fmtNum(m.data?.ng)"></td>
+                    <td class="mono" x-text="fmtNum(m.data?.performanceFactor) + '%'"></td>
                     <td class="mono" x-text="fmtNum(m.data?.oee) + '%'"></td>
                     <td class="mono" x-text="fmtNum(m.data?.downtimeMenit) + ' mnt'"></td>
+                    <td><span class="status-badge" :class="statusClass(m)" x-text="statusLabel(m)"></span></td>
                   </tr>
                 </template>
               </tbody>
@@ -250,6 +262,31 @@ function dashboard() {
     tanggal: new Date().toISOString().slice(0, 10),
     shiftFilter: "all",
     periodMode: "harian",
+    bulanPilih: String(new Date().getMonth()),
+    tahunPilih: String(new Date().getFullYear()),
+    applyBulan() {
+      const d = new Date(this.tanggal + "T00:00:00");
+      d.setDate(1);
+      d.setMonth(Number(this.bulanPilih));
+      this.tanggal = d.toISOString().slice(0, 10);
+      this.fetchAll();
+    },
+    applyTahun() {
+      const y = Number(this.tahunPilih);
+      if (!y || y < 2000) return;
+      const d = new Date(this.tanggal + "T00:00:00");
+      d.setDate(1);
+      d.setFullYear(y);
+      this.tanggal = d.toISOString().slice(0, 10);
+      this.fetchAll();
+    },
+    setPeriodMode(mode) {
+      this.periodMode = mode;
+      const d = new Date(this.tanggal + "T00:00:00");
+      this.bulanPilih = String(d.getMonth());
+      this.tahunPilih = String(d.getFullYear());
+      this.fetchAll();
+    },
     machines: MACHINES.map((m) => ({ ...m, data: null, lastPart: null, lastEnd: null })),
     totals: { stroke: 0, ng: 0, downtimeMenit: 0, dandoriMenit: 0, gsph: 0, targetGsph: 0, availability: 0, performanceFactor: 0, quality: 100, oee: 0 },
     paretoDowntime: [], fleetTop10: [], lineAktif: 0,
@@ -391,15 +428,20 @@ function dashboard() {
       this.$nextTick(() => this.renderAllCharts());
     },
 
+    // Penilaian line berdasarkan OEE (standar umum: 85% world-class, 60% rata-rata)
     statusClass(m) {
       if (!m.data || m.data.stroke === 0) return "status-idle";
-      if (m.data.downtimeMenit > 0) return "status-stop";
-      return "status-running";
+      const oee = m.data.oee || 0;
+      if (oee >= 75) return "status-running";
+      if (oee >= 50) return "status-warn";
+      return "status-stop";
     },
     statusLabel(m) {
       if (!m.data || m.data.stroke === 0) return "OFF";
-      if (m.data.downtimeMenit > 0) return "ADA DOWNTIME";
-      return "RUNNING";
+      const oee = m.data.oee || 0;
+      if (oee >= 75) return "GOOD";
+      if (oee >= 50) return "FAIR";
+      return "POOR";
     },
 
     renderAllCharts() {

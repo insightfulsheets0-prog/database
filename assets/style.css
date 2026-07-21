@@ -173,8 +173,9 @@ a { color: var(--amber); }
 
 .main {
   flex: 1;
-  padding: 32px 40px;
-  max-width: 1200px;
+  padding: 28px 32px;
+  min-width: 0;
+  width: 100%;
 }
 
 .page-header {
@@ -998,7 +999,7 @@ td.mono, .mono { font-family: var(--font-mono); }
 /* ---------- Grid utama dashboard ---------- */
 .dash-main-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
+  grid-template-columns: 1.6fr 1fr 1.1fr;
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -1045,6 +1046,7 @@ td.mono, .mono { font-family: var(--font-mono); }
   letter-spacing: 0.04em;
 }
 .status-running { background: rgba(47,158,99,0.16); color: var(--green); }
+.status-warn { background: rgba(201,130,15,0.16); color: var(--amber); }
 .status-stop { background: rgba(209,69,75,0.16); color: var(--red); }
 .status-idle { background: rgba(107,116,128,0.16); color: var(--muted); }
 

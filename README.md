@@ -6,12 +6,31 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (perbaikan bug dashboard)
+## 🔧 Yang perlu dikerjakan sekarang (tabel Line Status + layout landscape)
 
-**Tidak ada perubahan database** (kalau `migration_dashboard_v3.sql`
-sudah dijalankan, cukup itu).
+**Tidak ada perubahan database.** Cukup **upload semua file** ke GitHub.
 
-**Upload semua file** ke GitHub.
+### Yang berubah
+- **Tabel "Line Status" dirombak** (bahasa Inggris), kolomnya sekarang:
+  Line · Stroke · Target GSPH · Actual GSPH · NG · Performance · OEE ·
+  Downtime · Status.
+- **Status jadi penilaian berbasis OEE** (bukan sekadar ada/tidak ada
+  downtime):
+  - **GOOD** — OEE ≥ 75%
+  - **FAIR** — OEE 50–75%
+  - **POOR** — OEE < 50%
+  - **OFF** — line tidak produksi di periode itu
+- **Mode Bulanan sekarang pakai dropdown Januari–Desember** + input
+  tahun. Mode Tahunan cukup input tahun. Mode Harian tetap date-picker
+  + filter shift.
+- **Layout dibuat landscape penuh** — batas lebar 1200px dihapus, jadi
+  konten memakai seluruh lebar layar (tidak ada ruang kosong di kanan
+  lagi di monitor lebar).
+
+### Catatan soal ambang batas Status
+Angka 75% / 50% itu ambang umum industri (85% dianggap world-class untuk
+OEE). Kalau standar internal pabrik Anda beda, kabari — gampang saya
+sesuaikan.
 
 ### ⚠️ PENTING: Cara mengisi Target GSPH (ini penyebab OEE = 0%)
 

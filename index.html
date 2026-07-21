@@ -99,38 +99,71 @@
           Isi dulu di halaman mesin → tab <b>Master Data</b> → panel <b>Target GSPH</b> (khusus admin/leader).
         </div>
 
-        <!-- KPI strip -->
-        <div class="kpi-strip">
-          <div class="kpi-card">
-            <div class="kpi-head"><span class="kpi-icon kpi-icon-green">📦</span>Stroke Aktual</div>
-            <div class="kpi-value" x-text="fmtNum(totals.stroke)"></div>
-            <div class="kpi-sub" x-text="periodeLabel()"></div>
+        <!-- 6 kartu kontrol utama (gaya SQCDMP) -->
+        <div class="sqcdmp-grid">
+          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(totals.performanceFactor, 95, 80)">
+            <div class="sqcdmp-head"><span class="sqcdmp-icon">⚡</span>GSPH</div>
+            <div class="sqcdmp-value" x-text="fmtNum(totals.gsph)"></div>
+            <div class="sqcdmp-sub">Target: <b x-text="fmtNum(totals.targetGsph)"></b></div>
+            <div class="sqcdmp-badge" x-text="cardLabel(totals.performanceFactor, 95, 80)"></div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-head"><span class="kpi-icon kpi-icon-blue">⚡</span>GSPH</div>
-            <div class="kpi-value" x-text="fmtNum(totals.gsph)"></div>
-            <div class="kpi-sub">Target: <b x-text="fmtNum(totals.targetGsph)"></b></div>
+          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(100 - ngRatePct * 2, 90, 80)">
+            <div class="sqcdmp-head"><span class="sqcdmp-icon">🛡️</span>NG RATE</div>
+            <div class="sqcdmp-value" x-text="fmtNum(ngRatePct) + '%'"></div>
+            <div class="sqcdmp-sub">Target: ≤ 0,5% · <b x-text="fmtNum(totals.ng)"></b> pcs</div>
+            <div class="sqcdmp-badge" x-text="cardLabel(100 - ngRatePct * 2, 90, 80)"></div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-head"><span class="kpi-icon kpi-icon-amber">🎯</span>OEE</div>
-            <div class="kpi-value" x-text="fmtNum(totals.oee) + '%'"></div>
-            <div class="kpi-sub">A <b x-text="fmtNum(totals.availability)"></b>% · P <b x-text="fmtNum(totals.performanceFactor)"></b>% · Q <b x-text="fmtNum(totals.quality)"></b>%</div>
+          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(achievementPct, 95, 80)">
+            <div class="sqcdmp-head"><span class="sqcdmp-icon">📈</span>PRODUCTIVITY</div>
+            <div class="sqcdmp-value" x-text="fmtNum(achievementPct) + '%'"></div>
+            <div class="sqcdmp-sub">Achievement vs Planning</div>
+            <div class="sqcdmp-badge" x-text="cardLabel(achievementPct, 95, 80)"></div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-head"><span class="kpi-icon kpi-icon-red">⏱</span>Downtime</div>
-            <div class="kpi-value" x-text="fmtNum(totals.downtimeMenit)"></div>
-            <div class="kpi-sub">menit</div>
+          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(totals.availability, 95, 85)">
+            <div class="sqcdmp-head"><span class="sqcdmp-icon">✅</span>AVAILABILITY</div>
+            <div class="sqcdmp-value" x-text="fmtNum(totals.availability) + '%'"></div>
+            <div class="sqcdmp-sub">Target: ≥ 95%</div>
+            <div class="sqcdmp-badge" x-text="cardLabel(totals.availability, 95, 85)"></div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-head"><span class="kpi-icon kpi-icon-amber">🔧</span>Dandori</div>
-            <div class="kpi-value" x-text="fmtNum(totals.dandoriMenit)"></div>
-            <div class="kpi-sub">menit</div>
+          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(100 - downtimePct * 5, 90, 75)">
+            <div class="sqcdmp-head"><span class="sqcdmp-icon">⏱</span>DOWNTIME</div>
+            <div class="sqcdmp-value" x-text="fmtNum(totals.downtimeMenit)"></div>
+            <div class="sqcdmp-sub">menit</div>
+            <div class="sqcdmp-badge" x-text="cardLabel(100 - downtimePct * 5, 90, 75)"></div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-head"><span class="kpi-icon kpi-icon-green">🏭</span>Line Aktif</div>
-            <div class="kpi-value" x-text="lineAktif + ' / ' + machines.length"></div>
-            <div class="kpi-sub" x-text="(machines.length - lineAktif) + ' line tidak beroperasi'"></div>
+          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(attendance.pct, 95, 85)">
+            <div class="sqcdmp-head"><span class="sqcdmp-icon">👥</span>MORALE</div>
+            <div class="sqcdmp-value" x-text="fmtNum(attendance.pct) + '%'"></div>
+            <div class="sqcdmp-sub">Attendance · <b x-text="fmtNum(attendance.absen)"></b> absen</div>
+            <div class="sqcdmp-badge" x-text="cardLabel(attendance.pct, 95, 85)"></div>
           </div>
+        </div>
+
+        <!-- Input Absensi (admin/leader) -->
+        <div class="dash-panel" x-show="isLeaderOrAdmin()" style="margin-bottom:18px;">
+          <p class="dash-panel-title">Input Absensi Harian</p>
+          <div class="form-grid">
+            <div class="field"><label>Tanggal</label><input type="date" x-model="absenForm.tanggal"></div>
+            <div class="field">
+              <label>Shift</label>
+              <select x-model="absenForm.shift"><option value="1">Shift 1</option><option value="2">Shift 2</option></select>
+            </div>
+            <div class="field"><label>Total Orang</label><input type="number" x-model="absenForm.total_orang"></div>
+            <div class="field"><label>Hadir</label><input type="number" x-model="absenForm.hadir"></div>
+            <div class="field"><label>Absen</label><input type="number" x-model="absenForm.absen"></div>
+            <div class="field"><label>Overtime (jam)</label><input type="number" x-model="absenForm.overtime_jam"></div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-primary" @click="saveAbsensi()">Simpan Absensi</button>
+          </div>
+        </div>
+
+        <!-- Ringkasan tambahan -->
+        <div class="fleet-summary-grid">
+          <div class="perf-card"><span class="perf-label">Total Stroke</span><span class="perf-value" x-text="fmtNum(totals.stroke)"></span></div>
+          <div class="perf-card"><span class="perf-label">Total Dandori</span><span class="perf-value" x-text="fmtNum(totals.dandoriMenit) + ' mnt'"></span></div>
+          <div class="perf-card"><span class="perf-label">Line Aktif</span><span class="perf-value" x-text="lineAktif + ' / ' + machines.length"></span></div>
+          <div class="perf-card"><span class="perf-label">OEE Fleet</span><span class="perf-value" x-text="fmtNum(fleetOee) + '%'"></span></div>
         </div>
 
         <!-- Baris utama: trend + pareto + OEE breakdown -->
@@ -264,6 +297,55 @@ function dashboard() {
     periodMode: "harian",
     bulanPilih: String(new Date().getMonth()),
     tahunPilih: String(new Date().getFullYear()),
+    attendance: { pct: 0, hadir: 0, absen: 0, total_orang: 0, overtime_jam: 0 },
+    absenForm: { tanggal: new Date().toISOString().slice(0, 10), shift: "1", total_orang: "", hadir: "", absen: "", overtime_jam: "" },
+    achievementPct: 0,
+    ngRatePct: 0, downtimePct: 0,
+    isLeaderOrAdmin() { return this.profile && ["admin", "leader"].includes(this.profile.role); },
+    cardStatus(val, greenAt, amberAt) {
+      const v = Number(val) || 0;
+      if (v >= greenAt) return "good";
+      if (v >= amberAt) return "warn";
+      return "bad";
+    },
+    cardLabel(val, greenAt, amberAt) {
+      const s = this.cardStatus(val, greenAt, amberAt);
+      return s === "good" ? "GOOD" : s === "warn" ? "WARNING" : "CRITICAL";
+    },
+    async fetchAttendance() {
+      const { start, end } = this.bounds();
+      const { data, error } = await supabaseClient.rpc("attendance_summary", {
+        p_start: start.toISOString().slice(0, 10), p_end: end.toISOString().slice(0, 10),
+      });
+      const row = (!error && data && data[0]) || {};
+      const totalOrang = Number(row.total_orang) || 0;
+      const hadir = Number(row.hadir) || 0;
+      this.attendance = {
+        total_orang: totalOrang, hadir, absen: Number(row.absen) || 0,
+        overtime_jam: Number(row.overtime_jam) || 0,
+        pct: totalOrang > 0 ? (hadir / (totalOrang * this.attendanceDaysInPeriod())) * 100 : 0,
+      };
+    },
+    attendanceDaysInPeriod() {
+      // perkiraan jumlah hari (shift-hari) tercakup dlm periode -- utk basis
+      // rata-rata persentase kehadiran (bukan cuma total hadir mentah).
+      const { start, end } = this.bounds();
+      const days = Math.max(1, Math.round((end - start) / 86400000));
+      return days;
+    },
+    async saveAbsensi() {
+      const f = this.absenForm;
+      if (!f.tanggal || f.total_orang === "" || f.hadir === "") { alert("Tanggal, Total Orang, dan Hadir wajib diisi."); return; }
+      const payload = {
+        tanggal: f.tanggal, shift: f.shift,
+        total_orang: Number(f.total_orang) || 0, hadir: Number(f.hadir) || 0,
+        absen: Number(f.absen) || 0, overtime_jam: Number(f.overtime_jam) || 0,
+        updated_by: this.session.user.id,
+      };
+      const { error } = await supabaseClient.from("attendance_log").upsert(payload, { onConflict: "tanggal,shift" });
+      if (error) { alert("Gagal simpan absensi: " + error.message); return; }
+      this.fetchAttendance();
+    },
     applyBulan() {
       const d = new Date(this.tanggal + "T00:00:00");
       d.setDate(1);
@@ -422,6 +504,22 @@ function dashboard() {
         .sort((a, b) => b.menit - a.menit).slice(0, 6);
 
       this.fleetTop10 = results.flatMap((r) => r.top).sort((a, b) => b.menit - a.menit).slice(0, 10);
+
+      // rasio turunan utk kartu SQCDMP
+      this.ngRatePct = t.stroke > 0 ? (t.ng / t.stroke) * 100 : 0;
+      this.downtimePct = t.whJam > 0 ? (t.downtimeMenit / (t.whJam * 60)) * 100 : 0;
+
+      // Achievement (aktual vs planning), gabungan semua line
+      const achRes = await Promise.all(MACHINES.map((m) =>
+        supabaseClient.rpc("achievement_aggregate", { p_mesin: m.key, p_start: start.toISOString(), p_end: end.toISOString() })
+      ));
+      const achTotal = achRes.reduce((acc, r) => {
+        const row = (r.data && r.data[0]) || {};
+        return { rencana: acc.rencana + (Number(row.qty_rencana) || 0), aktual: acc.aktual + (Number(row.qty_aktual) || 0) };
+      }, { rencana: 0, aktual: 0 });
+      this.achievementPct = achTotal.rencana > 0 ? (achTotal.aktual / achTotal.rencana) * 100 : 0;
+
+      await this.fetchAttendance();
 
       this._results = results;
       this.loading = false;

@@ -303,6 +303,7 @@
                     <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
                     <th>Waktu Awal</th><th>Waktu Akhir</th>
                     <th>Part Number</th><th>Qty</th><th>MP</th>
+                    <th>Earned</th><th>Operation</th><th>Availability</th>
                     <th>Dandori</th><th>Downtime</th><th>Break</th>
                     <th x-show="routingMax > 0">Routing</th>
                     <th>Aksi</th>
@@ -318,6 +319,9 @@
                       <td x-text="detailRiwayat(row)"></td>
                       <td x-text="row._tipe === 'produksi' ? fmtNum(row.qty) : '-'"></td>
                       <td x-text="row._tipe === 'produksi' ? fmtNum(row.manpower) : '-'"></td>
+                      <td class="mono" x-text="earnedMenit(row) !== null ? fmtNum(earnedMenit(row)) + ' mnt' : '-'"></td>
+                      <td class="mono" x-text="operationMenit(row) !== null ? fmtNum(operationMenit(row)) + ' mnt' : '-'"></td>
+                      <td class="mono" x-text="rowAvailability(row) !== null ? fmtNum(rowAvailability(row)) + '%' : '-'"></td>
                       <td class="mono" x-text="row._tipe === 'produksi' ? (fmtNum(row.dandori_menit ?? 0) + ' mnt') : '-'"></td>
                       <td class="mono">
                         <template x-if="row._tipe === 'produksi' && (row.downtime_menit ?? 0) > 0">

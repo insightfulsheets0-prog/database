@@ -1079,3 +1079,60 @@ td.mono, .mono { font-family: var(--font-mono); }
 @media (max-width: 800px) {
   .dash-main-grid { grid-template-columns: 1fr; }
 }
+
+/* ---------- Kartu SQCDMP ---------- */
+.sqcdmp-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.sqcdmp-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 4px solid var(--muted);
+}
+.sqcdmp-card.sqcdmp-good { border-top-color: var(--green); }
+.sqcdmp-card.sqcdmp-warn { border-top-color: var(--amber); }
+.sqcdmp-card.sqcdmp-bad { border-top-color: var(--red); }
+.sqcdmp-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.sqcdmp-icon { font-size: 14px; }
+.sqcdmp-value {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.sqcdmp-sub { font-size: 11px; color: var(--muted); }
+.sqcdmp-badge {
+  margin-top: 4px;
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--panel-2);
+  color: var(--muted);
+}
+.sqcdmp-card.sqcdmp-good .sqcdmp-badge { background: rgba(47,158,99,0.15); color: var(--green); }
+.sqcdmp-card.sqcdmp-warn .sqcdmp-badge { background: rgba(201,130,15,0.15); color: var(--amber); }
+.sqcdmp-card.sqcdmp-bad .sqcdmp-badge { background: rgba(209,69,75,0.15); color: var(--red); }
+
+@media (max-width: 1100px) { .sqcdmp-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 600px) { .sqcdmp-grid { grid-template-columns: repeat(2, 1fr); } }

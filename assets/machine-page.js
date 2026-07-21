@@ -785,6 +785,26 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
     fmtClock,
     fmtNum,
+    // ---- Earned / Operation / Availability per baris (gaya "Daily Status") ----
+    stdCtFor(partNumber) {
+      const p = this.partNumberList.find((x) => x.value === partNumber);
+      return p && p.std_ct ? Number(p.std_ct) : null;
+    },
+    earnedMenit(row) {
+      if (row._tipe !== "produksi" || !row.qty) return null;
+      const ct = this.stdCtFor(row.part_number);
+      return ct ? row.qty * ct : null;
+    },
+    operationMenit(row) {
+      const d = (new Date(row.waktu_akhir) - new Date(row.waktu_awal)) / 60000;
+      return d >= 0 ? d : null;
+    },
+    rowAvailability(row) {
+      const earned = this.earnedMenit(row);
+      const operation = this.operationMenit(row);
+      if (!earned || !operation || operation === 0) return null;
+      return (earned / operation) * 100;
+    },
     durasiMenit(a, b) {
       if (!a || !b) return "-";
       const d = (new Date(b) - new Date(a)) / 60000;

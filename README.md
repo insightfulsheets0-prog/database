@@ -6,12 +6,38 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (tabel Line Status + layout landscape)
+## 🔧 Yang perlu dikerjakan sekarang (Dashboard SQCDMP + Absensi)
 
-**Tidak ada perubahan database.** Cukup **upload semua file** ke GitHub.
+### 1. Jalankan migrasi database
+Di Supabase SQL Editor, jalankan **`migration_attendance_v1.sql`** (query
+baru). Ini bikin tabel `attendance_log` + fungsi `attendance_summary`
+dan `achievement_aggregate`.
 
-### Yang berubah
-- **Tabel "Line Status" dirombak** (bahasa Inggris), kolomnya sekarang:
+### 2. Upload semua file ke GitHub
+
+### 3. Yang berubah
+- **Dashboard sekarang 6 kartu SQCDMP** (bukan strip KPI generik lagi):
+  **GSPH** · **NG Rate** · **Productivity** (Achievement vs Planning) ·
+  **Availability** · **Downtime** · **Morale** (Attendance). Tiap kartu
+  ada badge GOOD/WARNING/CRITICAL otomatis.
+- **Modul Absensi baru** — panel "Input Absensi Harian" di Dashboard
+  (khusus admin/leader): Tanggal, Shift, Total Orang, Hadir, Absen,
+  Overtime. Silakan kirim data historis Absensi Anda, saya bantu import.
+- **Productivity/Achievement** butuh data **Planning Produksi** terisi
+  (qty rencana) — kalau Planning belum diisi rutin, kartu ini akan
+  tampil 0%. Ini bukan bug, cuma belum ada pembandingnya.
+- **Tabel Riwayat Hari Ini** sekarang ada kolom **Earned**, **Operation**,
+  **Availability** per baris (butuh **Std CT** terisi di Master Data
+  Part Number — kalau belum, kolom ini tampil "-").
+
+### Panel yang masih belum dibangun
+Cost/Safety (framework SQCDMP versi lengkap), Pareto NG per-line, Die
+Management, Material Coil — sama seperti sebelumnya, kabari kalau mau
+dilanjutkan.
+
+---
+
+## Ringkasan pembaruan sebelumnya (tabel Line Status + layout landscape)
   Line · Stroke · Target GSPH · Actual GSPH · NG · Performance · OEE ·
   Downtime · Status.
 - **Status jadi penilaian berbasis OEE** (bukan sekadar ada/tidak ada

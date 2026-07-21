@@ -47,7 +47,40 @@ a { color: var(--amber); }
   padding: 24px 0;
   display: flex;
   flex-direction: column;
+  position: relative;
+  transition: width 0.18s ease;
 }
+.sidebar.sidebar-collapsed { width: 52px; padding: 24px 0 12px; }
+.sidebar-collapse-btn {
+  position: absolute;
+  top: 18px; right: -12px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 5;
+}
+.sidebar-collapse-btn:hover { color: var(--text); border-color: var(--amber); }
+.sidebar.sidebar-collapsed .sidebar-link {
+  justify-content: center;
+  padding: 10px 0;
+}
+.sidebar.sidebar-collapsed .sidebar-link span:first-child { font-size: 18px; }
+.sidebar-logout-collapsed {
+  margin: auto auto 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 10px 0;
+}
+.sidebar-logout-collapsed:hover { color: var(--red); }
 
 .sidebar-brand {
   font-family: var(--font-display);
@@ -550,7 +583,6 @@ td.mono, .mono { font-family: var(--font-mono); }
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 16px;
 }
 .perf-nav input[type="number"],
 .perf-nav input[type="month"],
@@ -598,9 +630,22 @@ td.mono, .mono { font-family: var(--font-mono); }
   font-weight: 700;
   color: var(--text);
 }
+.perf-top-grid {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 16px;
+}
+.perf-cards-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-content: start;
+}
+.perf-cards-col .perf-card { padding: 8px 10px; }
+.perf-cards-col .perf-value { font-size: 16px; }
+.perf-chart-col { min-width: 0; }
 .perf-chart-wrap {
-  margin-top: 18px;
-  height: 220px;
+  height: 260px;
   position: relative;
 }
 .perf-card-accent {
@@ -611,17 +656,19 @@ td.mono, .mono { font-family: var(--font-mono); }
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 20px;
-  margin-top: 24px;
-  padding-top: 20px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px dashed var(--border);
 }
-.perf-lower-col .table-wrap { max-height: 280px; }
+.perf-lower-col .table-wrap { max-height: 220px; }
 .perf-pie-wrap {
-  height: 240px;
+  height: 200px;
   position: relative;
 }
 @media (max-width: 900px) {
   .perf-lower-grid { grid-template-columns: 1fr; }
+  .perf-top-grid { grid-template-columns: 1fr; }
+  .perf-cards-col { grid-template-columns: repeat(3, 1fr); }
 }
 
 /* ---------- Link angka Downtime di Riwayat ---------- */

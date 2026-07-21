@@ -148,6 +148,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     stationConfig: stationConfig || { mode: "none" },
     tandemVariant: null,
     mobileNavOpen: false,
+    sidebarCollapsed: true,
     isOnline: navigator.onLine, pendingCount: 0, syncing: false,
 
     lines: {}, // per stasiun: state machine produksi
@@ -191,8 +192,8 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         this.restoreLocalState();
         this.watchAndAutosave();
         this.refreshPendingCount();
+        await this.fetchMesinSettings();
         this.fetchAllPerf();
-        this.fetchMesinSettings();
         this.$watch("tandemVariant", () => this.fetchAllPerf());
         await this.syncNow();
       } catch (err) {

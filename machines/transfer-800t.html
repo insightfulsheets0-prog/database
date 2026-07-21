@@ -26,17 +26,17 @@
     <span class="mobile-title">Transfer 800t</span>
   </div>
   <div class="sidebar-overlay" x-show="mobileNavOpen" @click="mobileNavOpen = false" x-cloak></div>
-  <aside class="sidebar" :class="mobileNavOpen ? 'sidebar-open' : ''">
-    <div class="sidebar-brand">PRODUKSI<span>&amp;</span>DOWNTIME</div>
+  <aside class="sidebar" :class="[mobileNavOpen ? 'sidebar-open' : '', sidebarCollapsed ? 'sidebar-collapsed' : '']">
+    <button class="sidebar-collapse-btn" @click="sidebarCollapsed = !sidebarCollapsed" :title="sidebarCollapsed ? 'Buka menu' : 'Ciutkan menu'">
+      <span x-show="!sidebarCollapsed">‹</span><span x-show="sidebarCollapsed">›</span>
+    </button>
+    <div class="sidebar-brand" x-show="!sidebarCollapsed">PRODUKSI<span>&amp;</span>DOWNTIME</div>
     <nav class="sidebar-nav" @click="mobileNavOpen = false">
-      <a href="../index.html" class="sidebar-link">🏠 Dashboard</a>
-      <a href="tandem.html" class="sidebar-link">⚙️ Tandem</a>
-      <a href="blanking.html" class="sidebar-link">⚙️ Blanking</a>
-      <a href="transfer-2000t.html" class="sidebar-link">⚙️ Transfer 2000t</a>
-      <a href="transfer-800t.html" class="sidebar-link active">⚙️ Transfer 800t</a>
-      <a href="pc200t.html" class="sidebar-link">⚙️ PC200t</a>
+      <a href="../index.html" class="sidebar-link" title="Kembali ke Dashboard">
+        <span>🏠</span><span x-show="!sidebarCollapsed">Kembali ke Dashboard</span>
+      </a>
     </nav>
-    <div class="sidebar-foot">
+    <div class="sidebar-foot" x-show="!sidebarCollapsed">
       <div class="who" x-text="profile?.full_name || session?.user?.email || '...'"></div>
       <span class="badge" :class="profile?.role === 'admin' ? 'role-admin' : ''" x-text="profile?.role || '...'"></span>
       <div class="net-status" :class="isOnline ? 'net-online' : 'net-offline'">
@@ -45,6 +45,7 @@
       </div>
       <button class="btn-ghost btn-sm" @click="logout()">Keluar</button>
     </div>
+    <button class="sidebar-logout-collapsed" x-show="sidebarCollapsed" @click="logout()" title="Keluar">⏻</button>
   </aside>
 
   <main class="main">
@@ -410,26 +411,30 @@
           <div class="panel">
             <div class="perf-header">
               <p class="panel-title" style="margin:0;">Performance Tahunan</p>
-            </div>
-            <div class="perf-nav">
-              <input type="number" min="2000" max="2100" :value="perfYearValue('tahunan')" @change="setPerfYear('tahunan', $event.target.value)">
-              <span class="perf-period-label" x-text="perfLabel('tahunan')"></span>
+              <div class="perf-nav">
+                <input type="number" min="2000" max="2100" :value="perfYearValue('tahunan')" @change="setPerfYear('tahunan', $event.target.value)">
+                <span class="perf-period-label" x-text="perfLabel('tahunan')"></span>
+              </div>
             </div>
             <template x-if="perf.tahunan.loading"><p class="empty-state">Menghitung...</p></template>
             <template x-if="!perf.tahunan.loading && perf.tahunan.data">
               <div>
-                <div class="perf-grid">
-                  <div class="perf-card perf-card-accent"><span class="perf-label">GSPH Aktual</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.gsph)"></span></div>
-                  <div class="perf-card"><span class="perf-label">GSPH Target</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.targetGsph)"></span></div>
-                  <div class="perf-card"><span class="perf-label">Availability</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.availability) + '%'"></span></div>
-                  <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.stroke)"></span></div>
-                  <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.ng)"></span></div>
-                  <div class="perf-card"><span class="perf-label">Total Downtime</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.downtimeMenit) + ' mnt'"></span></div>
-                  <div class="perf-card"><span class="perf-label">Total Dandori</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.dandoriMenit) + ' mnt'"></span></div>
-                  <div class="perf-card"><span class="perf-label">Total Break</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.breakMenit) + ' mnt'"></span></div>
-                  <div class="perf-card"><span class="perf-label">Jam Kerja (WH)</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.whJam) + ' jam'"></span></div>
+                <div class="perf-top-grid">
+                  <div class="perf-cards-col">
+                    <div class="perf-card perf-card-accent"><span class="perf-label">GSPH Aktual</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.gsph)"></span></div>
+                    <div class="perf-card"><span class="perf-label">GSPH Target</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.targetGsph)"></span></div>
+                    <div class="perf-card"><span class="perf-label">Availability</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.availability) + '%'"></span></div>
+                    <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.stroke)"></span></div>
+                    <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.ng)"></span></div>
+                    <div class="perf-card"><span class="perf-label">Downtime</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.downtimeMenit) + ' mnt'"></span></div>
+                    <div class="perf-card"><span class="perf-label">Dandori</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.dandoriMenit) + ' mnt'"></span></div>
+                    <div class="perf-card"><span class="perf-label">Break</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.breakMenit) + ' mnt'"></span></div>
+                    <div class="perf-card"><span class="perf-label">Jam Kerja</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.whJam) + ' jam'"></span></div>
+                  </div>
+                  <div class="perf-chart-col">
+                    <div class="perf-chart-wrap"><canvas id="perfChart_transfer_800t_tahunan"></canvas></div>
+                  </div>
                 </div>
-                <div class="perf-chart-wrap"><canvas id="perfChart_transfer_800t_tahunan"></canvas></div>
 
                 <div class="perf-lower-grid">
                   <div class="perf-lower-col">
@@ -461,26 +466,30 @@
           <div class="panel">
             <div class="perf-header">
               <p class="panel-title" style="margin:0;">Performance Bulanan</p>
-            </div>
-            <div class="perf-nav">
-              <input type="month" :value="perfMonthValue('bulanan')" @change="setPerfMonth('bulanan', $event.target.value)">
-              <span class="perf-period-label" x-text="perfLabel('bulanan')"></span>
+              <div class="perf-nav">
+                <input type="month" :value="perfMonthValue('bulanan')" @change="setPerfMonth('bulanan', $event.target.value)">
+                <span class="perf-period-label" x-text="perfLabel('bulanan')"></span>
+              </div>
             </div>
             <template x-if="perf.bulanan.loading"><p class="empty-state">Menghitung...</p></template>
             <template x-if="!perf.bulanan.loading && perf.bulanan.data">
               <div>
-                <div class="perf-grid">
-                  <div class="perf-card perf-card-accent"><span class="perf-label">GSPH Aktual</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.gsph)"></span></div>
-                  <div class="perf-card"><span class="perf-label">GSPH Target</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.targetGsph)"></span></div>
-                  <div class="perf-card"><span class="perf-label">Availability</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.availability) + '%'"></span></div>
-                  <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.stroke)"></span></div>
-                  <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.ng)"></span></div>
-                  <div class="perf-card"><span class="perf-label">Total Downtime</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.downtimeMenit) + ' mnt'"></span></div>
-                  <div class="perf-card"><span class="perf-label">Total Dandori</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.dandoriMenit) + ' mnt'"></span></div>
-                  <div class="perf-card"><span class="perf-label">Total Break</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.breakMenit) + ' mnt'"></span></div>
-                  <div class="perf-card"><span class="perf-label">Jam Kerja (WH)</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.whJam) + ' jam'"></span></div>
+                <div class="perf-top-grid">
+                  <div class="perf-cards-col">
+                    <div class="perf-card perf-card-accent"><span class="perf-label">GSPH Aktual</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.gsph)"></span></div>
+                    <div class="perf-card"><span class="perf-label">GSPH Target</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.targetGsph)"></span></div>
+                    <div class="perf-card"><span class="perf-label">Availability</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.availability) + '%'"></span></div>
+                    <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.stroke)"></span></div>
+                    <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.ng)"></span></div>
+                    <div class="perf-card"><span class="perf-label">Downtime</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.downtimeMenit) + ' mnt'"></span></div>
+                    <div class="perf-card"><span class="perf-label">Dandori</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.dandoriMenit) + ' mnt'"></span></div>
+                    <div class="perf-card"><span class="perf-label">Break</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.breakMenit) + ' mnt'"></span></div>
+                    <div class="perf-card"><span class="perf-label">Jam Kerja</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.whJam) + ' jam'"></span></div>
+                  </div>
+                  <div class="perf-chart-col">
+                    <div class="perf-chart-wrap"><canvas id="perfChart_transfer_800t_bulanan"></canvas></div>
+                  </div>
                 </div>
-                <div class="perf-chart-wrap"><canvas id="perfChart_transfer_800t_bulanan"></canvas></div>
 
                 <div class="perf-lower-grid">
                   <div class="perf-lower-col">
@@ -512,26 +521,30 @@
           <div class="panel">
             <div class="perf-header">
               <p class="panel-title" style="margin:0;">Performance Harian</p>
-            </div>
-            <div class="perf-nav">
-              <input type="date" :value="perf.harian.anchor" @change="setPerfDate('harian', $event.target.value)">
-              <span class="perf-period-label" x-text="perfLabel('harian')"></span>
+              <div class="perf-nav">
+                <input type="date" :value="perf.harian.anchor" @change="setPerfDate('harian', $event.target.value)">
+                <span class="perf-period-label" x-text="perfLabel('harian')"></span>
+              </div>
             </div>
             <template x-if="perf.harian.loading"><p class="empty-state">Menghitung...</p></template>
             <template x-if="!perf.harian.loading && perf.harian.data">
               <div>
-                <div class="perf-grid">
-                  <div class="perf-card perf-card-accent"><span class="perf-label">GSPH Aktual</span><span class="perf-value" x-text="fmtNum(perf.harian.data.gsph)"></span></div>
-                  <div class="perf-card"><span class="perf-label">GSPH Target</span><span class="perf-value" x-text="fmtNum(perf.harian.data.targetGsph)"></span></div>
-                  <div class="perf-card"><span class="perf-label">Availability</span><span class="perf-value" x-text="fmtNum(perf.harian.data.availability) + '%'"></span></div>
-                  <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="fmtNum(perf.harian.data.stroke)"></span></div>
-                  <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="fmtNum(perf.harian.data.ng)"></span></div>
-                  <div class="perf-card"><span class="perf-label">Total Downtime</span><span class="perf-value" x-text="fmtNum(perf.harian.data.downtimeMenit) + ' mnt'"></span></div>
-                  <div class="perf-card"><span class="perf-label">Total Dandori</span><span class="perf-value" x-text="fmtNum(perf.harian.data.dandoriMenit) + ' mnt'"></span></div>
-                  <div class="perf-card"><span class="perf-label">Total Break</span><span class="perf-value" x-text="fmtNum(perf.harian.data.breakMenit) + ' mnt'"></span></div>
-                  <div class="perf-card"><span class="perf-label">Jam Kerja (WH)</span><span class="perf-value" x-text="fmtNum(perf.harian.data.whJam) + ' jam'"></span></div>
+                <div class="perf-top-grid">
+                  <div class="perf-cards-col">
+                    <div class="perf-card perf-card-accent"><span class="perf-label">GSPH Aktual</span><span class="perf-value" x-text="fmtNum(perf.harian.data.gsph)"></span></div>
+                    <div class="perf-card"><span class="perf-label">GSPH Target</span><span class="perf-value" x-text="fmtNum(perf.harian.data.targetGsph)"></span></div>
+                    <div class="perf-card"><span class="perf-label">Availability</span><span class="perf-value" x-text="fmtNum(perf.harian.data.availability) + '%'"></span></div>
+                    <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="fmtNum(perf.harian.data.stroke)"></span></div>
+                    <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="fmtNum(perf.harian.data.ng)"></span></div>
+                    <div class="perf-card"><span class="perf-label">Downtime</span><span class="perf-value" x-text="fmtNum(perf.harian.data.downtimeMenit) + ' mnt'"></span></div>
+                    <div class="perf-card"><span class="perf-label">Dandori</span><span class="perf-value" x-text="fmtNum(perf.harian.data.dandoriMenit) + ' mnt'"></span></div>
+                    <div class="perf-card"><span class="perf-label">Break</span><span class="perf-value" x-text="fmtNum(perf.harian.data.breakMenit) + ' mnt'"></span></div>
+                    <div class="perf-card"><span class="perf-label">Jam Kerja</span><span class="perf-value" x-text="fmtNum(perf.harian.data.whJam) + ' jam'"></span></div>
+                  </div>
+                  <div class="perf-chart-col">
+                    <div class="perf-chart-wrap"><canvas id="perfChart_transfer_800t_harian"></canvas></div>
+                  </div>
                 </div>
-                <div class="perf-chart-wrap"><canvas id="perfChart_transfer_800t_harian"></canvas></div>
 
                 <div class="perf-lower-grid">
                   <div class="perf-lower-col">

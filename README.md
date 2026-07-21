@@ -6,17 +6,43 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (mode terang + dashboard Performance baru)
+## 🔧 Yang perlu dikerjakan sekarang (perbaikan bug + layout ringkas)
 
-### 1. Jalankan migrasi database
-Di Supabase SQL Editor, jalankan **`migration_performance_v2.sql`** (query
-baru). Ini bikin tabel `mesin_settings` (Target GSPH), fungsi
-`downtime_top_problems`, `downtime_by_category`, dan memperbarui
-`performance_aggregate` supaya bisa hitung Target GSPH mode "per part".
+**Tidak ada perubahan database** kali ini (kalau sudah jalankan
+`migration_performance_v2.sql` dari sebelumnya, cukup itu saja).
 
-### 2. Upload semua file ke GitHub (banyak yang berubah)
+**Upload semua file** ke GitHub (banyak yang berubah).
 
-### 3. Yang berubah
+### Yang diperbaiki
+- **Bug Target GSPH ketemu**: ke-load SEBELUM setting-nya selesai
+  diambil dari database, jadi selalu kebaca 0. Sudah diperbaiki
+  urutannya (tunggu setting dulu, baru hitung Performance).
+- **Sidebar disederhanakan** — sekarang cuma tombol "🏠 Kembali ke
+  Dashboard" (bukan daftar 5 mesin lagi), dan **bisa diciutkan**
+  (tombol kecil di tepi sidebar) supaya konten lebih lebar.
+- **Layout Performance dipadatkan** — kartu angka sekarang jadi kolom
+  ramping di kiri, grafik di kanan (sejajar, bukan tumpuk ke bawah)
+  supaya lebih muat tanpa scroll panjang.
+
+### Soal "5 Downtime Terburuk" yang kosong di Bulanan/Harian
+Saya cek kodenya, tidak ketemu bug — kemungkinan besar itu karena
+periode yang sedang dipilih (tanggal/bulan tsb) **memang tidak ada data
+downtime di rentang itu**. Tolong cek dengan query ini di SQL Editor
+(ganti tanggal sesuai yang Anda lihat kosong):
+
+```sql
+select count(*) from downtime_log
+where mesin = 'blanking'  -- ganti sesuai mesin yang dicek
+  and waktu_awal >= '2026-06-01' and waktu_awal < '2026-07-01';
+```
+
+Kalau hasilnya 0, berarti memang tidak ada downtime di bulan itu (bukan
+bug). Kalau hasilnya > 0 tapi tabelnya tetap kosong di app, kabari saya
+dengan hasil query itu — berarti ada bug beneran yang perlu saya lacak.
+
+---
+
+## Ringkasan pembaruan sebelumnya (dashboard Performance v1)
 - **Mode terang** — seluruh aplikasi sekarang pakai tema terang modern
   (bukan gelap lagi).
 - **Performance tab dirombak total**, tiap seksi (Tahunan/Bulanan/Harian)

@@ -422,7 +422,12 @@
 
         <!-- ===================== TAB PERFORMANCE ===================== -->
         <div x-show="tab === 'performance'">
-          <div class="panel">
+          <div class="perf-toggle-row">
+            <button type="button" class="chip chip-lg" :class="activePerfSection==='tahunan' ? 'chip-active' : ''" @click="setActivePerfSection('tahunan')">Tahunan</button>
+            <button type="button" class="chip chip-lg" :class="activePerfSection==='bulanan' ? 'chip-active' : ''" @click="setActivePerfSection('bulanan')">Bulanan</button>
+            <button type="button" class="chip chip-lg" :class="activePerfSection==='harian' ? 'chip-active' : ''" @click="setActivePerfSection('harian')">Harian</button>
+          </div>
+          <div class="panel" x-show="activePerfSection === 'tahunan'" x-cloak>
             <div class="perf-header">
               <p class="panel-title" style="margin:0;">Performance Tahunan</p>
               <div class="perf-nav">
@@ -435,9 +440,17 @@
               <div>
                 <div class="perf-top-grid">
                   <div class="perf-cards-col">
+                    <div class="perf-card perf-card-oee">
+                      <span class="perf-label">OEE</span>
+                      <span class="perf-value perf-value-xl" x-text="fmtNum(perf.tahunan.data.oee) + '%'"></span>
+                      <span class="perf-oee-breakdown">
+                        A <b x-text="fmtNum(perf.tahunan.data.availability)"></b>% ·
+                        P <b x-text="fmtNum(perf.tahunan.data.performanceFactor)"></b>% ·
+                        Q <b x-text="fmtNum(perf.tahunan.data.quality)"></b>%
+                      </span>
+                    </div>
                     <div class="perf-card perf-card-accent"><span class="perf-label">GSPH Aktual</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.gsph)"></span></div>
                     <div class="perf-card"><span class="perf-label">GSPH Target</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.targetGsph)"></span></div>
-                    <div class="perf-card"><span class="perf-label">Availability</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.availability) + '%'"></span></div>
                     <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.stroke)"></span></div>
                     <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.ng)"></span></div>
                     <div class="perf-card"><span class="perf-label">Downtime</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.downtimeMenit) + ' mnt'"></span></div>
@@ -477,7 +490,7 @@
               </div>
             </template>
           </div>
-          <div class="panel">
+          <div class="panel" x-show="activePerfSection === 'bulanan'" x-cloak>
             <div class="perf-header">
               <p class="panel-title" style="margin:0;">Performance Bulanan</p>
               <div class="perf-nav">
@@ -490,9 +503,17 @@
               <div>
                 <div class="perf-top-grid">
                   <div class="perf-cards-col">
+                    <div class="perf-card perf-card-oee">
+                      <span class="perf-label">OEE</span>
+                      <span class="perf-value perf-value-xl" x-text="fmtNum(perf.bulanan.data.oee) + '%'"></span>
+                      <span class="perf-oee-breakdown">
+                        A <b x-text="fmtNum(perf.bulanan.data.availability)"></b>% ·
+                        P <b x-text="fmtNum(perf.bulanan.data.performanceFactor)"></b>% ·
+                        Q <b x-text="fmtNum(perf.bulanan.data.quality)"></b>%
+                      </span>
+                    </div>
                     <div class="perf-card perf-card-accent"><span class="perf-label">GSPH Aktual</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.gsph)"></span></div>
                     <div class="perf-card"><span class="perf-label">GSPH Target</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.targetGsph)"></span></div>
-                    <div class="perf-card"><span class="perf-label">Availability</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.availability) + '%'"></span></div>
                     <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.stroke)"></span></div>
                     <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.ng)"></span></div>
                     <div class="perf-card"><span class="perf-label">Downtime</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.downtimeMenit) + ' mnt'"></span></div>
@@ -532,7 +553,7 @@
               </div>
             </template>
           </div>
-          <div class="panel">
+          <div class="panel" x-show="activePerfSection === 'harian'" x-cloak>
             <div class="perf-header">
               <p class="panel-title" style="margin:0;">Performance Harian</p>
               <div class="perf-nav">
@@ -545,9 +566,17 @@
               <div>
                 <div class="perf-top-grid">
                   <div class="perf-cards-col">
+                    <div class="perf-card perf-card-oee">
+                      <span class="perf-label">OEE</span>
+                      <span class="perf-value perf-value-xl" x-text="fmtNum(perf.harian.data.oee) + '%'"></span>
+                      <span class="perf-oee-breakdown">
+                        A <b x-text="fmtNum(perf.harian.data.availability)"></b>% ·
+                        P <b x-text="fmtNum(perf.harian.data.performanceFactor)"></b>% ·
+                        Q <b x-text="fmtNum(perf.harian.data.quality)"></b>%
+                      </span>
+                    </div>
                     <div class="perf-card perf-card-accent"><span class="perf-label">GSPH Aktual</span><span class="perf-value" x-text="fmtNum(perf.harian.data.gsph)"></span></div>
                     <div class="perf-card"><span class="perf-label">GSPH Target</span><span class="perf-value" x-text="fmtNum(perf.harian.data.targetGsph)"></span></div>
-                    <div class="perf-card"><span class="perf-label">Availability</span><span class="perf-value" x-text="fmtNum(perf.harian.data.availability) + '%'"></span></div>
                     <div class="perf-card"><span class="perf-label">Stroke (Qty)</span><span class="perf-value" x-text="fmtNum(perf.harian.data.stroke)"></span></div>
                     <div class="perf-card"><span class="perf-label">NG</span><span class="perf-value" x-text="fmtNum(perf.harian.data.ng)"></span></div>
                     <div class="perf-card"><span class="perf-label">Downtime</span><span class="perf-value" x-text="fmtNum(perf.harian.data.downtimeMenit) + ' mnt'"></span></div>

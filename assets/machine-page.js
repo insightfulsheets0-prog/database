@@ -474,6 +474,11 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
 
     // ================= PERFORMANCE (Tahunan/Bulanan/Harian) =================
+    activePerfSection: "harian", // cuma 1 aktif sekaligus -- muat 1 halaman
+    setActivePerfSection(section) {
+      this.activePerfSection = section;
+      this.$nextTick(() => { this.renderPerfChart(section); this.renderPerfPie(section); });
+    },
     mesinSettings: { gsph_target_mode: "fixed", gsph_target_fixed: 0 },
     mesinSettingsDraft: { gsph_target_mode: "fixed", gsph_target_fixed: 0 },
     async fetchMesinSettings() {
@@ -598,21 +603,26 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         const row = (aggResults[idx].data && aggResults[idx].data[0]) || {};
         const whJam = (Number(row.wh_menit) || 0) / 60;
         const stroke = Number(row.stroke) || 0;
+        const ng = Number(row.ng) || 0;
         const downtimeMenit = Math.round(Number(row.downtime_menit) || 0);
         const targetStdMenit = Number(row.target_std_menit) || 0;
         let targetGsph = targetFixed;
         if (targetMode === "per_part" && targetStdMenit > 0) {
           targetGsph = stroke / (targetStdMenit / 60);
         }
+        const gsph = whJam > 0 ? stroke / whJam : 0;
+        const availability = whJam > 0 ? Math.max(0, (whJam * 60 - downtimeMenit) / (whJam * 60)) * 100 : 0;
+        const performanceFactor = targetGsph > 0 ? Math.min(gsph / targetGsph, 1) * 100 : 0;
+        const quality = stroke > 0 ? Math.max(0, (stroke - ng) / stroke) * 100 : 100;
+        const oee = (availability / 100) * (performanceFactor / 100) * (quality / 100) * 100;
         return {
-          label: p.label, stroke, ng: Number(row.ng) || 0,
+          label: p.label, stroke, ng,
           dandoriMenit: Math.round(Number(row.dandori_menit) || 0),
           downtimeMenit,
           breakMenit: Math.round(Number(row.break_menit) || 0),
-          whJam, gsph: whJam > 0 ? stroke / whJam : 0,
+          whJam, gsph,
           jumlahBaris: Number(row.jumlah_baris) || 0,
-          targetGsph,
-          availability: whJam > 0 ? Math.max(0, (whJam * 60 - downtimeMenit) / (whJam * 60)) * 100 : 0,
+          targetGsph, availability, performanceFactor, quality, oee,
         };
       });
       st.trend = trend;
@@ -626,7 +636,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
     openPerformanceTab() {
       this.tab = "performance";
-      this.$nextTick(() => Object.keys(this.PERF_CONFIG).forEach((s) => { this.renderPerfChart(s); this.renderPerfPie(s); }));
+      this.$nextTick(() => { this.renderPerfChart(this.activePerfSection); this.renderPerfPie(this.activePerfSection); });
     },
     renderPerfChart(section) {
       const st = this.perf[section];

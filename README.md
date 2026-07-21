@@ -6,39 +6,29 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (perbaikan bug + layout ringkas)
+## 🔧 Yang perlu dikerjakan sekarang (Performance 1 halaman + OEE + Dashboard baru)
 
-**Tidak ada perubahan database** kali ini (kalau sudah jalankan
-`migration_performance_v2.sql` dari sebelumnya, cukup itu saja).
+**Tidak ada perubahan database** — semua tabel/fungsi yang dipakai sudah
+ada dari migrasi sebelumnya (`migration_performance_v2.sql`).
 
-**Upload semua file** ke GitHub (banyak yang berubah).
+**Upload semua file** ke GitHub (termasuk `index.html` yang dirombak
+total).
 
-### Yang diperbaiki
-- **Bug Target GSPH ketemu**: ke-load SEBELUM setting-nya selesai
-  diambil dari database, jadi selalu kebaca 0. Sudah diperbaiki
-  urutannya (tunggu setting dulu, baru hitung Performance).
-- **Sidebar disederhanakan** — sekarang cuma tombol "🏠 Kembali ke
-  Dashboard" (bukan daftar 5 mesin lagi), dan **bisa diciutkan**
-  (tombol kecil di tepi sidebar) supaya konten lebih lebar.
-- **Layout Performance dipadatkan** — kartu angka sekarang jadi kolom
-  ramping di kiri, grafik di kanan (sejajar, bukan tumpuk ke bawah)
-  supaya lebih muat tanpa scroll panjang.
-
-### Soal "5 Downtime Terburuk" yang kosong di Bulanan/Harian
-Saya cek kodenya, tidak ketemu bug — kemungkinan besar itu karena
-periode yang sedang dipilih (tanggal/bulan tsb) **memang tidak ada data
-downtime di rentang itu**. Tolong cek dengan query ini di SQL Editor
-(ganti tanggal sesuai yang Anda lihat kosong):
-
-```sql
-select count(*) from downtime_log
-where mesin = 'blanking'  -- ganti sesuai mesin yang dicek
-  and waktu_awal >= '2026-06-01' and waktu_awal < '2026-07-01';
-```
-
-Kalau hasilnya 0, berarti memang tidak ada downtime di bulan itu (bukan
-bug). Kalau hasilnya > 0 tapi tabelnya tetap kosong di app, kabari saya
-dengan hasil query itu — berarti ada bug beneran yang perlu saya lacak.
+### Yang berubah
+- **Performance sekarang beneran 1 halaman** — Tahunan/Bulanan/Harian
+  jadi tombol pilihan di atas (cuma 1 yang tampil sekaligus, bukan
+  ditumpuk 3-3nya), jadi jauh lebih ringkas, tidak perlu scroll panjang.
+- **OEE ditambahkan** — Availability × Performance × Quality, metrik
+  standar manufaktur, jadi angka utama paling besar di kartu.
+- **Dashboard utama (halaman awal) dirombak total** — sekarang isinya:
+  - OEE rata-rata + total Stroke/Downtime/NG seluruh line
+  - Kartu tiap line (klik langsung ke mesinnya), warna berdasarkan OEE
+    (hijau/kuning/merah)
+  - Grafik Downtime per Kategori × Line (semua mesin sekaligus)
+  - 10 Downtime terburuk lintas semua line
+  - Bisa pilih periode: Hari Ini / Bulan Ini / Tahun Ini
+- Sidebar makin ramping — bisa diciutkan di semua halaman termasuk
+  Dashboard.
 
 ---
 

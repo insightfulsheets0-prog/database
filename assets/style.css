@@ -571,6 +571,71 @@ td.mono, .mono { font-family: var(--font-mono); }
 .next-process-row .combo { flex: 1; min-width: 150px; }
 
 /* ---------- Performance dashboard ---------- */
+.perf-toggle-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.fleet-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.machine-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.machine-card {
+  display: block;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--muted);
+  background: var(--panel-2);
+  text-decoration: none;
+  color: var(--text);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.machine-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.machine-card-good { border-left-color: var(--green); }
+.machine-card-warn { border-left-color: var(--amber); }
+.machine-card-bad { border-left-color: var(--red); }
+.machine-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+.machine-card-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; }
+.machine-card-oee { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--amber); }
+.machine-card-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.machine-card-stats .hint { display: block; margin-bottom: 2px; }
+.machine-card-stats b { font-family: var(--font-mono); font-size: 13px; }
+.chip-lg { padding: 10px 22px; font-size: 14px; }
+.perf-card-oee {
+  background: #1c2126;
+  border-color: #1c2126;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.perf-card-oee .perf-label { color: #b7bec7; }
+.perf-value-xl { font-size: 30px !important; color: #fff !important; }
+.perf-oee-breakdown {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #9aa3ad;
+  margin-top: 2px;
+}
+.perf-oee-breakdown b { color: #fff; }
+
 .perf-header {
   display: flex;
   align-items: center;
@@ -632,15 +697,16 @@ td.mono, .mono { font-family: var(--font-mono); }
 }
 .perf-top-grid {
   display: grid;
-  grid-template-columns: 170px 1fr;
+  grid-template-columns: 340px 1fr;
   gap: 16px;
 }
 .perf-cards-col {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   align-content: start;
 }
+.perf-card-oee { grid-column: span 2; }
 .perf-cards-col .perf-card { padding: 8px 10px; }
 .perf-cards-col .perf-value { font-size: 16px; }
 .perf-chart-col { min-width: 0; }

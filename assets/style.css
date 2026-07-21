@@ -100,8 +100,13 @@ a { color: var(--amber); }
 .sidebar.sidebar-collapsed .sidebar-link {
   justify-content: center;
   padding: 10px 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .sidebar.sidebar-collapsed .sidebar-link span:first-child { font-size: 18px; }
+.sidebar.sidebar-collapsed .sidebar-link span:not(:first-child) { display: none !important; }
+.sidebar.sidebar-collapsed .sidebar-brand,
+.sidebar.sidebar-collapsed .sidebar-foot { display: none !important; }
 .sidebar-logout-collapsed {
   margin: auto auto 0;
   background: none;
@@ -651,21 +656,22 @@ td.mono, .mono { font-family: var(--font-mono); }
 .machine-card-stats b { font-family: var(--font-mono); font-size: 13px; }
 .chip-lg { padding: 10px 22px; font-size: 14px; }
 .perf-card-oee {
-  background: var(--oee-card-bg);
-  border-color: var(--oee-card-bg);
+  background: var(--panel-2);
+  border: 1px solid var(--amber);
+  border-left: 4px solid var(--amber);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.perf-card-oee .perf-label { color: var(--oee-card-muted); }
-.perf-value-xl { font-size: 30px !important; color: var(--oee-card-text) !important; }
+.perf-card-oee .perf-label { color: var(--muted); }
+.perf-value-xl { font-size: 30px !important; color: var(--amber) !important; }
 .perf-oee-breakdown {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--oee-card-muted);
+  color: var(--muted);
   margin-top: 2px;
 }
-.perf-oee-breakdown b { color: var(--oee-card-text); }
+.perf-oee-breakdown b { color: var(--text); }
 
 .perf-header {
   display: flex;

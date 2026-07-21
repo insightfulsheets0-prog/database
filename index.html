@@ -59,8 +59,13 @@
         <p>Monitoring &amp; Management Control</p>
       </div>
       <div class="dash-controls">
+        <div class="perf-toggle-row" style="margin:0;">
+          <button type="button" class="chip" :class="periodMode==='harian' ? 'chip-active' : ''" @click="periodMode='harian'; fetchAll()">Harian</button>
+          <button type="button" class="chip" :class="periodMode==='bulanan' ? 'chip-active' : ''" @click="periodMode='bulanan'; fetchAll()">Bulanan</button>
+          <button type="button" class="chip" :class="periodMode==='tahunan' ? 'chip-active' : ''" @click="periodMode='tahunan'; fetchAll()">Tahunan</button>
+        </div>
         <input type="date" x-model="tanggal" @change="fetchAll()">
-        <select x-model="shiftFilter" @change="fetchAll()">
+        <select x-model="shiftFilter" @change="fetchAll()" x-show="periodMode==='harian'">
           <option value="all">Semua Shift</option>
           <option value="1">Shift 1 (07:00–19:30)</option>
           <option value="2">Shift 2 (19:30–07:00)</option>
@@ -75,6 +80,13 @@
 
     <template x-if="!loading">
       <div>
+        <div class="error-msg" x-show="machinesTanpaTarget.length > 0" x-cloak>
+          ⚠️ <b>Target GSPH belum diisi</b> untuk:
+          <span x-text="machinesTanpaTarget.join(', ')"></span>.
+          Akibatnya <b>Performance &amp; OEE tampil 0%</b>.
+          Isi dulu di halaman mesin → tab <b>Master Data</b> → panel <b>Target GSPH</b> (khusus admin/leader).
+        </div>
+
         <!-- KPI strip -->
         <div class="kpi-strip">
           <div class="kpi-card">
@@ -237,9 +249,11 @@ function dashboard() {
     theme: localStorage.getItem("theme_v1") || "light",
     tanggal: new Date().toISOString().slice(0, 10),
     shiftFilter: "all",
+    periodMode: "harian",
     machines: MACHINES.map((m) => ({ ...m, data: null, lastPart: null, lastEnd: null })),
     totals: { stroke: 0, ng: 0, downtimeMenit: 0, dandoriMenit: 0, gsph: 0, targetGsph: 0, availability: 0, performanceFactor: 0, quality: 100, oee: 0 },
     paretoDowntime: [], fleetTop10: [], lineAktif: 0,
+    machinesTanpaTarget: [],
     charts: {},
 
     fmtNum,
@@ -263,11 +277,20 @@ function dashboard() {
 
     periodeLabel() {
       const d = new Date(this.tanggal + "T00:00:00");
+      if (this.periodMode === "tahunan") return String(d.getFullYear());
+      if (this.periodMode === "bulanan") return d.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
       return d.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
     },
 
     bounds() {
       const d = new Date(this.tanggal + "T00:00:00");
+      if (this.periodMode === "tahunan") {
+        return { start: new Date(d.getFullYear(), 0, 1), end: new Date(d.getFullYear() + 1, 0, 1) };
+      }
+      if (this.periodMode === "bulanan") {
+        return { start: new Date(d.getFullYear(), d.getMonth(), 1), end: new Date(d.getFullYear(), d.getMonth() + 1, 1) };
+      }
+      // harian -- boleh difilter per shift
       if (this.shiftFilter === "1") {
         return { start: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 7, 0), end: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 19, 30) };
       }
@@ -347,6 +370,9 @@ function dashboard() {
       };
 
       this.lineAktif = results.filter((r) => r.data.stroke > 0).length;
+      this.machinesTanpaTarget = results
+        .filter((r) => r.data.stroke > 0 && (!r.data.targetGsph || r.data.targetGsph <= 0))
+        .map((r) => r.label);
 
       // pareto downtime gabungan (per problem)
       const problemMap = {};
@@ -371,7 +397,7 @@ function dashboard() {
       return "status-running";
     },
     statusLabel(m) {
-      if (!m.data || m.data.stroke === 0) return "TIDAK JALAN";
+      if (!m.data || m.data.stroke === 0) return "OFF";
       if (m.data.downtimeMenit > 0) return "ADA DOWNTIME";
       return "RUNNING";
     },
@@ -389,28 +415,33 @@ function dashboard() {
       const canvas = document.getElementById("gsphHourlyChart");
       if (!canvas || typeof Chart === "undefined") return;
       if (this.charts.hourly) this.charts.hourly.destroy();
-      // gabung semua line per jam
-      const jamMap = {};
-      this._results.forEach((r) => r.hourly.forEach((h) => {
-        if (!jamMap[h.jam]) jamMap[h.jam] = [];
-        if (h.gsph > 0) jamMap[h.jam].push(h.gsph);
-      }));
-      const jamList = Object.keys(jamMap).map(Number).sort((a, b) => a - b);
-      const avgList = jamList.map((j) => {
-        const arr = jamMap[j];
-        return arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+
+      // kumpulkan semua jam yang muncul di seluruh line
+      const jamSet = new Set();
+      this._results.forEach((r) => r.hourly.forEach((h) => jamSet.add(h.jam)));
+      const jamList = Array.from(jamSet).sort((a, b) => a - b);
+
+      // 1 garis per line (bukan dirata-rata jadi satu)
+      const lineColors = [cssVar("--green"), cssVar("--blue"), cssVar("--amber"), cssVar("--red"), "#a855f7"];
+      const datasets = this._results.map((r, idx) => {
+        const map = {};
+        r.hourly.forEach((h) => { map[h.jam] = h.gsph; });
+        return {
+          type: "line",
+          label: r.label,
+          data: jamList.map((j) => (map[j] !== undefined ? Number(map[j].toFixed(1)) : null)),
+          borderColor: lineColors[idx % lineColors.length],
+          backgroundColor: "transparent",
+          tension: 0.3, pointRadius: 2, spanGaps: true, borderWidth: 2,
+        };
       });
+
       this.charts.hourly = new Chart(canvas, {
-        data: {
-          labels: jamList.map((j) => String(j).padStart(2, "0") + ":00"),
-          datasets: [
-            { type: "line", label: "GSPH Aktual", data: avgList, borderColor: cssVar("--green"), backgroundColor: "transparent", tension: 0.3, pointRadius: 3 },
-            { type: "line", label: "Target", data: jamList.map(() => this.totals.targetGsph), borderColor: cssVar("--muted"), borderDash: [6, 4], pointRadius: 0 },
-          ],
-        },
+        data: { labels: jamList.map((j) => String(j).padStart(2, "0") + ":00"), datasets },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: true, position: "top", labels: { color: cssVar("--text"), boxWidth: 12, font: { size: 11 } } } },
+          interaction: { mode: "index", intersect: false },
+          plugins: { legend: { display: true, position: "top", labels: { color: cssVar("--text"), boxWidth: 10, font: { size: 10 } } } },
           scales: {
             x: { ticks: { color: cssVar("--chart-tick") }, grid: { display: false } },
             y: { ticks: { color: cssVar("--chart-tick") }, grid: { color: cssVar("--chart-grid") }, beginAtZero: true },

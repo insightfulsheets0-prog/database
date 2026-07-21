@@ -6,25 +6,44 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (Dashboard baru + mode terang/gelap)
+## 🔧 Yang perlu dikerjakan sekarang (perbaikan bug dashboard)
 
-### 1. Jalankan migrasi database
-Di Supabase SQL Editor, jalankan **`migration_dashboard_v3.sql`** (query
-baru). Ini bikin fungsi `gsph_hourly` (trend per jam) dan
-`machine_live_status`.
+**Tidak ada perubahan database** (kalau `migration_dashboard_v3.sql`
+sudah dijalankan, cukup itu).
 
-### 2. Upload semua file ke GitHub
+**Upload semua file** ke GitHub.
 
-### 3. Yang berubah
-- **Dashboard dirombak jadi gaya control-room** mengikuti referensi:
-  KPI strip di atas (Stroke, GSPH, OEE, Downtime, Dandori, Line Aktif),
-  Trend GSPH per jam, Pareto Downtime, OEE Breakdown (3 donut +
-  total), tabel Status Line, grafik Downtime per Kategori × Line, dan
-  10 Downtime terburuk.
-- **Filter tanggal + shift** (Semua/Shift 1/Shift 2) di kanan atas.
-- **Mode terang & gelap** — tombol 🌙/☀️ di kanan atas (Dashboard maupun
-  halaman mesin). Pilihan tersimpan, konsisten di semua halaman, dan
-  grafik ikut menyesuaikan warnanya.
+### ⚠️ PENTING: Cara mengisi Target GSPH (ini penyebab OEE = 0%)
+
+OEE = Availability × **Performance** × Quality. Performance dihitung dari
+`GSPH Aktual ÷ GSPH Target`. Karena **Target masih 0**, Performance jadi
+0% → OEE ikut 0%.
+
+Cara mengisi (harus login sebagai **admin** atau **leader**):
+1. Buka halaman mesin (misal Blanking)
+2. Klik tab **Master Data**
+3. Panel paling atas **"Target GSPH"** → pilih mode:
+   - **Target Sama** — isi 1 angka, berlaku semua tanggal
+     (mis. Blanking 1900, sesuai target di laporan Anda)
+   - **Target per Part** — otomatis dihitung dari Std CT tiap part
+     (perlu kolom Std CT terisi dulu di daftar Part Number)
+4. Klik **Simpan Target** → ulangi untuk tiap mesin
+
+Setelah terisi, OEE dan garis target di semua grafik langsung muncul.
+Dashboard sekarang juga menampilkan **peringatan otomatis** kalau ada
+mesin yang targetnya belum diisi.
+
+### Yang diperbaiki
+- **Sidebar diciutkan**: teks nama line tidak nongol lagi (dulu sempat
+  kelihatan karena timing Alpine — sekarang dipaksa lewat CSS).
+- **Dashboard bisa Harian / Bulanan / Tahunan** (tombol di kanan atas).
+  Filter shift otomatis tersembunyi kalau bukan mode Harian.
+- **Status line** yang tidak produksi sekarang tertulis **"OFF"**.
+- **Grafik GSPH per jam dipisah per line** (1 garis per mesin, bukan
+  dirata-rata jadi satu) — jadi kelihatan performa masing-masing.
+- **Kartu OEE di halaman Performance diperbaiki** — sebelumnya gelap dan
+  susah dibaca di mode terang. Sekarang ikut tema, konsisten dengan gaya
+  Dashboard.
 
 ### Panel yang BELUM dibangun (data belum ada di sistem)
 Ini yang ada di gambar referensi tapi tabelnya belum ada di database:

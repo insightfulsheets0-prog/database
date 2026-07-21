@@ -162,9 +162,9 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
 
     // ---- Performance dashboard (3 seksi independen) ----
     perf: {
-      tahunan: { anchor: new Date().toISOString().slice(0, 10), loading: false, data: null, trend: [], chart: null },
-      bulanan: { anchor: new Date().toISOString().slice(0, 10), loading: false, data: null, trend: [], chart: null },
-      harian: { anchor: new Date().toISOString().slice(0, 10), loading: false, data: null, trend: [], chart: null },
+      tahunan: { anchor: new Date().toISOString().slice(0, 10), loading: false, data: null, trend: [], chart: null, pieChart: null, top5: [], byCategory: [] },
+      bulanan: { anchor: new Date().toISOString().slice(0, 10), loading: false, data: null, trend: [], chart: null, pieChart: null, top5: [], byCategory: [] },
+      harian: { anchor: new Date().toISOString().slice(0, 10), loading: false, data: null, trend: [], chart: null, pieChart: null, top5: [], byCategory: [] },
     },
 
     isLeaderOrAdmin() {
@@ -192,6 +192,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         this.watchAndAutosave();
         this.refreshPendingCount();
         this.fetchAllPerf();
+        this.fetchMesinSettings();
         this.$watch("tandemVariant", () => this.fetchAllPerf());
         await this.syncNow();
       } catch (err) {
@@ -472,6 +473,28 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
 
     // ================= PERFORMANCE (Tahunan/Bulanan/Harian) =================
+    mesinSettings: { gsph_target_mode: "fixed", gsph_target_fixed: 0 },
+    mesinSettingsDraft: { gsph_target_mode: "fixed", gsph_target_fixed: 0 },
+    async fetchMesinSettings() {
+      const { data, error } = await supabaseClient.from("mesin_settings").select("*").eq("mesin", machineKey).maybeSingle();
+      if (!error && data) {
+        this.mesinSettings = data;
+        this.mesinSettingsDraft = { gsph_target_mode: data.gsph_target_mode, gsph_target_fixed: data.gsph_target_fixed };
+      }
+    },
+    async saveMesinSettings() {
+      const payload = {
+        mesin: machineKey,
+        gsph_target_mode: this.mesinSettingsDraft.gsph_target_mode,
+        gsph_target_fixed: Number(this.mesinSettingsDraft.gsph_target_fixed) || 0,
+        updated_by: this.session.user.id,
+      };
+      const { error } = await supabaseClient.from("mesin_settings").upsert(payload, { onConflict: "mesin" });
+      if (error) { this.flash("Gagal simpan setting: " + error.message, true); return; }
+      this.mesinSettings = payload;
+      this.flash("Target GSPH disimpan.");
+      this.fetchAllPerf();
+    },
     // Konfigurasi tiap seksi: satuan waktu & berapa periode ditampilkan di grafik tren.
     PERF_CONFIG: {
       tahunan: { unit: "year", trendCount: 5 },
@@ -544,41 +567,65 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         const { start, end } = this.perfBounds(cfg.unit, st.anchor, i);
         periods.push({ start, end, label: this.perfPeriodLabel(cfg.unit, start) });
       }
+      const currentBounds = this.perfBounds(cfg.unit, st.anchor, 0);
 
-      const results = await Promise.all(periods.map((p) =>
-        supabaseClient.rpc("performance_aggregate", {
+      const [aggResults, top5Result, catResult] = await Promise.all([
+        Promise.all(periods.map((p) =>
+          supabaseClient.rpc("performance_aggregate", {
+            p_mesin: machineKey, p_stasiun_list: stasiunList,
+            p_start: p.start.toISOString(), p_end: p.end.toISOString(),
+          })
+        )),
+        supabaseClient.rpc("downtime_top_problems", {
           p_mesin: machineKey, p_stasiun_list: stasiunList,
-          p_start: p.start.toISOString(), p_end: p.end.toISOString(),
-        })
-      ));
+          p_start: currentBounds.start.toISOString(), p_end: currentBounds.end.toISOString(), p_limit: 5,
+        }),
+        supabaseClient.rpc("downtime_by_category", {
+          p_mesin: machineKey, p_stasiun_list: stasiunList,
+          p_start: currentBounds.start.toISOString(), p_end: currentBounds.end.toISOString(),
+        }),
+      ]);
       st.loading = false;
 
-      const anyError = results.find((r) => r.error);
+      const anyError = aggResults.find((r) => r.error);
       if (anyError) { this.flash("Gagal memuat data performance: " + anyError.error.message, true); return; }
 
+      const targetMode = this.mesinSettings.gsph_target_mode;
+      const targetFixed = Number(this.mesinSettings.gsph_target_fixed) || 0;
+
       const trend = periods.map((p, idx) => {
-        const row = (results[idx].data && results[idx].data[0]) || {};
+        const row = (aggResults[idx].data && aggResults[idx].data[0]) || {};
         const whJam = (Number(row.wh_menit) || 0) / 60;
         const stroke = Number(row.stroke) || 0;
+        const downtimeMenit = Math.round(Number(row.downtime_menit) || 0);
+        const targetStdMenit = Number(row.target_std_menit) || 0;
+        let targetGsph = targetFixed;
+        if (targetMode === "per_part" && targetStdMenit > 0) {
+          targetGsph = stroke / (targetStdMenit / 60);
+        }
         return {
           label: p.label, stroke, ng: Number(row.ng) || 0,
           dandoriMenit: Math.round(Number(row.dandori_menit) || 0),
-          downtimeMenit: Math.round(Number(row.downtime_menit) || 0),
+          downtimeMenit,
           breakMenit: Math.round(Number(row.break_menit) || 0),
           whJam, gsph: whJam > 0 ? stroke / whJam : 0,
           jumlahBaris: Number(row.jumlah_baris) || 0,
+          targetGsph,
+          availability: whJam > 0 ? Math.max(0, (whJam * 60 - downtimeMenit) / (whJam * 60)) * 100 : 0,
         };
       });
       st.trend = trend;
       st.data = trend[trend.length - 1];
-      this.$nextTick(() => this.renderPerfChart(section));
+      st.top5 = (top5Result.data || []).map((r) => ({ kategori: r.kategori, problem: r.problem, menit: Math.round(Number(r.total_menit) || 0) }));
+      st.byCategory = (catResult.data || []).map((r) => ({ kategori: r.kategori, menit: Math.round(Number(r.total_menit) || 0) }));
+      this.$nextTick(() => { this.renderPerfChart(section); this.renderPerfPie(section); });
     },
     fetchAllPerf() {
       Object.keys(this.PERF_CONFIG).forEach((s) => this.fetchPerfSection(s));
     },
     openPerformanceTab() {
       this.tab = "performance";
-      this.$nextTick(() => Object.keys(this.PERF_CONFIG).forEach((s) => this.renderPerfChart(s)));
+      this.$nextTick(() => Object.keys(this.PERF_CONFIG).forEach((s) => { this.renderPerfChart(s); this.renderPerfPie(s); }));
     },
     renderPerfChart(section) {
       const st = this.perf[section];
@@ -588,21 +635,50 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       if (!canvas || typeof Chart === "undefined") return;
       if (st.chart) st.chart.destroy();
       st.chart = new Chart(canvas, {
-        type: "bar",
         data: {
           labels: st.trend.map((t) => t.label),
+          datasets: [
+            {
+              type: "bar", label: "GSPH (Aktual)", data: st.trend.map((t) => Number(t.gsph.toFixed(1))),
+              backgroundColor: "#c9820f", borderRadius: 3, order: 2,
+            },
+            {
+              type: "line", label: "GSPH (Target)", data: st.trend.map((t) => Number((t.targetGsph || 0).toFixed(1))),
+              borderColor: "#d1454b", borderWidth: 2, pointRadius: 0, tension: 0, order: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: true, position: "top", labels: { color: "#1c2126", boxWidth: 12 } } },
+          scales: {
+            x: { ticks: { color: "#6b7480" }, grid: { display: false } },
+            y: { ticks: { color: "#6b7480" }, grid: { color: "#eceff2" }, beginAtZero: true },
+          },
+        },
+      });
+    },
+    renderPerfPie(section) {
+      const st = this.perf[section];
+      const canvasId = "perfPie_" + machineKey + "_" + section;
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || typeof Chart === "undefined") return;
+      if (st.pieChart) st.pieChart.destroy();
+      const data = st.byCategory || [];
+      if (data.length === 0) return;
+      const colors = { MESIN: "#4d7cf5", DIES: "#d1454b", FINGER: "#2f9e63", OTHER: "#c9820f" };
+      st.pieChart = new Chart(canvas, {
+        type: "pie",
+        data: {
+          labels: data.map((d) => d.kategori),
           datasets: [{
-            label: "GSPH", data: st.trend.map((t) => Number(t.gsph.toFixed(1))),
-            backgroundColor: "#e0a63a", borderRadius: 3,
+            data: data.map((d) => d.menit),
+            backgroundColor: data.map((d) => colors[d.kategori] || "#9aa3ad"),
           }],
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { color: "#9aa3ad" }, grid: { display: false } },
-            y: { ticks: { color: "#9aa3ad" }, grid: { color: "#2a2f36" }, beginAtZero: true },
-          },
+          plugins: { legend: { position: "right", labels: { color: "#1c2126" } } },
         },
       });
     },

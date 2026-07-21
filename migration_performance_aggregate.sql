@@ -22,32 +22,43 @@ returns table (
 )
 language sql stable
 as $$
-  with batched as (
-    -- kelompokkan per (stasiun, waktu_awal, waktu_akhir) supaya stroke
-    -- part "separating" (pasangan, waktu sama) tidak dobel hitung.
+  -- STROKE pakai rasio per part (Output x Separating dari CT TIME, kolom
+  -- stroke_ratio) -- cocok dengan formula asli Excel: STROKE = qty x rasio.
+  -- Tidak perlu dedup baris utk stroke, karena rasio sudah menangani
+  -- pembagian yang benar utk part "separating" (pasangan, waktu sama).
+  --
+  -- WH/Break/Dandori TETAP dikelompokkan per (stasiun,waktu_awal,waktu_akhir)
+  -- supaya durasi waktu yang sama tidak ke-dobel-jumlah kalau tercatat
+  -- di 2+ baris part sekaligus (sudah di-nolkan di baris ke-2+ saat import).
+  with rows_with_ratio as (
+    select pl.*, coalesce(pn.stroke_ratio, 1) as ratio
+    from public.production_log pl
+    left join public.part_numbers pn
+      on pn.mesin = pl.mesin and pn.value = pl.part_number
+    where pl.mesin = p_mesin
+      and (p_stasiun_list is null or pl.stasiun = any(p_stasiun_list))
+      and pl.waktu_awal >= p_start
+      and pl.waktu_awal < p_end
+  ),
+  batched_time as (
     select
       stasiun, waktu_awal, waktu_akhir,
-      max(coalesce(qty, 0)) as qty,
-      sum(coalesce(ng, 0)) as ng,
+      max(coalesce(break_menit, 0)) as break_menit,
       max(coalesce(dandori_menit, 0)) as dandori_menit,
-      sum(coalesce(downtime_menit, 0)) as downtime_menit,
-      max(coalesce(break_menit, 0)) as break_menit
-    from public.production_log
-    where mesin = p_mesin
-      and (p_stasiun_list is null or stasiun = any(p_stasiun_list))
-      and waktu_awal >= p_start
-      and waktu_awal < p_end
+      sum(coalesce(downtime_menit, 0)) as downtime_menit
+    from rows_with_ratio
     group by stasiun, waktu_awal, waktu_akhir
   )
   select
-    coalesce(sum(qty), 0),
-    coalesce(sum(ng), 0),
-    coalesce(sum(dandori_menit), 0),
-    coalesce(sum(downtime_menit), 0),
-    coalesce(sum(break_menit), 0),
-    coalesce(sum(extract(epoch from (waktu_akhir - waktu_awal)) / 60) - sum(break_menit), 0),
-    count(*)
-  from batched;
+    (select coalesce(sum(coalesce(qty, 0) * ratio), 0) from rows_with_ratio),
+    (select coalesce(sum(ng), 0) from rows_with_ratio),
+    (select coalesce(sum(dandori_menit), 0) from batched_time),
+    (select coalesce(sum(downtime_menit), 0) from batched_time),
+    (select coalesce(sum(break_menit), 0) from batched_time),
+    (select coalesce(sum(extract(epoch from (waktu_akhir - waktu_awal)) / 60), 0)
+       - (select coalesce(sum(break_menit), 0) from batched_time)
+     from batched_time),
+    (select count(*) from rows_with_ratio);
 $$;
 
 grant execute on function public.performance_aggregate(machine_type, text[], timestamptz, timestamptz) to authenticated;

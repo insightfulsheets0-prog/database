@@ -6,25 +6,51 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (perbaikan bug agregasi Performance)
+## 🔧 Yang perlu dikerjakan sekarang (mode terang + dashboard Performance baru)
 
 ### 1. Jalankan migrasi database
-Di Supabase SQL Editor, jalankan **`migration_performance_aggregate.sql`**
-(query baru). Ini bikin fungsi `performance_aggregate` yang menjumlahkan
-data **di database**, bukan ditarik mentah ke browser.
+Di Supabase SQL Editor, jalankan **`migration_performance_v2.sql`** (query
+baru). Ini bikin tabel `mesin_settings` (Target GSPH), fungsi
+`downtime_top_problems`, `downtime_by_category`, dan memperbarui
+`performance_aggregate` supaya bisa hitung Target GSPH mode "per part".
 
-### 2. Upload semua file ke GitHub
+### 2. Upload semua file ke GitHub (banyak yang berubah)
 
-### Yang diperbaiki
-- **Bug ketemu**: grafik & angka Performance sebelumnya menarik SEMUA
-  baris mentah ke browser lalu dijumlah di sana, dibatasi 50.000 baris
-  **tanpa urutan yang jelas** — untuk mesin/periode dengan data banyak,
-  batas itu kepotong di tengah dan bulan-bulan lama hilang dari
-  perhitungan (ini penyebab grafik Maret 2026 cuma nampilin Nov-Mar, dan
-  kemungkinan besar juga penyebab GSPH salah di Blanking). Sekarang
-  penjumlahan dipindah ke database — tidak ada lagi batas baris.
-- **Navigasi diganti jadi pilihan langsung** — Tahunan: pilih angka
-  tahun. Bulanan: date-picker bulan. Harian: date-picker tanggal.
+### 3. Yang berubah
+- **Mode terang** — seluruh aplikasi sekarang pakai tema terang modern
+  (bukan gelap lagi).
+- **Performance tab dirombak total**, tiap seksi (Tahunan/Bulanan/Harian)
+  sekarang punya: GSPH Aktual vs **Target** (garis merah di grafik),
+  **Availability**, **5 Downtime Terburuk** (tabel), dan **pie chart
+  Downtime per Kategori** (Mesin/Dies/Finger/Other).
+- **Target GSPH** diatur di Master Data (2 mode, cuma admin/leader yang
+  bisa ubah):
+  - **Target Sama** — 1 angka tetap semua tanggal/bulan
+  - **Target per Part** — dihitung otomatis dari Std CT tiap part
+    (SPM × 60), jadi target-nya menyesuaikan part apa yang sedang jalan
+
+### Yang belum (menyusul)
+**Dashboard lintas-line** (breakdown downtime per kategori × per line,
+semua mesin sekaligus, seperti Gambar 2-3 yang Anda kirim) — ini konsepnya
+beda (bukan per-mesin), jadi saya akan bangun terpisah, kemungkinan di
+halaman Dashboard utama.
+
+---
+
+## Ringkasan pembaruan sebelumnya (formula GSPH)
+database, JS/HTML tidak berubah.
+
+### Catatan
+Hasil GSPH Blanking Maret 2026 saya uji dengan data yang ada, hasilnya
+1.923,7 (dari sebelumnya 2.595,9) — target Anda 1.841. Selisih ~4,5%
+kemungkinan karena beberapa part number di data Maret belum tercakup di
+254 part yang saya ekstrak (cuma dari file yang saya punya). Kalau
+Anda punya sheet CT TIME yang lebih lengkap/terbaru, kirim saja — saya
+lengkapi `stroke_ratio`-nya lagi biar makin presisi.
+
+---
+
+## Ringkasan pembaruan sebelumnya (agregasi Performance pindah ke database)
   Tombol geser Sebelumnya/Berikutnya dihapus.
 
 ### Kalau GSPH Blanking masih salah setelah ini

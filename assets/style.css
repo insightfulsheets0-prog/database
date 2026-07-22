@@ -1134,5 +1134,13 @@ td.mono, .mono { font-family: var(--font-mono); }
 .sqcdmp-card.sqcdmp-warn .sqcdmp-badge { background: rgba(201,130,15,0.15); color: var(--amber); }
 .sqcdmp-card.sqcdmp-bad .sqcdmp-badge { background: rgba(209,69,75,0.15); color: var(--red); }
 
-@media (max-width: 1100px) { .sqcdmp-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 600px) { .sqcdmp-grid { grid-template-columns: repeat(2, 1fr); } }
+.sqcdmp-grid-5 { grid-template-columns: repeat(5, 1fr); }
+.sqcdmp-card.sqcdmp-nodata {
+  border-top-color: var(--border);
+  opacity: 0.7;
+}
+.sqcdmp-card.sqcdmp-nodata .sqcdmp-value { color: var(--muted); }
+.sqcdmp-card.sqcdmp-warn { border-top-color: var(--amber); }
+
+@media (max-width: 1100px) { .sqcdmp-grid, .sqcdmp-grid-5 { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 600px) { .sqcdmp-grid, .sqcdmp-grid-5 { grid-template-columns: repeat(2, 1fr); } }

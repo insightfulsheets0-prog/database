@@ -777,6 +777,7 @@
                       <span class="hint" x-show="item.std_mp || item.std_ct" style="padding:0 10px;">
                         <span x-show="item.std_mp">Std MP: <b x-text="item.std_mp"></b></span>
                         <span x-show="item.std_ct"> · Std CT: <b x-text="item.std_ct"></b> mnt/stroke · SPM: <b x-text="spmFromCt(item.std_ct)"></b></span>
+                        <span x-show="item.harga_pcs"> · Harga: <b x-text="'Rp ' + fmtNum(item.harga_pcs)"></b>/pcs</span>
                       </span>
                       <div class="next-process-display" x-show="item.next_processes && item.next_processes.length">
                         <template x-for="(p, i) in item.next_processes" :key="i">
@@ -803,6 +804,10 @@
                         <div style="flex:1;min-width:120px;">
                           <label class="hint" style="display:block;margin-bottom:4px;">SPM (otomatis)</label>
                           <input type="text" disabled :value="spmFromCt(item.draftStdCt)">
+                        </div>
+                        <div style="flex:1;min-width:120px;">
+                          <label class="hint" style="display:block;margin-bottom:4px;">Harga per Pcs (Rp)</label>
+                          <input type="number" step="1" x-model="item.draftHargaPcs" placeholder="mis. 5000">
                         </div>
                       </div>
                       <div>

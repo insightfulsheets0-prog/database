@@ -617,6 +617,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         const whJam = (Number(row.wh_menit) || 0) / 60;
         const stroke = Number(row.stroke) || 0;
         const ng = Number(row.ng) || 0;
+        const ngValue = Number(row.ng_value) || 0;
         const downtimeMenit = Math.round(Number(row.downtime_menit) || 0);
         const targetStdMenit = Number(row.target_std_menit) || 0;
         let targetGsph = targetFixed;
@@ -629,7 +630,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         const quality = stroke > 0 ? Math.max(0, (stroke - ng) / stroke) * 100 : 100;
         const oee = (availability / 100) * (performanceFactor / 100) * (quality / 100) * 100;
         return {
-          label: p.label, stroke, ng,
+          label: p.label, stroke, ng, ngValue,
           dandoriMenit: Math.round(Number(row.dandori_menit) || 0),
           downtimeMenit,
           breakMenit: Math.round(Number(row.break_menit) || 0),
@@ -977,11 +978,11 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
 
     // ================= MASTER DATA =================
     async fetchPartNumbers() {
-      const { data, error } = await supabaseClient.from("part_numbers").select("id, value, next_processes, std_mp, std_ct").eq("mesin", machineKey).order("value");
+      const { data, error } = await supabaseClient.from("part_numbers").select("id, value, next_processes, std_mp, std_ct, harga_pcs").eq("mesin", machineKey).order("value");
       if (error) { this.flash("Gagal memuat Part Number: " + error.message, true); return; }
       this.partNumberList = data.map((r) => ({
         ...r, editing: false, draft: r.value,
-        draftStdMp: r.std_mp ?? "", draftStdCt: r.std_ct ?? "",
+        draftStdMp: r.std_mp ?? "", draftStdCt: r.std_ct ?? "", draftHargaPcs: r.harga_pcs ?? "",
         draftNextProcesses: (r.next_processes || []).map((p) => ({ ...p, _key: Math.random().toString(36).slice(2) })),
       }));
     },
@@ -1012,6 +1013,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       item.draft = item.value;
       item.draftStdMp = item.std_mp ?? "";
       item.draftStdCt = item.std_ct ?? "";
+      item.draftHargaPcs = item.harga_pcs ?? "";
       item.draftNextProcesses = (item.next_processes || []).map((p) => ({ ...p, _key: Math.random().toString(36).slice(2) }));
       item.draftNextProcesses.forEach((p) => { if (p.line) this.ensurePartNumbersForLine(p.line); });
       item.editing = true;
@@ -1031,12 +1033,13 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         value: v, next_processes: clean,
         std_mp: item.draftStdMp === "" ? null : Number(item.draftStdMp),
         std_ct: item.draftStdCt === "" ? null : Number(item.draftStdCt),
+        harga_pcs: item.draftHargaPcs === "" ? null : Number(item.draftHargaPcs),
       };
       const { data, error } = await supabaseClient.from("part_numbers").update(payload).eq("id", item.id).select();
       if (error) { this.flash("Gagal simpan: " + error.message, true); return; }
       if (!data || data.length === 0) { this.flash("Gagal simpan — cek izin akses.", true); return; }
       item.value = v; item.next_processes = clean;
-      item.std_mp = payload.std_mp; item.std_ct = payload.std_ct;
+      item.std_mp = payload.std_mp; item.std_ct = payload.std_ct; item.harga_pcs = payload.harga_pcs;
       item.editing = false;
       this.flash("Part number diperbarui.");
     },

@@ -99,40 +99,34 @@
           Isi dulu di halaman mesin → tab <b>Master Data</b> → panel <b>Target GSPH</b> (khusus admin/leader).
         </div>
 
-        <!-- 6 kartu kontrol utama (gaya SQCDMP) -->
-        <div class="sqcdmp-grid">
-          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(totals.performanceFactor, 95, 80)">
-            <div class="sqcdmp-head"><span class="sqcdmp-icon">⚡</span>GSPH</div>
-            <div class="sqcdmp-value" x-text="fmtNum(totals.gsph)"></div>
-            <div class="sqcdmp-sub">Target: <b x-text="fmtNum(totals.targetGsph)"></b></div>
-            <div class="sqcdmp-badge" x-text="cardLabel(totals.performanceFactor, 95, 80)"></div>
+        <!-- 5 kartu kontrol utama: Safety, Quality, Productivity, Cost, Moral -->
+        <div class="sqcdmp-grid sqcdmp-grid-5">
+          <div class="sqcdmp-card sqcdmp-nodata">
+            <div class="sqcdmp-head"><span class="sqcdmp-icon">⛑️</span>SAFETY</div>
+            <div class="sqcdmp-value">—</div>
+            <div class="sqcdmp-sub">Belum ada data insiden</div>
+            <div class="sqcdmp-badge">N/A</div>
           </div>
           <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(100 - ngRatePct * 2, 90, 80)">
-            <div class="sqcdmp-head"><span class="sqcdmp-icon">🛡️</span>NG RATE</div>
+            <div class="sqcdmp-head"><span class="sqcdmp-icon">🛡️</span>QUALITY</div>
             <div class="sqcdmp-value" x-text="fmtNum(ngRatePct) + '%'"></div>
-            <div class="sqcdmp-sub">Target: ≤ 0,5% · <b x-text="fmtNum(totals.ng)"></b> pcs</div>
+            <div class="sqcdmp-sub">NG Rate · Target ≤ 0,5% · <b x-text="fmtNum(totals.ng)"></b> pcs</div>
             <div class="sqcdmp-badge" x-text="cardLabel(100 - ngRatePct * 2, 90, 80)"></div>
           </div>
-          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(achievementPct, 95, 80)">
+          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(totals.performanceFactor, 95, 80)">
             <div class="sqcdmp-head"><span class="sqcdmp-icon">📈</span>PRODUCTIVITY</div>
-            <div class="sqcdmp-value" x-text="fmtNum(achievementPct) + '%'"></div>
-            <div class="sqcdmp-sub">Achievement vs Planning</div>
-            <div class="sqcdmp-badge" x-text="cardLabel(achievementPct, 95, 80)"></div>
+            <div class="sqcdmp-value" x-text="fmtNum(totals.gsph)"></div>
+            <div class="sqcdmp-sub">GSPH · Target <b x-text="fmtNum(totals.targetGsph)"></b> · Achv <b x-text="fmtNum(achievementPct)"></b>%</div>
+            <div class="sqcdmp-badge" x-text="cardLabel(totals.performanceFactor, 95, 80)"></div>
           </div>
-          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(totals.availability, 95, 85)">
-            <div class="sqcdmp-head"><span class="sqcdmp-icon">✅</span>AVAILABILITY</div>
-            <div class="sqcdmp-value" x-text="fmtNum(totals.availability) + '%'"></div>
-            <div class="sqcdmp-sub">Target: ≥ 95%</div>
-            <div class="sqcdmp-badge" x-text="cardLabel(totals.availability, 95, 85)"></div>
-          </div>
-          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(100 - downtimePct * 5, 90, 75)">
-            <div class="sqcdmp-head"><span class="sqcdmp-icon">⏱</span>DOWNTIME</div>
-            <div class="sqcdmp-value" x-text="fmtNum(totals.downtimeMenit)"></div>
-            <div class="sqcdmp-sub">menit</div>
-            <div class="sqcdmp-badge" x-text="cardLabel(100 - downtimePct * 5, 90, 75)"></div>
+          <div class="sqcdmp-card sqcdmp-warn">
+            <div class="sqcdmp-head"><span class="sqcdmp-icon">💰</span>COST</div>
+            <div class="sqcdmp-value" x-text="'Rp ' + fmtNum(totals.ngValue)"></div>
+            <div class="sqcdmp-sub">NG Value · Scrap End Coil <i>(menyusul)</i></div>
+            <div class="sqcdmp-badge">NG VALUE</div>
           </div>
           <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(attendance.pct, 95, 85)">
-            <div class="sqcdmp-head"><span class="sqcdmp-icon">👥</span>MORALE</div>
+            <div class="sqcdmp-head"><span class="sqcdmp-icon">👥</span>MORAL</div>
             <div class="sqcdmp-value" x-text="fmtNum(attendance.pct) + '%'"></div>
             <div class="sqcdmp-sub">Attendance · <b x-text="fmtNum(attendance.absen)"></b> absen</div>
             <div class="sqcdmp-badge" x-text="cardLabel(attendance.pct, 95, 85)"></div>
@@ -370,7 +364,7 @@ function dashboard() {
       this.fetchAll();
     },
     machines: MACHINES.map((m) => ({ ...m, data: null, lastPart: null, lastEnd: null })),
-    totals: { stroke: 0, ng: 0, downtimeMenit: 0, dandoriMenit: 0, gsph: 0, targetGsph: 0, availability: 0, performanceFactor: 0, quality: 100, oee: 0 },
+    totals: { stroke: 0, ng: 0, ngValue: 0, downtimeMenit: 0, dandoriMenit: 0, gsph: 0, targetGsph: 0, availability: 0, performanceFactor: 0, quality: 100, oee: 0 },
     paretoDowntime: [], fleetTop10: [], lineAktif: 0,
     machinesTanpaTarget: [],
     charts: {},
@@ -439,6 +433,7 @@ function dashboard() {
         const whJam = (Number(row.wh_menit) || 0) / 60;
         const stroke = Number(row.stroke) || 0;
         const ng = Number(row.ng) || 0;
+        const ngValue = Number(row.ng_value) || 0;
         const downtimeMenit = Math.round(Number(row.downtime_menit) || 0);
         const dandoriMenit = Math.round(Number(row.dandori_menit) || 0);
         const targetStdMenit = Number(row.target_std_menit) || 0;
@@ -452,7 +447,7 @@ function dashboard() {
         const last = (statusRes.data && statusRes.data[0]) || null;
         return {
           mesin: m.key, label: m.label,
-          data: { stroke, ng, downtimeMenit, dandoriMenit, whJam, gsph, targetGsph, availability, performanceFactor, quality, oee },
+          data: { stroke, ng, ngValue, downtimeMenit, dandoriMenit, whJam, gsph, targetGsph, availability, performanceFactor, quality, oee },
           top: (topRes.data || []).map((r) => ({ mesin: m.key, mesinLabel: m.label, kategori: r.kategori, problem: r.problem, menit: Math.round(Number(r.total_menit) || 0) })),
           byCategory: (catRes.data || []).map((r) => ({ kategori: r.kategori, menit: Math.round(Number(r.total_menit) || 0) })),
           hourly: (hourlyRes.data || []).map((r) => ({ jam: Number(r.jam), gsph: Number(r.gsph) || 0 })),
@@ -470,12 +465,13 @@ function dashboard() {
       const t = results.reduce((acc, r) => ({
         stroke: acc.stroke + r.data.stroke,
         ng: acc.ng + r.data.ng,
+        ngValue: acc.ngValue + r.data.ngValue,
         downtimeMenit: acc.downtimeMenit + r.data.downtimeMenit,
         dandoriMenit: acc.dandoriMenit + r.data.dandoriMenit,
         whJam: acc.whJam + r.data.whJam,
         targetGsphSum: acc.targetGsphSum + (r.data.targetGsph > 0 ? r.data.targetGsph : 0),
         targetGsphCount: acc.targetGsphCount + (r.data.targetGsph > 0 ? 1 : 0),
-      }), { stroke: 0, ng: 0, downtimeMenit: 0, dandoriMenit: 0, whJam: 0, targetGsphSum: 0, targetGsphCount: 0 });
+      }), { stroke: 0, ng: 0, ngValue: 0, downtimeMenit: 0, dandoriMenit: 0, whJam: 0, targetGsphSum: 0, targetGsphCount: 0 });
 
       const gsph = t.whJam > 0 ? t.stroke / t.whJam : 0;
       const targetGsph = t.targetGsphCount > 0 ? t.targetGsphSum / t.targetGsphCount : 0;
@@ -483,7 +479,7 @@ function dashboard() {
       const performanceFactor = targetGsph > 0 ? Math.min(gsph / targetGsph, 1) * 100 : 0;
       const quality = t.stroke > 0 ? Math.max(0, (t.stroke - t.ng) / t.stroke) * 100 : 100;
       this.totals = {
-        stroke: t.stroke, ng: t.ng, downtimeMenit: t.downtimeMenit, dandoriMenit: t.dandoriMenit,
+        stroke: t.stroke, ng: t.ng, ngValue: t.ngValue, downtimeMenit: t.downtimeMenit, dandoriMenit: t.dandoriMenit,
         gsph, targetGsph, availability, performanceFactor, quality,
         oee: (availability / 100) * (performanceFactor / 100) * (quality / 100) * 100,
       };

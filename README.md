@@ -6,34 +6,38 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (Dashboard SQCDMP + Absensi)
+## 🔧 Yang perlu dikerjakan sekarang (Dashboard SQPCM + Cost + responsif)
 
 ### 1. Jalankan migrasi database
-Di Supabase SQL Editor, jalankan **`migration_attendance_v1.sql`** (query
-baru). Ini bikin tabel `attendance_log` + fungsi `attendance_summary`
-dan `achievement_aggregate`.
+Di Supabase SQL Editor, jalankan **`migration_cost_v1.sql`** (query baru).
+Ini nambah kolom `harga_pcs` (Rp/pcs) di `part_numbers` dan memperbarui
+`performance_aggregate` supaya bisa hitung **NG Value**.
 
 ### 2. Upload semua file ke GitHub
 
 ### 3. Yang berubah
-- **Dashboard sekarang 6 kartu SQCDMP** (bukan strip KPI generik lagi):
-  **GSPH** · **NG Rate** · **Productivity** (Achievement vs Planning) ·
-  **Availability** · **Downtime** · **Morale** (Attendance). Tiap kartu
-  ada badge GOOD/WARNING/CRITICAL otomatis.
-- **Modul Absensi baru** — panel "Input Absensi Harian" di Dashboard
-  (khusus admin/leader): Tanggal, Shift, Total Orang, Hadir, Absen,
-  Overtime. Silakan kirim data historis Absensi Anda, saya bantu import.
-- **Productivity/Achievement** butuh data **Planning Produksi** terisi
-  (qty rencana) — kalau Planning belum diisi rutin, kartu ini akan
-  tampil 0%. Ini bukan bug, cuma belum ada pembandingnya.
-- **Tabel Riwayat Hari Ini** sekarang ada kolom **Earned**, **Operation**,
-  **Availability** per baris (butuh **Std CT** terisi di Master Data
-  Part Number — kalau belum, kolom ini tampil "-").
+- **Dashboard sekarang 5 kartu: Safety, Quality, Productivity, Cost,
+  Moral** (bukan 6 kartu generik lagi):
+  - **Safety** — belum ada data insiden, tampil "N/A" apa adanya
+  - **Quality** — NG Rate (sama seperti sebelumnya)
+  - **Productivity** — GSPH + Achievement vs Planning (digabung 1 kartu)
+  - **Cost** — **NG Value (Rp)** = NG qty × Harga per Pcs. Scrap TOP End
+    Coil Value **menyusul** setelah Anda kirim datanya (kartu sudah ada
+    tempatnya, tulisannya "menyusul" dulu)
+  - **Moral** — Attendance (sama seperti sebelumnya)
+  - Availability & Downtime tidak hilang — tetap ada di panel OEE
+    Breakdown dan ringkasan bawahnya, cuma tidak di baris kartu utama
+    lagi (biar tidak terlalu ramai/berulang, sesuai masukan Anda).
+- **Harga per Pcs (Rp)** — field baru di Master Data Part Number, isi
+  ini dulu supaya kartu COST punya angka.
+- **Audit responsif** — grid kartu, panel Performance, dan semua tabel
+  saya cek ulang breakpoint-nya (tablet ~1100px, HP ~600-800px). Sidebar
+  sudah ramping+collapsible di semua ukuran layar, form pakai target
+  sentuh lebih besar di HP.
 
-### Panel yang masih belum dibangun
-Cost/Safety (framework SQCDMP versi lengkap), Pareto NG per-line, Die
-Management, Material Coil — sama seperti sebelumnya, kabari kalau mau
-dilanjutkan.
+### Catatan
+Kartu **Productivity** butuh Planning Produksi terisi rutin, dan
+**Cost** butuh Harga per Pcs terisi — kalau belum, angkanya wajar 0.
 
 ---
 

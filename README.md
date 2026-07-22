@@ -8,38 +8,31 @@ sinyal (mode offline).
 
 ## 🔧 Yang perlu dikerjakan sekarang
 
-### 1. Jalankan migrasi database
-Kalau **`migration_attendance_weekday.sql`** belum dijalankan, jalankan
-sekarang (rata-rata absensi hanya hari kerja).
+**Tidak ada migrasi database baru.** Kalau
+`migration_attendance_weekday.sql` belum dijalankan, jalankan dulu.
 
-### 2. Upload semua file ke GitHub
+**Upload semua file** ke GitHub.
 
-### Yang berubah — konsep periode Performance diperbaiki
-Sebelumnya keliru (semua mode cuma menggeser N periode ke belakang).
-Sekarang sesuai maksud Anda:
-
-| Mode | Isi grafik |
-|---|---|
-| **Tahunan** | 3 tahun terakhir (2024, 2025, 2026) → **pembatas** → Jan–Des tahun terpilih |
-| **Bulanan** | batang harian sepanjang bulan yang dipilih |
-| **Harian** | Target vs Aktual hari itu (2 batang horizontal) |
-
-Batang tahun diberi warna navy, batang bulan teal — jadi mudah dibedakan
-di mode Tahunan.
-
-### Perubahan lain
-- **Mode Harian jadi 2 kolom** — grafik GSPH ringkas di kiri, Daftar
-  Produksi Hari Itu di kanan. Tidak lagi menambah panjang halaman ke
-  bawah.
-- **Kartu Moral dapat keterangan avg + total** — label "rata-rata"
-  muncul saat mode Bulanan/Tahunan, satuan berubah jadi "/hari", dan di
-  bawah ada keterangan: *"Rata-rata dari N hari kerja · total hadir X
-  orang-hari"*.
-- **Estetika tombol periode** — tombol aktif sekarang teal solid dengan
-  teks putih dan bayangan halus; tombol non-aktif berubah warna teal
-  saat disentuh kursor.
-- **Kotak input tahun/tanggal diperbaiki** — sudut membulat, lebar
-  konsisten, teks rata tengah, dan ring fokus teal saat diklik.
+### Yang diperbaiki
+- **Mode Harian tidak kosong lagi** — sebelumnya area grafik dibiarkan
+  kosong dan isinya nongkrong jauh di bawah. Sekarang grafik ringkas
+  (Target vs Aktual) + Daftar Produksi Hari Itu **langsung naik** ke
+  posisi grafik, jadi satu pandangan tanpa ruang kosong.
+- **Tombol Batal** ditambahkan di panel konfirmasi jeda non-produksi,
+  jadi operator bisa membatalkan kalau salah klik (sebelumnya cuma ada
+  Konfirmasi, terjebak).
+- **Donut downtime dapat kesimpulan** — di bawahnya sekarang ada
+  ringkasan otomatis, mis. *"Total 11 menit. Penyumbang terbesar: DIES
+  11 mnt (100%)."* Tidak kosong melompong lagi.
+- **Tabel diperkecil** — Line Status di dashboard dan tabel di
+  Performance pakai gaya ringkas (padding & font lebih kecil), muat
+  lebih banyak baris tanpa scroll.
+- **Trend GSPH ikut mode periode**:
+  - Harian → tren **per jam**
+  - Bulanan → tren **per hari** sepanjang bulan
+  - Tahunan → tren **per bulan** sepanjang tahun
+  
+  Judul panelnya juga berubah otomatis mengikuti mode.
 
 ### Menunggu dari Anda
 - **Data Overtime** (kolom O.T masih 0)

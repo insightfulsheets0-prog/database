@@ -1420,3 +1420,28 @@ td.mono, .mono { font-family: var(--font-mono); }
   color: var(--muted);
   vertical-align: middle;
 }
+
+/* ---------- Tabel ringkas (Line Status, Produksi Hari Itu, dll) ---------- */
+table.table-compact th,
+table.table-compact td {
+  padding: 7px 10px;
+  font-size: 12px;
+}
+table.table-compact th {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+table.table-compact .badge { font-size: 9px; padding: 2px 6px; }
+table.table-compact .status-badge { font-size: 9px; padding: 2px 7px; }
+
+/* ---------- Kesimpulan di bawah donut downtime ---------- */
+.perf-pie-summary {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+  padding: 8px 10px;
+  background: var(--panel-2);
+  border-radius: 6px;
+  border-left: 3px solid var(--teal);
+}

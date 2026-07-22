@@ -234,7 +234,7 @@
         <!-- Baris utama: trend + pareto + OEE breakdown -->
         <div class="dash-main-grid">
           <div class="dash-panel">
-            <p class="dash-panel-title">Trend GSPH per Jam</p>
+            <p class="dash-panel-title" x-text="'Trend GSPH per ' + (periodMode === 'harian' ? 'Jam' : periodMode === 'bulanan' ? 'Hari' : 'Bulan')"></p>
             <div class="dash-chart-sm"><canvas id="gsphHourlyChart"></canvas></div>
           </div>
           <div class="dash-panel">
@@ -277,7 +277,7 @@
         <div class="dash-panel" style="margin-bottom:18px;">
           <p class="dash-panel-title">Line Status</p>
           <div class="table-wrap">
-            <table>
+            <table class="table-compact">
               <thead>
                 <tr>
                   <th>Line</th><th>Stroke</th><th>Target GSPH</th><th>Actual GSPH</th>
@@ -365,6 +365,52 @@ function dashboard() {
     attendance: { pctInclCuti: 0, pctExclCuti: 0, hadir: 0, cuti: 0, absen: 0, total_orang: 0, overtime_jam: 0 },
     safety: { accident: 0, hariTanpaAccident: 0 },
     miniTrend: { labels: [], safety: [], quality: [], productivity: [], cost: [], moral: [] },
+    // Tren GSPH per line, granularitas mengikuti mode periode:
+    //  harian -> per jam · bulanan -> per hari · tahunan -> per bulan
+    lineTrend: { labels: [], perLine: [] },
+    async fetchLineTrend() {
+      const base = new Date(this.tanggal + "T00:00:00");
+      const buckets = [];
+      if (this.periodMode === "harian") {
+        // per jam ditangani RPC gsph_hourly (sudah ada), ditandai khusus
+        this.lineTrend = { mode: "jam", labels: [], perLine: [] };
+        return;
+      }
+      if (this.periodMode === "bulanan") {
+        const y = base.getFullYear(), m = base.getMonth();
+        const n = new Date(y, m + 1, 0).getDate();
+        for (let d = 1; d <= n; d++) {
+          buckets.push({ start: new Date(y, m, d), end: new Date(y, m, d + 1), label: String(d) });
+        }
+      } else {
+        const y = base.getFullYear();
+        const NB = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+        for (let m = 0; m < 12; m++) {
+          buckets.push({ start: new Date(y, m, 1), end: new Date(y, m + 1, 1), label: NB[m] });
+        }
+      }
+
+      const perLine = [];
+      for (const m of MACHINES) {
+        const res = await Promise.all(buckets.map((b) =>
+          supabaseClient.rpc("performance_aggregate", {
+            p_mesin: m.key, p_stasiun_list: null,
+            p_start: b.start.toISOString(), p_end: b.end.toISOString(),
+          })
+        ));
+        const vals = res.map((r) => {
+          const row = (r.data && r.data[0]) || {};
+          const whJam = (Number(row.wh_menit) || 0) / 60;
+          const stroke = Number(row.stroke) || 0;
+          return whJam > 0 ? Number((stroke / whJam).toFixed(1)) : null;
+        });
+        perLine.push({ label: m.label, values: vals });
+      }
+      this.lineTrend = {
+        mode: this.periodMode === "bulanan" ? "hari" : "bulan",
+        labels: buckets.map((b) => b.label), perLine,
+      };
+    },
     // Ambil 6 periode terakhir utk sparkline tiap kolom SQCPM
     async fetchMiniTrend() {
       const COUNT = 6;
@@ -708,6 +754,7 @@ function dashboard() {
 
       await Promise.all([this.fetchAttendance(), this.fetchSafety(), this.fetchScrap()]);
       await this.fetchMiniTrend();
+      await this.fetchLineTrend();
 
       this._results = results;
       this.loading = false;
@@ -787,28 +834,38 @@ function dashboard() {
       if (!canvas || typeof Chart === "undefined") return;
       if (this.charts.hourly) this.charts.hourly.destroy();
 
-      // kumpulkan semua jam yang muncul di seluruh line
-      const jamSet = new Set();
-      this._results.forEach((r) => r.hourly.forEach((h) => jamSet.add(h.jam)));
-      const jamList = Array.from(jamSet).sort((a, b) => a - b);
+      const lineColors = [cssVar("--teal"), cssVar("--navy"), cssVar("--sky"), cssVar("--red"), "#a855f7"];
+      let labels, datasets;
 
-      // 1 garis per line (bukan dirata-rata jadi satu)
-      const lineColors = [cssVar("--green"), cssVar("--blue"), cssVar("--amber"), cssVar("--red"), "#a855f7"];
-      const datasets = this._results.map((r, idx) => {
-        const map = {};
-        r.hourly.forEach((h) => { map[h.jam] = h.gsph; });
-        return {
-          type: "line",
-          label: r.label,
-          data: jamList.map((j) => (map[j] !== undefined ? Number(map[j].toFixed(1)) : null)),
-          borderColor: lineColors[idx % lineColors.length],
-          backgroundColor: "transparent",
+      if (this.periodMode === "harian") {
+        // per jam -- dari RPC gsph_hourly
+        const jamSet = new Set();
+        this._results.forEach((r) => r.hourly.forEach((h) => jamSet.add(h.jam)));
+        const jamList = Array.from(jamSet).sort((a, b) => a - b);
+        labels = jamList.map((j) => String(j).padStart(2, "0") + ":00");
+        datasets = this._results.map((r, idx) => {
+          const map = {};
+          r.hourly.forEach((h) => { map[h.jam] = h.gsph; });
+          return {
+            type: "line", label: r.label,
+            data: jamList.map((j) => (map[j] !== undefined ? Number(map[j].toFixed(1)) : null)),
+            borderColor: lineColors[idx % lineColors.length], backgroundColor: "transparent",
+            tension: 0.4, pointRadius: 0, pointHoverRadius: 4, spanGaps: true, borderWidth: 2.5,
+          };
+        });
+      } else {
+        // per hari (bulanan) / per bulan (tahunan)
+        const lt = this.lineTrend || { labels: [], perLine: [] };
+        labels = lt.labels;
+        datasets = (lt.perLine || []).map((pl, idx) => ({
+          type: "line", label: pl.label, data: pl.values,
+          borderColor: lineColors[idx % lineColors.length], backgroundColor: "transparent",
           tension: 0.4, pointRadius: 0, pointHoverRadius: 4, spanGaps: true, borderWidth: 2.5,
-        };
-      });
+        }));
+      }
 
       this.charts.hourly = new Chart(canvas, {
-        data: { labels: jamList.map((j) => String(j).padStart(2, "0") + ":00"), datasets },
+        data: { labels, datasets },
         options: {
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: "index", intersect: false },

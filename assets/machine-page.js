@@ -307,6 +307,13 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       }
     },
 
+    // Batal klasifikasi jeda -- kembalikan stasiun ke keadaan semula (idle)
+    cancelGapNonProduksi(stationId) {
+      const line = this.lines[stationId];
+      line.gapInfo = null;
+      line.gapForm = { nonproduksi_nama: "" };
+      line.state = "idle";
+    },
     async confirmGapNonProduksi(stationId) {
       const line = this.lines[stationId];
       const nama = line.gapForm.nonproduksi_nama;
@@ -932,6 +939,20 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
     fmtClock,
     fmtNum,
+    // Kesimpulan singkat di bawah donut downtime (biar tidak kosong melompong)
+    downtimeKesimpulan(section) {
+      const list = (this.perf[section] && this.perf[section].byCategory) || [];
+      if (list.length === 0) return "";
+      const total = list.reduce((a, b) => a + (b.menit || 0), 0);
+      if (total === 0) return "";
+      const top = list.reduce((a, b) => (b.menit > a.menit ? b : a), list[0]);
+      const pct = ((top.menit / total) * 100).toFixed(0);
+      const kategoriLain = list.length - 1;
+      let s = `Total ${fmtNum(total)} menit. Penyumbang terbesar: ${top.kategori} ${fmtNum(top.menit)} mnt (${pct}%)`;
+      if (kategoriLain > 0) s += `, dari ${list.length} kategori.`;
+      else s += ".";
+      return s;
+    },
     fmtJam(iso) {
       if (!iso) return "-";
       const d = new Date(iso);

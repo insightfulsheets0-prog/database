@@ -101,11 +101,11 @@
 
         <!-- 5 kartu kontrol utama: Safety, Quality, Productivity, Cost, Moral -->
         <div class="sqcdmp-grid sqcdmp-grid-5">
-          <div class="sqcdmp-card sqcdmp-nodata">
+          <div class="sqcdmp-card" :class="safety.accident === 0 ? 'sqcdmp-good' : 'sqcdmp-bad'">
             <div class="sqcdmp-head"><span class="sqcdmp-icon">⛑️</span>SAFETY</div>
-            <div class="sqcdmp-value">—</div>
-            <div class="sqcdmp-sub">Belum ada data insiden</div>
-            <div class="sqcdmp-badge">N/A</div>
+            <div class="sqcdmp-value" x-text="fmtNum(safety.accident)"></div>
+            <div class="sqcdmp-sub">Accident · <b x-text="fmtNum(safety.hariTanpaAccident)"></b> hari aman</div>
+            <div class="sqcdmp-badge" x-text="safety.accident === 0 ? 'ZERO ACCIDENT' : 'PERHATIAN'"></div>
           </div>
           <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(100 - ngRatePct * 2, 90, 80)">
             <div class="sqcdmp-head"><span class="sqcdmp-icon">🛡️</span>QUALITY</div>
@@ -116,20 +116,20 @@
           <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(totals.performanceFactor, 95, 80)">
             <div class="sqcdmp-head"><span class="sqcdmp-icon">📈</span>PRODUCTIVITY</div>
             <div class="sqcdmp-value" x-text="fmtNum(totals.gsph)"></div>
-            <div class="sqcdmp-sub">GSPH · Target <b x-text="fmtNum(totals.targetGsph)"></b> · Achv <b x-text="fmtNum(achievementPct)"></b>%</div>
+            <div class="sqcdmp-sub">GSPH · Target <b x-text="fmtNum(totals.targetGsph)"></b></div>
             <div class="sqcdmp-badge" x-text="cardLabel(totals.performanceFactor, 95, 80)"></div>
           </div>
-          <div class="sqcdmp-card sqcdmp-warn">
+          <div class="sqcdmp-card" :class="'sqcdmp-' + costStatus()">
             <div class="sqcdmp-head"><span class="sqcdmp-icon">💰</span>COST</div>
-            <div class="sqcdmp-value" x-text="'Rp ' + fmtNum(totals.ngValue)"></div>
-            <div class="sqcdmp-sub">NG Value · Scrap End Coil <i>(menyusul)</i></div>
-            <div class="sqcdmp-badge">NG VALUE</div>
+            <div class="sqcdmp-value" x-text="fmtRupiahShort(totals.ngValue + scrap.scrapValueRp)"></div>
+            <div class="sqcdmp-sub">NG <b x-text="fmtRupiahShort(totals.ngValue)"></b> · Scrap <b x-text="fmtRupiahShort(scrap.scrapValueRp)"></b></div>
+            <div class="sqcdmp-badge" x-text="scrap.rasio > 0 ? ('Rasio ' + fmtNum(scrap.rasio * 100) + '%') : 'NG VALUE'"></div>
           </div>
-          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(attendance.pct, 95, 85)">
+          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(attendance.pctExclCuti, 95, 85)">
             <div class="sqcdmp-head"><span class="sqcdmp-icon">👥</span>MORAL</div>
-            <div class="sqcdmp-value" x-text="fmtNum(attendance.pct) + '%'"></div>
-            <div class="sqcdmp-sub">Attendance · <b x-text="fmtNum(attendance.absen)"></b> absen</div>
-            <div class="sqcdmp-badge" x-text="cardLabel(attendance.pct, 95, 85)"></div>
+            <div class="sqcdmp-value" x-text="fmtNum(attendance.pctExclCuti) + '%'"></div>
+            <div class="sqcdmp-sub">Excl. cuti · Incl. <b x-text="fmtNum(attendance.pctInclCuti) + '%'"></b></div>
+            <div class="sqcdmp-badge" x-text="cardLabel(attendance.pctExclCuti, 95, 85)"></div>
           </div>
         </div>
 
@@ -144,6 +144,7 @@
             </div>
             <div class="field"><label>Total Orang</label><input type="number" x-model="absenForm.total_orang"></div>
             <div class="field"><label>Hadir</label><input type="number" x-model="absenForm.hadir"></div>
+            <div class="field"><label>Cuti</label><input type="number" x-model="absenForm.cuti"></div>
             <div class="field"><label>Absen</label><input type="number" x-model="absenForm.absen"></div>
             <div class="field"><label>Overtime (jam)</label><input type="number" x-model="absenForm.overtime_jam"></div>
           </div>
@@ -291,8 +292,48 @@ function dashboard() {
     periodMode: "harian",
     bulanPilih: String(new Date().getMonth()),
     tahunPilih: String(new Date().getFullYear()),
-    attendance: { pct: 0, hadir: 0, absen: 0, total_orang: 0, overtime_jam: 0 },
-    absenForm: { tanggal: new Date().toISOString().slice(0, 10), shift: "1", total_orang: "", hadir: "", absen: "", overtime_jam: "" },
+    attendance: { pctInclCuti: 0, pctExclCuti: 0, hadir: 0, cuti: 0, absen: 0, total_orang: 0, overtime_jam: 0 },
+    safety: { accident: 0, hariTanpaAccident: 0 },
+    scrap: { scrapValueRp: 0, totalValueRp: 0, rasio: 0, targetRasio: 0 },
+    fmtRupiahShort(n) {
+      const v = Number(n) || 0;
+      if (v >= 1e9) return "Rp " + (v / 1e9).toFixed(1) + " M";
+      if (v >= 1e6) return "Rp " + (v / 1e6).toFixed(1) + " jt";
+      if (v >= 1e3) return "Rp " + (v / 1e3).toFixed(0) + " rb";
+      return "Rp " + Math.round(v);
+    },
+    costStatus() {
+      if (this.scrap.targetRasio > 0 && this.scrap.rasio > 0) {
+        return this.scrap.rasio <= this.scrap.targetRasio ? "good" : "bad";
+      }
+      return "warn";
+    },
+    async fetchSafety() {
+      const { start, end } = this.bounds();
+      const { data, error } = await supabaseClient.rpc("safety_summary", {
+        p_start: start.toISOString().slice(0, 10), p_end: end.toISOString().slice(0, 10),
+      });
+      const row = (!error && data && data[0]) || {};
+      this.safety = {
+        accident: Number(row.accident_count) || 0,
+        hariTanpaAccident: Number(row.hari_tanpa_accident) || 0,
+      };
+    },
+    async fetchScrap() {
+      const { start, end } = this.bounds();
+      const { data, error } = await supabaseClient.rpc("scrap_top_end_summary", {
+        p_start: start.toISOString().slice(0, 10), p_end: end.toISOString().slice(0, 10),
+      });
+      const row = (!error && data && data[0]) || {};
+      // sumber data satuannya K IDR -> kalikan 1000 jadi Rupiah
+      this.scrap = {
+        scrapValueRp: (Number(row.scrap_value_kidr) || 0) * 1000,
+        totalValueRp: (Number(row.total_value_kidr) || 0) * 1000,
+        rasio: Number(row.rasio) || 0,
+        targetRasio: Number(row.target_rasio) || 0,
+      };
+    },
+    absenForm: { tanggal: new Date().toISOString().slice(0, 10), shift: "1", total_orang: "", hadir: "", cuti: "", absen: "", overtime_jam: "" },
     achievementPct: 0,
     ngRatePct: 0, downtimePct: 0,
     isLeaderOrAdmin() { return this.profile && ["admin", "leader"].includes(this.profile.role); },
@@ -312,20 +353,18 @@ function dashboard() {
         p_start: start.toISOString().slice(0, 10), p_end: end.toISOString().slice(0, 10),
       });
       const row = (!error && data && data[0]) || {};
-      const totalOrang = Number(row.total_orang) || 0;
+      const totalSlot = Number(row.total_orang) || 0;   // total kehadiran-slot tercatat
       const hadir = Number(row.hadir) || 0;
+      const cuti = Number(row.cuti) || 0;
       this.attendance = {
-        total_orang: totalOrang, hadir, absen: Number(row.absen) || 0,
+        total_orang: totalSlot, hadir, cuti,
+        absen: Number(row.absen) || 0,
         overtime_jam: Number(row.overtime_jam) || 0,
-        pct: totalOrang > 0 ? (hadir / (totalOrang * this.attendanceDaysInPeriod())) * 100 : 0,
+        // Excl. cuti: cuti dianggap TIDAK hadir
+        pctExclCuti: totalSlot > 0 ? (hadir / totalSlot) * 100 : 0,
+        // Incl. cuti: cuti dianggap hadir (sesuai sheet "Grafik dengan cuti")
+        pctInclCuti: totalSlot > 0 ? ((hadir + cuti) / totalSlot) * 100 : 0,
       };
-    },
-    attendanceDaysInPeriod() {
-      // perkiraan jumlah hari (shift-hari) tercakup dlm periode -- utk basis
-      // rata-rata persentase kehadiran (bukan cuma total hadir mentah).
-      const { start, end } = this.bounds();
-      const days = Math.max(1, Math.round((end - start) / 86400000));
-      return days;
     },
     async saveAbsensi() {
       const f = this.absenForm;
@@ -333,6 +372,7 @@ function dashboard() {
       const payload = {
         tanggal: f.tanggal, shift: f.shift,
         total_orang: Number(f.total_orang) || 0, hadir: Number(f.hadir) || 0,
+        cuti: Number(f.cuti) || 0,
         absen: Number(f.absen) || 0, overtime_jam: Number(f.overtime_jam) || 0,
         updated_by: this.session.user.id,
       };
@@ -515,7 +555,7 @@ function dashboard() {
       }, { rencana: 0, aktual: 0 });
       this.achievementPct = achTotal.rencana > 0 ? (achTotal.aktual / achTotal.rencana) * 100 : 0;
 
-      await this.fetchAttendance();
+      await Promise.all([this.fetchAttendance(), this.fetchSafety(), this.fetchScrap()]);
 
       this._results = results;
       this.loading = false;
@@ -568,7 +608,7 @@ function dashboard() {
           data: jamList.map((j) => (map[j] !== undefined ? Number(map[j].toFixed(1)) : null)),
           borderColor: lineColors[idx % lineColors.length],
           backgroundColor: "transparent",
-          tension: 0.3, pointRadius: 2, spanGaps: true, borderWidth: 2,
+          tension: 0.4, pointRadius: 0, pointHoverRadius: 4, spanGaps: true, borderWidth: 2.5,
         };
       });
 
@@ -577,10 +617,16 @@ function dashboard() {
         options: {
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: "index", intersect: false },
-          plugins: { legend: { display: true, position: "top", labels: { color: cssVar("--text"), boxWidth: 10, font: { size: 10 } } } },
+          plugins: {
+            legend: { display: true, position: "top", align: "end",
+              labels: { color: cssVar("--muted"), boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", font: { size: 10 }, padding: 12 } },
+            tooltip: { backgroundColor: cssVar("--panel"), titleColor: cssVar("--text"), bodyColor: cssVar("--text"),
+              borderColor: cssVar("--border"), borderWidth: 1, padding: 10, displayColors: false },
+          },
           scales: {
-            x: { ticks: { color: cssVar("--chart-tick") }, grid: { display: false } },
-            y: { ticks: { color: cssVar("--chart-tick") }, grid: { color: cssVar("--chart-grid") }, beginAtZero: true },
+            x: { ticks: { color: cssVar("--chart-tick"), font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+            y: { ticks: { color: cssVar("--chart-tick"), font: { size: 10 }, maxTicksLimit: 5 },
+                 grid: { color: cssVar("--chart-grid"), drawTicks: false }, border: { display: false }, beginAtZero: true },
           },
         },
       });
@@ -599,15 +645,21 @@ function dashboard() {
           datasets: categories.map((cat) => ({
             label: cat,
             data: this._results.map((r) => (r.byCategory.find((c) => c.kategori === cat) || {}).menit || 0),
-            backgroundColor: colors[cat],
+            backgroundColor: colors[cat], borderRadius: 4, borderSkipped: false, barPercentage: 0.6, categoryPercentage: 0.7,
           })),
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: "top", labels: { color: cssVar("--text"), boxWidth: 12, font: { size: 11 } } } },
+          plugins: {
+            legend: { position: "top", align: "end",
+              labels: { color: cssVar("--muted"), boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", font: { size: 10 }, padding: 12 } },
+            tooltip: { backgroundColor: cssVar("--panel"), titleColor: cssVar("--text"), bodyColor: cssVar("--text"),
+              borderColor: cssVar("--border"), borderWidth: 1, padding: 10 },
+          },
           scales: {
-            x: { stacked: true, ticks: { color: cssVar("--chart-tick") }, grid: { display: false } },
-            y: { stacked: true, ticks: { color: cssVar("--chart-tick") }, grid: { color: cssVar("--chart-grid") }, beginAtZero: true },
+            x: { stacked: true, ticks: { color: cssVar("--chart-tick"), font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+            y: { stacked: true, ticks: { color: cssVar("--chart-tick"), font: { size: 10 }, maxTicksLimit: 5 },
+                 grid: { color: cssVar("--chart-grid"), drawTicks: false }, border: { display: false }, beginAtZero: true },
           },
         },
       });

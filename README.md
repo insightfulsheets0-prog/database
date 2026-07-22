@@ -6,38 +6,45 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (Dashboard SQPCM + Cost + responsif)
+## 🔧 Yang perlu dikerjakan sekarang (data Safety/Cost/Moral masuk + grafik baru)
 
-### 1. Jalankan migrasi database
-Di Supabase SQL Editor, jalankan **`migration_cost_v1.sql`** (query baru).
-Ini nambah kolom `harga_pcs` (Rp/pcs) di `part_numbers` dan memperbarui
-`performance_aggregate` supaya bisa hitung **NG Value**.
+### 1. Jalankan SQL BERURUTAN di Supabase SQL Editor
+1. **`migration_sqcdm_v2.sql`** — nambah kolom `cuti` di absensi, tabel
+   `scrap_top_end` + `safety_log`, dan fungsi ringkasannya.
+2. **`upsert_harga_part.sql`** — isi Harga per Pcs untuk **530 part**
+   (sumber: `Harga_Part.xlsx` kolom G "Cost/part (Rp.)").
+3. **`import_scrap_top_end.sql`** — isi data Scrap Top End bulanan
+   **48 baris** (FY2022–FY2025, satuan K IDR).
 
-### 2. Upload semua file ke GitHub
+### 2. Import data Absensi
+Import **`attendance_import.csv`** ke tabel `attendance_log` lewat
+Table Editor → Import CSV (148 baris harian, Jan–Jul 2026).
 
-### 3. Yang berubah
-- **Dashboard sekarang 5 kartu: Safety, Quality, Productivity, Cost,
-  Moral** (bukan 6 kartu generik lagi):
-  - **Safety** — belum ada data insiden, tampil "N/A" apa adanya
-  - **Quality** — NG Rate (sama seperti sebelumnya)
-  - **Productivity** — GSPH + Achievement vs Planning (digabung 1 kartu)
-  - **Cost** — **NG Value (Rp)** = NG qty × Harga per Pcs. Scrap TOP End
-    Coil Value **menyusul** setelah Anda kirim datanya (kartu sudah ada
-    tempatnya, tulisannya "menyusul" dulu)
-  - **Moral** — Attendance (sama seperti sebelumnya)
-  - Availability & Downtime tidak hilang — tetap ada di panel OEE
-    Breakdown dan ringkasan bawahnya, cuma tidak di baris kartu utama
-    lagi (biar tidak terlalu ramai/berulang, sesuai masukan Anda).
-- **Harga per Pcs (Rp)** — field baru di Master Data Part Number, isi
-  ini dulu supaya kartu COST punya angka.
-- **Audit responsif** — grid kartu, panel Performance, dan semua tabel
-  saya cek ulang breakpoint-nya (tablet ~1100px, HP ~600-800px). Sidebar
-  sudah ramping+collapsible di semua ukuran layar, form pakai target
-  sentuh lebih besar di HP.
+### 3. Upload semua file app ke GitHub
 
-### Catatan
-Kartu **Productivity** butuh Planning Produksi terisi rutin, dan
-**Cost** butuh Harga per Pcs terisi — kalau belum, angkanya wajar 0.
+### Yang berubah
+- **Kartu SQCDM lengkap dengan data asli**:
+  - **Safety** — 0 accident + hitungan "hari aman" (dihitung dari
+    `safety_log`; karena belum ada insiden sejak FY2024, otomatis
+    menghitung sejak 1 April 2024)
+  - **Quality** — NG Rate
+  - **Productivity** — GSPH vs Target
+  - **Cost** — **NG Value + Scrap Top End Value** digabung, plus rasio
+    scrap vs target (0,46%) sebagai badge
+  - **Moral** — **2 versi**: angka utama *exclude cuti*, angka pembanding
+    *include cuti* (sesuai sheet "Grafik dengan/tanpa cuti" di file Anda)
+- **Semua grafik dimodernkan** — grid samar, garis lebih halus tanpa
+  titik (muncul saat hover), bar ramping dengan sudut membulat, legend
+  pakai titik bulat, tooltip menyesuaikan tema, pie chart jadi donut.
+
+### Catatan hasil pembacaan data Anda
+- File `Harga_Part.xlsx` sheet `Sheet1` isinya **data absensi anak magang
+  2021** (kelihatannya nyasar) — saya abaikan, tidak dipakai.
+- Kode absensi yang saya pakai: `H`+angka shift = hadir · `CT`/`CM`/`CK`
+  = cuti · `S`/`I`/`TL`/`DL`/`ISH`/`TR` = absen. Kabari kalau ada yang
+  perlu digeser kategorinya.
+- Data absensi yang tersedia cuma **Shift 1** (file tidak memisahkan
+  shift), jadi semua tercatat sebagai shift 1.
 
 ---
 

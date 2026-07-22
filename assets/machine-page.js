@@ -665,7 +665,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
           datasets: [
             {
               type: "bar", label: "GSPH (Aktual)", data: st.trend.map((t) => Number(t.gsph.toFixed(1))),
-              backgroundColor: cssVar("--amber"), borderRadius: 3, order: 2,
+              backgroundColor: cssVar("--amber"), borderRadius: 4, borderSkipped: false, barPercentage: 0.6, categoryPercentage: 0.7, order: 2,
             },
             {
               type: "line", label: "GSPH (Target)", data: st.trend.map((t) => Number((t.targetGsph || 0).toFixed(1))),
@@ -675,10 +675,16 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: true, position: "top", labels: { color: cssVar("--text"), boxWidth: 12 } } },
+          plugins: {
+            legend: { display: true, position: "top", align: "end",
+              labels: { color: cssVar("--muted"), boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", font: { size: 10 }, padding: 12 } },
+            tooltip: { backgroundColor: cssVar("--panel"), titleColor: cssVar("--text"), bodyColor: cssVar("--text"),
+              borderColor: cssVar("--border"), borderWidth: 1, padding: 10 },
+          },
           scales: {
-            x: { ticks: { color: cssVar("--chart-tick") }, grid: { display: false } },
-            y: { ticks: { color: cssVar("--chart-tick") }, grid: { color: cssVar("--chart-grid") }, beginAtZero: true },
+            x: { ticks: { color: cssVar("--chart-tick"), font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+            y: { ticks: { color: cssVar("--chart-tick"), font: { size: 10 }, maxTicksLimit: 5 },
+                 grid: { color: cssVar("--chart-grid"), drawTicks: false }, border: { display: false }, beginAtZero: true },
           },
         },
       });
@@ -693,7 +699,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       if (data.length === 0) return;
       const colors = { MESIN: cssVar("--blue"), DIES: cssVar("--red"), FINGER: cssVar("--green"), OTHER: cssVar("--amber") };
       st.pieChart = new Chart(canvas, {
-        type: "pie",
+        type: "doughnut",
         data: {
           labels: data.map((d) => d.kategori),
           datasets: [{
@@ -703,7 +709,11 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: "right", labels: { color: cssVar("--text") } } },
+          cutout: "62%",
+          plugins: { legend: { position: "right",
+            labels: { color: cssVar("--muted"), boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", font: { size: 10 }, padding: 10 } },
+            tooltip: { backgroundColor: cssVar("--panel"), titleColor: cssVar("--text"), bodyColor: cssVar("--text"),
+              borderColor: cssVar("--border"), borderWidth: 1, padding: 10 } },
         },
       });
     },

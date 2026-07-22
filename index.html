@@ -223,16 +223,9 @@
           </div>
         </div>
 
-        <!-- Ringkasan tambahan -->
-        <div class="fleet-summary-grid">
-          <div class="perf-card"><span class="perf-label">Total Stroke</span><span class="perf-value" x-text="fmtNum(totals.stroke)"></span></div>
-          <div class="perf-card"><span class="perf-label">Total Dandori</span><span class="perf-value" x-text="fmtNum(totals.dandoriMenit) + ' mnt'"></span></div>
-          <div class="perf-card"><span class="perf-label">Line Aktif</span><span class="perf-value" x-text="lineAktif + ' / ' + machines.length"></span></div>
-          <div class="perf-card"><span class="perf-label">OEE Fleet</span><span class="perf-value" x-text="fmtNum(fleetOee) + '%'"></span></div>
-        </div>
-
-        <!-- Baris utama: trend + pareto + OEE breakdown -->
-        <div class="dash-main-grid">
+        <!-- Grid TV: semua muat 1 layar -->
+        <div class="tv-grid">
+        <div class="dash-main-grid tv-row-1">
           <div class="dash-panel">
             <p class="dash-panel-title" x-text="'Trend GSPH per ' + (periodMode === 'harian' ? 'Jam' : periodMode === 'bulanan' ? 'Hari' : 'Bulan')"></p>
             <div class="dash-chart-sm"><canvas id="gsphHourlyChart"></canvas></div>
@@ -274,7 +267,7 @@
         </div>
 
         <!-- Status mesin -->
-        <div class="dash-panel" style="margin-bottom:18px;">
+        <div class="dash-panel tv-row-2">
           <p class="dash-panel-title">Line Status</p>
           <div class="table-wrap">
             <table class="table-compact">
@@ -304,7 +297,7 @@
         </div>
 
         <!-- Baris bawah: downtime per kategori x line + top problem -->
-        <div class="dash-main-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="dash-main-grid tv-row-3" style="grid-template-columns: 1fr 1fr;">
           <div class="dash-panel">
             <p class="dash-panel-title">Downtime per Kategori × Line</p>
             <div class="dash-chart-sm" style="height:240px;"><canvas id="fleetDowntimeChart"></canvas></div>
@@ -328,6 +321,7 @@
               </table>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </template>
@@ -370,45 +364,52 @@ function dashboard() {
     lineTrend: { labels: [], perLine: [] },
     async fetchLineTrend() {
       const base = new Date(this.tanggal + "T00:00:00");
-      const buckets = [];
       if (this.periodMode === "harian") {
-        // per jam ditangani RPC gsph_hourly (sudah ada), ditandai khusus
+        // per jam sudah ditangani RPC gsph_hourly di fetchAll
         this.lineTrend = { mode: "jam", labels: [], perLine: [] };
         return;
       }
+
+      let start, end, bucket, labels, keyOf;
       if (this.periodMode === "bulanan") {
         const y = base.getFullYear(), m = base.getMonth();
         const n = new Date(y, m + 1, 0).getDate();
-        for (let d = 1; d <= n; d++) {
-          buckets.push({ start: new Date(y, m, d), end: new Date(y, m, d + 1), label: String(d) });
-        }
+        start = new Date(y, m, 1); end = new Date(y, m + 1, 1);
+        bucket = "day";
+        labels = Array.from({ length: n }, (_, i) => String(i + 1));
+        keyOf = (d) => d.getDate() - 1;
       } else {
         const y = base.getFullYear();
-        const NB = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
-        for (let m = 0; m < 12; m++) {
-          buckets.push({ start: new Date(y, m, 1), end: new Date(y, m + 1, 1), label: NB[m] });
-        }
+        start = new Date(y, 0, 1); end = new Date(y + 1, 0, 1);
+        bucket = "month";
+        labels = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+        keyOf = (d) => d.getMonth();
       }
 
-      const perLine = [];
-      for (const m of MACHINES) {
-        const res = await Promise.all(buckets.map((b) =>
-          supabaseClient.rpc("performance_aggregate", {
-            p_mesin: m.key, p_stasiun_list: null,
-            p_start: b.start.toISOString(), p_end: b.end.toISOString(),
-          })
-        ));
-        const vals = res.map((r) => {
-          const row = (r.data && r.data[0]) || {};
-          const whJam = (Number(row.wh_menit) || 0) / 60;
-          const stroke = Number(row.stroke) || 0;
-          return whJam > 0 ? Number((stroke / whJam).toFixed(1)) : null;
+      // 1 query per line (bukan per-periode) -- jauh lebih ringan
+      const res = await Promise.all(MACHINES.map((m) =>
+        supabaseClient.rpc("gsph_trend_bucketed", {
+          p_mesin: m.key, p_start: start.toISOString(), p_end: end.toISOString(), p_bucket: bucket,
+        })
+      ));
+
+      const perLine = MACHINES.map((m, idx) => {
+        const vals = new Array(labels.length).fill(null);
+        const rows = (res[idx] && res[idx].data) || [];
+        rows.forEach((r) => {
+          const d = new Date(r.bucket_start);
+          const i = keyOf(d);
+          if (i >= 0 && i < vals.length) {
+            const g = Number(r.gsph) || 0;
+            vals[i] = g > 0 ? Number(g.toFixed(1)) : null;
+          }
         });
-        perLine.push({ label: m.label, values: vals });
-      }
+        return { label: m.label, values: vals };
+      });
+
       this.lineTrend = {
         mode: this.periodMode === "bulanan" ? "hari" : "bulan",
-        labels: buckets.map((b) => b.label), perLine,
+        labels, perLine,
       };
     },
     // Ambil 6 periode terakhir utk sparkline tiap kolom SQCPM
@@ -435,10 +436,10 @@ function dashboard() {
 
       const out = { labels: periods.map((p) => p.label), safety: [], quality: [], productivity: [], cost: [], moral: [] };
 
-      for (const p of periods) {
+      // Semua periode ditembak PARALEL (sebelumnya berurutan -- lambat)
+      const perPeriod = await Promise.all(periods.map(async (p) => {
         const sIso = p.start.toISOString(), eIso = p.end.toISOString();
         const sDate = p.start.toISOString().slice(0, 10), eDate = p.end.toISOString().slice(0, 10);
-
         const [aggAll, safetyRes, attRes, scrapRes] = await Promise.all([
           Promise.all(MACHINES.map((m) =>
             supabaseClient.rpc("performance_aggregate", { p_mesin: m.key, p_stasiun_list: null, p_start: sIso, p_end: eIso })
@@ -448,32 +449,39 @@ function dashboard() {
           supabaseClient.rpc("scrap_top_end_summary", { p_start: sDate, p_end: eDate }),
         ]);
 
-        let stroke = 0, ng = 0, ngValue = 0, whMenit = 0, downtime = 0;
+        let stroke = 0, ng = 0, ngValue = 0, whMenit = 0;
         aggAll.forEach((r) => {
           const row = (r.data && r.data[0]) || {};
           stroke += Number(row.stroke) || 0;
           ng += Number(row.ng) || 0;
           ngValue += Number(row.ng_value) || 0;
           whMenit += Number(row.wh_menit) || 0;
-          downtime += Number(row.downtime_menit) || 0;
         });
         const whJam = whMenit / 60;
         const gsph = whJam > 0 ? stroke / whJam : 0;
 
         const sRow = (safetyRes.data && safetyRes.data[0]) || {};
-        out.safety.push(Number(sRow.accident_count) || 0);
-        out.quality.push(stroke > 0 ? Number(((ng / stroke) * 100).toFixed(3)) : 0);
-        out.productivity.push(Number(gsph.toFixed(1)));
-
         const scRow = (scrapRes.data && scrapRes.data[0]) || {};
-        const scrapRp = (Number(scRow.scrap_value_kidr) || 0) * 1000;
-        out.cost.push(Number(((ngValue + scrapRp) / 1e6).toFixed(2))); // juta Rp
-
         const aRow = (attRes.data && attRes.data[0]) || {};
         const totalSlot = Number(aRow.total_orang) || 0;
         const hadir = Number(aRow.hadir) || 0;
-        out.moral.push(totalSlot > 0 ? Number(((hadir / totalSlot) * 100).toFixed(1)) : 0);
-      }
+
+        return {
+          safety: Number(sRow.accident_count) || 0,
+          quality: stroke > 0 ? Number(((ng / stroke) * 100).toFixed(3)) : 0,
+          productivity: Number(gsph.toFixed(1)),
+          cost: Number(((ngValue + (Number(scRow.scrap_value_kidr) || 0) * 1000) / 1e6).toFixed(2)),
+          moral: totalSlot > 0 ? Number(((hadir / totalSlot) * 100).toFixed(1)) : 0,
+        };
+      }));
+
+      perPeriod.forEach((v) => {
+        out.safety.push(v.safety);
+        out.quality.push(v.quality);
+        out.productivity.push(v.productivity);
+        out.cost.push(v.cost);
+        out.moral.push(v.moral);
+      });
 
       this.miniTrend = out;
     },
@@ -752,9 +760,10 @@ function dashboard() {
       }, { rencana: 0, aktual: 0 });
       this.achievementPct = achTotal.rencana > 0 ? (achTotal.aktual / achTotal.rencana) * 100 : 0;
 
-      await Promise.all([this.fetchAttendance(), this.fetchSafety(), this.fetchScrap()]);
-      await this.fetchMiniTrend();
-      await this.fetchLineTrend();
+      await Promise.all([
+        this.fetchAttendance(), this.fetchSafety(), this.fetchScrap(),
+        this.fetchMiniTrend(), this.fetchLineTrend(),
+      ]);
 
       this._results = results;
       this.loading = false;

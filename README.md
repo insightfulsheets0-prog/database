@@ -6,33 +6,36 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang
+## 🔧 Yang perlu dikerjakan sekarang (mode TV + optimasi kecepatan)
 
-**Tidak ada migrasi database baru.** Kalau
-`migration_attendance_weekday.sql` belum dijalankan, jalankan dulu.
+### 1. Jalankan migrasi database
+Di Supabase SQL Editor, jalankan **`migration_trend_optimize.sql`**
+(query baru). Ini bikin fungsi `gsph_trend_bucketed` yang
+mengelompokkan tren langsung di database.
 
-**Upload semua file** ke GitHub.
+### 2. Upload semua file ke GitHub
 
-### Yang diperbaiki
-- **Mode Harian tidak kosong lagi** — sebelumnya area grafik dibiarkan
-  kosong dan isinya nongkrong jauh di bawah. Sekarang grafik ringkas
-  (Target vs Aktual) + Daftar Produksi Hari Itu **langsung naik** ke
-  posisi grafik, jadi satu pandangan tanpa ruang kosong.
-- **Tombol Batal** ditambahkan di panel konfirmasi jeda non-produksi,
-  jadi operator bisa membatalkan kalau salah klik (sebelumnya cuma ada
-  Konfirmasi, terjebak).
-- **Donut downtime dapat kesimpulan** — di bawahnya sekarang ada
-  ringkasan otomatis, mis. *"Total 11 menit. Penyumbang terbesar: DIES
-  11 mnt (100%)."* Tidak kosong melompong lagi.
-- **Tabel diperkecil** — Line Status di dashboard dan tabel di
-  Performance pakai gaya ringkas (padding & font lebih kecil), muat
-  lebih banyak baris tanpa scroll.
-- **Trend GSPH ikut mode periode**:
-  - Harian → tren **per jam**
-  - Bulanan → tren **per hari** sepanjang bulan
-  - Tahunan → tren **per bulan** sepanjang tahun
-  
-  Judul panelnya juga berubah otomatis mengikuti mode.
+### Yang berubah
+**Optimasi kecepatan** — ini penyebab lambatnya:
+- Tren GSPH sebelumnya menembak database **sekali untuk tiap
+  hari × tiap line** (mode bulanan: 31 × 5 = **155 query**). Sekarang
+  pengelompokan dilakukan di database, jadi cukup **5 query**.
+- Sparkline SQCPM sebelumnya diambil **berurutan** per periode.
+  Sekarang semuanya paralel.
+- Semua pengambilan data akhir (absensi, safety, scrap, sparkline,
+  tren) sekarang jalan **bersamaan**, bukan antre satu-satu.
+
+**Mode TV 55"** — di layar lebar (≥1600px) dashboard otomatis
+menyesuaikan supaya **muat 1 layar penuh tanpa scroll**:
+- Tinggi dihitung dari tinggi layar, grafik & tabel mengisi ruang yang
+  tersisa secara proporsional (bukan tinggi tetap)
+- Kartu SQCPM, pareto, donut OEE, dan tabel dipadatkan
+- Baris "Ringkasan tambahan" (Total Stroke/Dandori/Line Aktif/OEE
+  Fleet) **dihapus** karena angkanya sudah ada di kartu SQCPM dan tabel
+  Line Status — ini yang paling banyak makan ruang tanpa menambah info
+
+Di layar biasa (laptop/tablet/HP) tampilan tetap seperti sebelumnya
+dengan scroll normal.
 
 ### Menunggu dari Anda
 - **Data Overtime** (kolom O.T masih 0)

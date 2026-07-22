@@ -180,7 +180,7 @@
             <div class="sqcpm-metric-label">Tingkat Kehadiran</div>
             <div class="sqcpm-metric-value" x-text="fmtNum(attendance.pctExclCuti) + '%'"></div>
             <div class="sqcpm-bar"><div class="sqcpm-bar-fill" :style="'width:' + Math.max(0, Math.min(100, attendance.pctExclCuti)) + '%'"></div></div>
-            <div class="manpower-grid">
+            <div class="manpower-grid manpower-grid-5">
               <div class="manpower-box">
                 <span class="manpower-icon">👥</span>
                 <span class="manpower-label">Total</span>
@@ -191,6 +191,12 @@
                 <span class="manpower-icon">🧍</span>
                 <span class="manpower-label">Hadir</span>
                 <span class="manpower-value" x-text="fmtNum(attendance.hadir)"></span>
+                <span class="manpower-unit">Orang</span>
+              </div>
+              <div class="manpower-box">
+                <span class="manpower-icon">🌴</span>
+                <span class="manpower-label">Cuti</span>
+                <span class="manpower-value" x-text="fmtNum(attendance.cuti)"></span>
                 <span class="manpower-unit">Orang</span>
               </div>
               <div class="manpower-box">

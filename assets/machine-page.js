@@ -488,6 +488,27 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
 
     // ================= PERFORMANCE (Tahunan/Bulanan/Harian) =================
     activePerfSection: "harian", // cuma 1 aktif sekaligus -- muat 1 halaman
+    perfDayRows: [],
+    async fetchPerfDayRows() {
+      const st = this.perf.harian;
+      const { start, end } = this.perfBounds("hari", st.anchor, 0);
+      const stasiunList = (this.stationConfig.mode === "variant" && this.tandemVariant)
+        ? this.stationConfig.variants[this.tandemVariant]
+        : null;
+      let q = supabaseClient.from("production_log")
+        .select("id, stasiun, waktu_awal, waktu_akhir, part_number, qty, dandori_menit, downtime_menit, break_menit")
+        .eq("mesin", machineKey)
+        .gte("waktu_awal", start.toISOString())
+        .lt("waktu_awal", end.toISOString());
+      if (stasiunList) q = q.in("stasiun", stasiunList);
+      const { data, error } = await q.order("waktu_awal", { ascending: true });
+      if (error) { this.perfDayRows = []; return; }
+      this.perfDayRows = (data || []).sort((a, b) => {
+        const s = String(a.stasiun || "").localeCompare(String(b.stasiun || ""));
+        if (s !== 0) return s;
+        return new Date(a.waktu_awal) - new Date(b.waktu_awal);
+      });
+    },
     setActivePerfSection(section) {
       this.activePerfSection = section;
       this.$nextTick(() => { this.renderPerfChart(section); this.renderPerfPie(section); });
@@ -643,6 +664,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       st.data = trend[trend.length - 1];
       st.top5 = (top5Result.data || []).map((r) => ({ kategori: r.kategori, problem: r.problem, menit: Math.round(Number(r.total_menit) || 0) }));
       st.byCategory = (catResult.data || []).map((r) => ({ kategori: r.kategori, menit: Math.round(Number(r.total_menit) || 0) }));
+      if (section === "harian") this.fetchPerfDayRows();
       this.$nextTick(() => { this.renderPerfChart(section); this.renderPerfPie(section); });
     },
     fetchAllPerf() {

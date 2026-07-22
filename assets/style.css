@@ -64,6 +64,8 @@
 
 body {
   margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
@@ -680,12 +682,20 @@ td.mono, .mono { font-family: var(--font-mono); }
   -webkit-font-smoothing: antialiased;
 }
 .perf-oee-breakdown {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
   color: var(--muted);
   margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
-.perf-oee-breakdown b { color: var(--text); }
+.perf-oee-breakdown b {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
 
 .perf-header {
   display: flex;
@@ -1272,6 +1282,11 @@ td.mono, .mono { font-family: var(--font-mono); }
   gap: 5px;
   margin-top: 2px;
 }
+.manpower-grid-5 { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.manpower-grid-5 .manpower-box { padding: 5px 2px; }
+.manpower-grid-5 .manpower-value { font-size: 14px; }
+.manpower-grid-5 .manpower-label { font-size: 7px; }
+.manpower-grid-5 .manpower-unit { font-size: 7px; }
 .manpower-box {
   background: var(--panel-2);
   border: 1px solid var(--border);

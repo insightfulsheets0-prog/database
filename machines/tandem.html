@@ -496,6 +496,36 @@
                     <div class="perf-pie-wrap"><canvas id="perfPie_tandem_tahunan"></canvas></div>
                   </div>
                 </div>
+
+                <div x-show="'tahunan' === 'harian'" style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--border);">
+                  <p class="panel-subtitle">Daftar Produksi Hari Itu <span class="count" x-text="perfDayRows.length + ' baris'"></span></p>
+                  <div class="table-wrap" style="max-height:320px;">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
+                          <th>Mulai</th><th>Selesai</th><th>Part Number</th>
+                          <th>Qty</th><th>Dandori</th><th>Downtime</th><th>Break</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <template x-for="row in perfDayRows" :key="row.id">
+                          <tr>
+                            <td class="mono" x-show="stationConfig.mode !== 'none'" x-text="row.stasiun || '-'"></td>
+                            <td class="mono" x-text="fmt(row.waktu_awal)"></td>
+                            <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
+                            <td x-text="row.part_number"></td>
+                            <td class="mono" x-text="fmtNum(row.qty)"></td>
+                            <td class="mono" x-text="fmtNum(row.dandori_menit ?? 0) + ' mnt'"></td>
+                            <td class="mono" x-text="fmtNum(row.downtime_menit ?? 0) + ' mnt'"></td>
+                            <td class="mono" x-text="fmtNum(row.break_menit ?? 0) + ' mnt'"></td>
+                          </tr>
+                        </template>
+                        <tr x-show="perfDayRows.length === 0"><td colspan="8" class="empty-state">Tidak ada produksi di tanggal ini.</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </template>
           </div>
@@ -559,6 +589,36 @@
                     <div class="perf-pie-wrap"><canvas id="perfPie_tandem_bulanan"></canvas></div>
                   </div>
                 </div>
+
+                <div x-show="'bulanan' === 'harian'" style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--border);">
+                  <p class="panel-subtitle">Daftar Produksi Hari Itu <span class="count" x-text="perfDayRows.length + ' baris'"></span></p>
+                  <div class="table-wrap" style="max-height:320px;">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
+                          <th>Mulai</th><th>Selesai</th><th>Part Number</th>
+                          <th>Qty</th><th>Dandori</th><th>Downtime</th><th>Break</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <template x-for="row in perfDayRows" :key="row.id">
+                          <tr>
+                            <td class="mono" x-show="stationConfig.mode !== 'none'" x-text="row.stasiun || '-'"></td>
+                            <td class="mono" x-text="fmt(row.waktu_awal)"></td>
+                            <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
+                            <td x-text="row.part_number"></td>
+                            <td class="mono" x-text="fmtNum(row.qty)"></td>
+                            <td class="mono" x-text="fmtNum(row.dandori_menit ?? 0) + ' mnt'"></td>
+                            <td class="mono" x-text="fmtNum(row.downtime_menit ?? 0) + ' mnt'"></td>
+                            <td class="mono" x-text="fmtNum(row.break_menit ?? 0) + ' mnt'"></td>
+                          </tr>
+                        </template>
+                        <tr x-show="perfDayRows.length === 0"><td colspan="8" class="empty-state">Tidak ada produksi di tanggal ini.</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </template>
           </div>
@@ -620,6 +680,36 @@
                   <div class="perf-lower-col">
                     <p class="panel-subtitle">Downtime per Kategori</p>
                     <div class="perf-pie-wrap"><canvas id="perfPie_tandem_harian"></canvas></div>
+                  </div>
+                </div>
+
+                <div x-show="'harian' === 'harian'" style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--border);">
+                  <p class="panel-subtitle">Daftar Produksi Hari Itu <span class="count" x-text="perfDayRows.length + ' baris'"></span></p>
+                  <div class="table-wrap" style="max-height:320px;">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
+                          <th>Mulai</th><th>Selesai</th><th>Part Number</th>
+                          <th>Qty</th><th>Dandori</th><th>Downtime</th><th>Break</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <template x-for="row in perfDayRows" :key="row.id">
+                          <tr>
+                            <td class="mono" x-show="stationConfig.mode !== 'none'" x-text="row.stasiun || '-'"></td>
+                            <td class="mono" x-text="fmt(row.waktu_awal)"></td>
+                            <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
+                            <td x-text="row.part_number"></td>
+                            <td class="mono" x-text="fmtNum(row.qty)"></td>
+                            <td class="mono" x-text="fmtNum(row.dandori_menit ?? 0) + ' mnt'"></td>
+                            <td class="mono" x-text="fmtNum(row.downtime_menit ?? 0) + ' mnt'"></td>
+                            <td class="mono" x-text="fmtNum(row.break_menit ?? 0) + ' mnt'"></td>
+                          </tr>
+                        </template>
+                        <tr x-show="perfDayRows.length === 0"><td colspan="8" class="empty-state">Tidak ada produksi di tanggal ini.</td></tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>

@@ -6,42 +6,35 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (menu baru + halaman input terpisah)
+## 🔧 Yang perlu dikerjakan sekarang
 
-**Tidak ada migrasi database baru.** Kalau SQL dari langkah sebelumnya
-belum dijalankan (`migration_sqcdm_v2.sql`, `upsert_harga_part.sql`,
-`import_scrap_top_end.sql`, import `attendance_import.csv`), jalankan
-dulu.
+### 1. Jalankan migrasi database
+Di Supabase SQL Editor, jalankan **`migration_attendance_weekday.sql`**
+(query baru). Ini bikin rata-rata absensi **hanya menghitung hari
+kerja** — Sabtu & Minggu diabaikan.
 
-**Upload semua file** ke GitHub — ada **4 halaman baru**:
-`input-produksi.html`, `input-attendance.html`, `input-scrap.html`,
-`input-safety.html`.
+### 2. Upload semua file ke GitHub
 
 ### Yang berubah
-- **Sidebar dirombak** jadi: Dashboard · Input Produksi · Input
-  Attendance · Input Scrap · Input Safety.
-- **Hak akses per role**:
-  - **Operator** — cuma Dashboard + Input Produksi (menu lain
-    tersembunyi, tab Master Data di halaman mesin juga disembunyikan)
-  - **Admin & Leader** — semua menu
-- **Panel Input Absensi dihapus dari Dashboard**, pindah ke halaman
-  sendiri (`input-attendance.html`) lengkap dengan riwayat + edit.
-- **Halaman Input Scrap & Input Safety baru** — form + riwayat, jadi
-  data Scrap/Safety bisa diinput langsung dari app (tidak perlu SQL).
-- **Kolom Cost dipisah** — NG Inline dan Scrap Top End ditampilkan
-  bertingkat dengan bar proporsi masing-masing.
-- **Moral mode bulanan/tahunan** sekarang menampilkan **rata-rata
-  harian** (Total/Hadir/Cuti/Absen dibagi jumlah hari), bukan
-  akumulasi.
-- **Tab Performance** — warna kartu disamakan dengan tema baru
-  (navy/teal), dan angka pakai `tabular-nums` supaya tidak tampak
-  berbayang/bergeser.
+- **Kotak Cuti ditambahkan** di kolom Moral, jadi sekarang 5 kotak:
+  Total · Hadir · Cuti · Absen · O.T
+- **Rata-rata absensi abaikan Sabtu/Minggu** — mode Bulanan/Tahunan
+  sekarang membagi dengan jumlah **hari kerja** saja, jadi angkanya
+  tidak lagi tertarik turun oleh akhir pekan yang kosong.
+- **Angka "berbayang" di Performance diperbaiki** — penyebabnya font
+  mono bold di ukuran kecil. Sudah diganti ke font body + `tabular-nums`
+  + antialiasing (diterapkan global, jadi semua angka di app lebih
+  tajam).
+- **Daftar Produksi Hari Itu** — di tab Performance mode **Harian**,
+  sekarang muncul tabel di bawah: Stasiun, Mulai, Selesai, Part Number,
+  Qty, Dandori, Downtime, Break. Mirip Riwayat Produksi tapi otomatis
+  mengikuti tanggal yang dipilih di Performance.
 
-### Catatan
-**NG Inline masih Rp 0** karena kolom `ng` di `production_log` belum
-ada isinya. Kirim data NG per part number FY2024–2026 seperti yang Anda
-sebutkan, nanti saya proses jadi CSV import. Setelah itu operator bisa
-input NG lewat app seperti biasa.
+### Menunggu dari Anda
+- **Data Overtime** — kolom O.T masih 0 karena file absensi tidak punya
+  data lembur. Kirim kapan pun siap.
+- **Data NG per part number FY2024–2026** — untuk mengaktifkan NG Inline
+  Value di kartu Cost (sekarang masih Rp 0).
 
 ---
 

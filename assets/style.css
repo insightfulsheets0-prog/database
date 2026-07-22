@@ -1345,3 +1345,78 @@ td.mono, .mono { font-family: var(--font-mono); }
 .cost-split-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
 .cost-fill-ng { background: var(--red); }
 .cost-fill-scrap { background: var(--sky); }
+
+/* ---------- Performance: layout harian 2 kolom ---------- */
+.perf-daily-split {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 18px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+.perf-daily-chart, .perf-daily-list { min-width: 0; }
+@media (max-width: 900px) {
+  .perf-daily-split { grid-template-columns: 1fr; }
+}
+
+/* ---------- Chip aktif: hijau + teks putih (estetika) ---------- */
+.chip-active,
+.chip.chip-active {
+  background: var(--teal) !important;
+  border-color: var(--teal) !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(24,127,127,0.28);
+}
+.chip {
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.chip:not(.chip-active):hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+/* ---------- Input tahun/periode di header Performance ---------- */
+.perf-nav input[type="number"],
+.perf-nav input[type="date"],
+.perf-nav input[type="month"] {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 9px 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  min-width: 118px;
+  text-align: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.perf-nav input[type="number"]:focus,
+.perf-nav input[type="date"]:focus,
+.perf-nav input[type="month"]:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(24,127,127,0.12);
+}
+.perf-period-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--teal);
+  letter-spacing: 0.01em;
+}
+.avg-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  vertical-align: middle;
+}

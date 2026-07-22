@@ -9,32 +9,42 @@ sinyal (mode offline).
 ## 🔧 Yang perlu dikerjakan sekarang
 
 ### 1. Jalankan migrasi database
-Di Supabase SQL Editor, jalankan **`migration_attendance_weekday.sql`**
-(query baru). Ini bikin rata-rata absensi **hanya menghitung hari
-kerja** — Sabtu & Minggu diabaikan.
+Kalau **`migration_attendance_weekday.sql`** belum dijalankan, jalankan
+sekarang (rata-rata absensi hanya hari kerja).
 
 ### 2. Upload semua file ke GitHub
 
-### Yang berubah
-- **Kotak Cuti ditambahkan** di kolom Moral, jadi sekarang 5 kotak:
-  Total · Hadir · Cuti · Absen · O.T
-- **Rata-rata absensi abaikan Sabtu/Minggu** — mode Bulanan/Tahunan
-  sekarang membagi dengan jumlah **hari kerja** saja, jadi angkanya
-  tidak lagi tertarik turun oleh akhir pekan yang kosong.
-- **Angka "berbayang" di Performance diperbaiki** — penyebabnya font
-  mono bold di ukuran kecil. Sudah diganti ke font body + `tabular-nums`
-  + antialiasing (diterapkan global, jadi semua angka di app lebih
-  tajam).
-- **Daftar Produksi Hari Itu** — di tab Performance mode **Harian**,
-  sekarang muncul tabel di bawah: Stasiun, Mulai, Selesai, Part Number,
-  Qty, Dandori, Downtime, Break. Mirip Riwayat Produksi tapi otomatis
-  mengikuti tanggal yang dipilih di Performance.
+### Yang berubah — konsep periode Performance diperbaiki
+Sebelumnya keliru (semua mode cuma menggeser N periode ke belakang).
+Sekarang sesuai maksud Anda:
+
+| Mode | Isi grafik |
+|---|---|
+| **Tahunan** | 3 tahun terakhir (2024, 2025, 2026) → **pembatas** → Jan–Des tahun terpilih |
+| **Bulanan** | batang harian sepanjang bulan yang dipilih |
+| **Harian** | Target vs Aktual hari itu (2 batang horizontal) |
+
+Batang tahun diberi warna navy, batang bulan teal — jadi mudah dibedakan
+di mode Tahunan.
+
+### Perubahan lain
+- **Mode Harian jadi 2 kolom** — grafik GSPH ringkas di kiri, Daftar
+  Produksi Hari Itu di kanan. Tidak lagi menambah panjang halaman ke
+  bawah.
+- **Kartu Moral dapat keterangan avg + total** — label "rata-rata"
+  muncul saat mode Bulanan/Tahunan, satuan berubah jadi "/hari", dan di
+  bawah ada keterangan: *"Rata-rata dari N hari kerja · total hadir X
+  orang-hari"*.
+- **Estetika tombol periode** — tombol aktif sekarang teal solid dengan
+  teks putih dan bayangan halus; tombol non-aktif berubah warna teal
+  saat disentuh kursor.
+- **Kotak input tahun/tanggal diperbaiki** — sudut membulat, lebar
+  konsisten, teks rata tengah, dan ring fokus teal saat diklik.
 
 ### Menunggu dari Anda
-- **Data Overtime** — kolom O.T masih 0 karena file absensi tidak punya
-  data lembur. Kirim kapan pun siap.
-- **Data NG per part number FY2024–2026** — untuk mengaktifkan NG Inline
-  Value di kartu Cost (sekarang masih Rp 0).
+- **Data Overtime** (kolom O.T masih 0)
+- **Data NG per part number FY2024–2026** (NG Inline di kartu Cost masih
+  Rp 0)
 
 ---
 

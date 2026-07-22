@@ -467,7 +467,7 @@
                     <div class="perf-card"><span class="perf-label">Break</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.breakMenit) + ' mnt'"></span></div>
                     <div class="perf-card"><span class="perf-label">Jam Kerja</span><span class="perf-value" x-text="fmtNum(perf.tahunan.data.whJam) + ' jam'"></span></div>
                   </div>
-                  <div class="perf-chart-col">
+                  <div class="perf-chart-col" x-show="'tahunan' !== 'harian'">
                     <div class="perf-chart-wrap"><canvas id="perfChart_pc200t_tahunan"></canvas></div>
                   </div>
                 </div>
@@ -497,33 +497,39 @@
                   </div>
                 </div>
 
-                <div x-show="'tahunan' === 'harian'" style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--border);">
-                  <p class="panel-subtitle">Daftar Produksi Hari Itu <span class="count" x-text="perfDayRows.length + ' baris'"></span></p>
-                  <div class="table-wrap" style="max-height:320px;">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
-                          <th>Mulai</th><th>Selesai</th><th>Part Number</th>
-                          <th>Qty</th><th>Dandori</th><th>Downtime</th><th>Break</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <template x-for="row in perfDayRows" :key="row.id">
+                <div x-show="'tahunan' === 'harian'" class="perf-daily-split">
+                  <div class="perf-daily-chart">
+                    <p class="panel-subtitle">GSPH Target vs Aktual</p>
+                    <div style="height:150px;position:relative;"><canvas id="perfChart_pc200t_tahunan_daily"></canvas></div>
+                  </div>
+                  <div class="perf-daily-list">
+                    <p class="panel-subtitle">Daftar Produksi Hari Itu <span class="count" x-text="perfDayRows.length + ' baris'"></span></p>
+                    <div class="table-wrap" style="max-height:260px;">
+                      <table>
+                        <thead>
                           <tr>
-                            <td class="mono" x-show="stationConfig.mode !== 'none'" x-text="row.stasiun || '-'"></td>
-                            <td class="mono" x-text="fmt(row.waktu_awal)"></td>
-                            <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
-                            <td x-text="row.part_number"></td>
-                            <td class="mono" x-text="fmtNum(row.qty)"></td>
-                            <td class="mono" x-text="fmtNum(row.dandori_menit ?? 0) + ' mnt'"></td>
-                            <td class="mono" x-text="fmtNum(row.downtime_menit ?? 0) + ' mnt'"></td>
-                            <td class="mono" x-text="fmtNum(row.break_menit ?? 0) + ' mnt'"></td>
+                            <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
+                            <th>Mulai</th><th>Selesai</th><th>Part Number</th>
+                            <th>Qty</th><th>Dandori</th><th>DT</th><th>Break</th>
                           </tr>
-                        </template>
-                        <tr x-show="perfDayRows.length === 0"><td colspan="8" class="empty-state">Tidak ada produksi di tanggal ini.</td></tr>
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          <template x-for="row in perfDayRows" :key="row.id">
+                            <tr>
+                              <td class="mono" x-show="stationConfig.mode !== 'none'" x-text="row.stasiun || '-'"></td>
+                              <td class="mono" x-text="fmtJam(row.waktu_awal)"></td>
+                              <td class="mono" x-text="fmtJam(row.waktu_akhir)"></td>
+                              <td x-text="row.part_number"></td>
+                              <td class="mono" x-text="fmtNum(row.qty)"></td>
+                              <td class="mono" x-text="fmtNum(row.dandori_menit ?? 0)"></td>
+                              <td class="mono" x-text="fmtNum(row.downtime_menit ?? 0)"></td>
+                              <td class="mono" x-text="fmtNum(row.break_menit ?? 0)"></td>
+                            </tr>
+                          </template>
+                          <tr x-show="perfDayRows.length === 0"><td colspan="8" class="empty-state">Tidak ada produksi di tanggal ini.</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -560,7 +566,7 @@
                     <div class="perf-card"><span class="perf-label">Break</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.breakMenit) + ' mnt'"></span></div>
                     <div class="perf-card"><span class="perf-label">Jam Kerja</span><span class="perf-value" x-text="fmtNum(perf.bulanan.data.whJam) + ' jam'"></span></div>
                   </div>
-                  <div class="perf-chart-col">
+                  <div class="perf-chart-col" x-show="'bulanan' !== 'harian'">
                     <div class="perf-chart-wrap"><canvas id="perfChart_pc200t_bulanan"></canvas></div>
                   </div>
                 </div>
@@ -590,33 +596,39 @@
                   </div>
                 </div>
 
-                <div x-show="'bulanan' === 'harian'" style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--border);">
-                  <p class="panel-subtitle">Daftar Produksi Hari Itu <span class="count" x-text="perfDayRows.length + ' baris'"></span></p>
-                  <div class="table-wrap" style="max-height:320px;">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
-                          <th>Mulai</th><th>Selesai</th><th>Part Number</th>
-                          <th>Qty</th><th>Dandori</th><th>Downtime</th><th>Break</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <template x-for="row in perfDayRows" :key="row.id">
+                <div x-show="'bulanan' === 'harian'" class="perf-daily-split">
+                  <div class="perf-daily-chart">
+                    <p class="panel-subtitle">GSPH Target vs Aktual</p>
+                    <div style="height:150px;position:relative;"><canvas id="perfChart_pc200t_bulanan_daily"></canvas></div>
+                  </div>
+                  <div class="perf-daily-list">
+                    <p class="panel-subtitle">Daftar Produksi Hari Itu <span class="count" x-text="perfDayRows.length + ' baris'"></span></p>
+                    <div class="table-wrap" style="max-height:260px;">
+                      <table>
+                        <thead>
                           <tr>
-                            <td class="mono" x-show="stationConfig.mode !== 'none'" x-text="row.stasiun || '-'"></td>
-                            <td class="mono" x-text="fmt(row.waktu_awal)"></td>
-                            <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
-                            <td x-text="row.part_number"></td>
-                            <td class="mono" x-text="fmtNum(row.qty)"></td>
-                            <td class="mono" x-text="fmtNum(row.dandori_menit ?? 0) + ' mnt'"></td>
-                            <td class="mono" x-text="fmtNum(row.downtime_menit ?? 0) + ' mnt'"></td>
-                            <td class="mono" x-text="fmtNum(row.break_menit ?? 0) + ' mnt'"></td>
+                            <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
+                            <th>Mulai</th><th>Selesai</th><th>Part Number</th>
+                            <th>Qty</th><th>Dandori</th><th>DT</th><th>Break</th>
                           </tr>
-                        </template>
-                        <tr x-show="perfDayRows.length === 0"><td colspan="8" class="empty-state">Tidak ada produksi di tanggal ini.</td></tr>
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          <template x-for="row in perfDayRows" :key="row.id">
+                            <tr>
+                              <td class="mono" x-show="stationConfig.mode !== 'none'" x-text="row.stasiun || '-'"></td>
+                              <td class="mono" x-text="fmtJam(row.waktu_awal)"></td>
+                              <td class="mono" x-text="fmtJam(row.waktu_akhir)"></td>
+                              <td x-text="row.part_number"></td>
+                              <td class="mono" x-text="fmtNum(row.qty)"></td>
+                              <td class="mono" x-text="fmtNum(row.dandori_menit ?? 0)"></td>
+                              <td class="mono" x-text="fmtNum(row.downtime_menit ?? 0)"></td>
+                              <td class="mono" x-text="fmtNum(row.break_menit ?? 0)"></td>
+                            </tr>
+                          </template>
+                          <tr x-show="perfDayRows.length === 0"><td colspan="8" class="empty-state">Tidak ada produksi di tanggal ini.</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -653,7 +665,7 @@
                     <div class="perf-card"><span class="perf-label">Break</span><span class="perf-value" x-text="fmtNum(perf.harian.data.breakMenit) + ' mnt'"></span></div>
                     <div class="perf-card"><span class="perf-label">Jam Kerja</span><span class="perf-value" x-text="fmtNum(perf.harian.data.whJam) + ' jam'"></span></div>
                   </div>
-                  <div class="perf-chart-col">
+                  <div class="perf-chart-col" x-show="'harian' !== 'harian'">
                     <div class="perf-chart-wrap"><canvas id="perfChart_pc200t_harian"></canvas></div>
                   </div>
                 </div>
@@ -683,33 +695,39 @@
                   </div>
                 </div>
 
-                <div x-show="'harian' === 'harian'" style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--border);">
-                  <p class="panel-subtitle">Daftar Produksi Hari Itu <span class="count" x-text="perfDayRows.length + ' baris'"></span></p>
-                  <div class="table-wrap" style="max-height:320px;">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
-                          <th>Mulai</th><th>Selesai</th><th>Part Number</th>
-                          <th>Qty</th><th>Dandori</th><th>Downtime</th><th>Break</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <template x-for="row in perfDayRows" :key="row.id">
+                <div x-show="'harian' === 'harian'" class="perf-daily-split">
+                  <div class="perf-daily-chart">
+                    <p class="panel-subtitle">GSPH Target vs Aktual</p>
+                    <div style="height:150px;position:relative;"><canvas id="perfChart_pc200t_harian_daily"></canvas></div>
+                  </div>
+                  <div class="perf-daily-list">
+                    <p class="panel-subtitle">Daftar Produksi Hari Itu <span class="count" x-text="perfDayRows.length + ' baris'"></span></p>
+                    <div class="table-wrap" style="max-height:260px;">
+                      <table>
+                        <thead>
                           <tr>
-                            <td class="mono" x-show="stationConfig.mode !== 'none'" x-text="row.stasiun || '-'"></td>
-                            <td class="mono" x-text="fmt(row.waktu_awal)"></td>
-                            <td class="mono" x-text="fmt(row.waktu_akhir)"></td>
-                            <td x-text="row.part_number"></td>
-                            <td class="mono" x-text="fmtNum(row.qty)"></td>
-                            <td class="mono" x-text="fmtNum(row.dandori_menit ?? 0) + ' mnt'"></td>
-                            <td class="mono" x-text="fmtNum(row.downtime_menit ?? 0) + ' mnt'"></td>
-                            <td class="mono" x-text="fmtNum(row.break_menit ?? 0) + ' mnt'"></td>
+                            <th x-show="stationConfig.mode !== 'none'">Stasiun</th>
+                            <th>Mulai</th><th>Selesai</th><th>Part Number</th>
+                            <th>Qty</th><th>Dandori</th><th>DT</th><th>Break</th>
                           </tr>
-                        </template>
-                        <tr x-show="perfDayRows.length === 0"><td colspan="8" class="empty-state">Tidak ada produksi di tanggal ini.</td></tr>
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          <template x-for="row in perfDayRows" :key="row.id">
+                            <tr>
+                              <td class="mono" x-show="stationConfig.mode !== 'none'" x-text="row.stasiun || '-'"></td>
+                              <td class="mono" x-text="fmtJam(row.waktu_awal)"></td>
+                              <td class="mono" x-text="fmtJam(row.waktu_akhir)"></td>
+                              <td x-text="row.part_number"></td>
+                              <td class="mono" x-text="fmtNum(row.qty)"></td>
+                              <td class="mono" x-text="fmtNum(row.dandori_menit ?? 0)"></td>
+                              <td class="mono" x-text="fmtNum(row.downtime_menit ?? 0)"></td>
+                              <td class="mono" x-text="fmtNum(row.break_menit ?? 0)"></td>
+                            </tr>
+                          </template>
+                          <tr x-show="perfDayRows.length === 0"><td colspan="8" class="empty-state">Tidak ada produksi di tanggal ini.</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </div>

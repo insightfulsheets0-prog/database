@@ -177,7 +177,10 @@
               <span class="sqcpm-col-icon">👥</span>
               <div><div class="sqcpm-col-title">MORAL</div><div class="sqcpm-col-sub">ATTENDANCE</div></div>
             </div>
-            <div class="sqcpm-metric-label">Tingkat Kehadiran</div>
+            <div class="sqcpm-metric-label">
+              Tingkat Kehadiran
+              <span x-show="periodMode !== 'harian'" class="avg-tag">rata-rata</span>
+            </div>
             <div class="sqcpm-metric-value" x-text="fmtNum(attendance.pctExclCuti) + '%'"></div>
             <div class="sqcpm-bar"><div class="sqcpm-bar-fill" :style="'width:' + Math.max(0, Math.min(100, attendance.pctExclCuti)) + '%'"></div></div>
             <div class="manpower-grid manpower-grid-5">
@@ -185,25 +188,25 @@
                 <span class="manpower-icon">👥</span>
                 <span class="manpower-label">Total</span>
                 <span class="manpower-value" x-text="fmtNum(attendance.total_orang)"></span>
-                <span class="manpower-unit">Orang</span>
+                <span class="manpower-unit" x-text="periodMode === 'harian' ? 'Orang' : '/hari'"></span>
               </div>
               <div class="manpower-box manpower-hadir">
                 <span class="manpower-icon">🧍</span>
                 <span class="manpower-label">Hadir</span>
                 <span class="manpower-value" x-text="fmtNum(attendance.hadir)"></span>
-                <span class="manpower-unit">Orang</span>
+                <span class="manpower-unit" x-text="periodMode === 'harian' ? 'Orang' : '/hari'"></span>
               </div>
               <div class="manpower-box">
                 <span class="manpower-icon">🌴</span>
                 <span class="manpower-label">Cuti</span>
                 <span class="manpower-value" x-text="fmtNum(attendance.cuti)"></span>
-                <span class="manpower-unit">Orang</span>
+                <span class="manpower-unit" x-text="periodMode === 'harian' ? 'Orang' : '/hari'"></span>
               </div>
               <div class="manpower-box">
                 <span class="manpower-icon">🚫</span>
                 <span class="manpower-label">Absen</span>
                 <span class="manpower-value" x-text="fmtNum(attendance.absen)"></span>
-                <span class="manpower-unit">Orang</span>
+                <span class="manpower-unit" x-text="periodMode === 'harian' ? 'Orang' : '/hari'"></span>
               </div>
               <div class="manpower-box">
                 <span class="manpower-icon">⏰</span>
@@ -211,6 +214,10 @@
                 <span class="manpower-value" x-text="fmtNum(attendance.overtime_jam)"></span>
                 <span class="manpower-unit">Jam</span>
               </div>
+            </div>
+            <div class="sqcpm-mini-label" x-show="periodMode !== 'harian'">
+              Rata-rata dari <b x-text="fmtNum(attendance.jumlah_hari)"></b> hari kerja ·
+              total hadir <b x-text="fmtNum(attendance.totalHadir)"></b> orang-hari
             </div>
             <div class="sqcpm-chart"><canvas id="miniMoral"></canvas></div>
           </div>
@@ -504,6 +511,7 @@ function dashboard() {
         absen: isRata ? Math.round(absen / hari) : absen,
         overtime_jam: isRata ? Number((Number(row.overtime_jam) || 0) / hari).toFixed(1) : (Number(row.overtime_jam) || 0),
         jumlah_hari: hari,
+        totalHadir: hadir,
         // persentase tetap sama (rasio tidak terpengaruh pembagian hari)
         pctExclCuti: totalSlot > 0 ? (hadir / totalSlot) * 100 : 0,
         pctInclCuti: totalSlot > 0 ? ((hadir + cuti) / totalSlot) * 100 : 0,

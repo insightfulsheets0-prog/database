@@ -537,9 +537,55 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
     // Konfigurasi tiap seksi: satuan waktu & berapa periode ditampilkan di grafik tren.
     PERF_CONFIG: {
-      tahunan: { unit: "year", trendCount: 5 },
-      bulanan: { unit: "month", trendCount: 12 },
-      harian: { unit: "day", trendCount: 14 },
+      tahunan: { unit: "year" },
+      bulanan: { unit: "month" },
+      harian: { unit: "day" },
+    },
+    // Susun daftar periode utk grafik, sesuai mode:
+    //  - tahunan : 3 tahun terakhir + PEMBATAS + Jan..Des tahun terpilih
+    //  - bulanan : tiap hari dlm bulan terpilih
+    //  - harian  : hanya hari itu (Target vs Aktual)
+    buildPerfPeriods(section, anchorStr) {
+      const d = new Date(anchorStr + "T00:00:00");
+      const out = [];
+      if (section === "tahunan") {
+        const y = d.getFullYear();
+        for (let i = 2; i >= 0; i--) {
+          const yy = y - i;
+          out.push({
+            start: new Date(yy, 0, 1), end: new Date(yy + 1, 0, 1),
+            label: String(yy), kind: "year",
+          });
+        }
+        out.push({ separator: true, label: "", kind: "sep" });
+        const NAMA_BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+        for (let m = 0; m < 12; m++) {
+          out.push({
+            start: new Date(y, m, 1), end: new Date(y, m + 1, 1),
+            label: NAMA_BULAN[m], kind: "month",
+          });
+        }
+        return out;
+      }
+      if (section === "bulanan") {
+        const y = d.getFullYear(), m = d.getMonth();
+        const jumlahHari = new Date(y, m + 1, 0).getDate();
+        for (let day = 1; day <= jumlahHari; day++) {
+          out.push({
+            start: new Date(y, m, day), end: new Date(y, m, day + 1),
+            label: String(day), kind: "day",
+          });
+        }
+        return out;
+      }
+      // harian -- cuma 1 batang (hari itu)
+      out.push({
+        start: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+        end: new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1),
+        label: d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+        kind: "day",
+      });
+      return out;
     },
     perfBounds(unit, anchorStr, offset = 0) {
       const d = new Date(anchorStr + "T00:00:00");
@@ -602,19 +648,17 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         ? this.stationConfig.variants[this.tandemVariant]
         : null;
 
-      const periods = [];
-      for (let i = -(cfg.trendCount - 1); i <= 0; i++) {
-        const { start, end } = this.perfBounds(cfg.unit, st.anchor, i);
-        periods.push({ start, end, label: this.perfPeriodLabel(cfg.unit, start) });
-      }
+      const periods = this.buildPerfPeriods(section, st.anchor);
       const currentBounds = this.perfBounds(cfg.unit, st.anchor, 0);
 
       const [aggResults, top5Result, catResult] = await Promise.all([
         Promise.all(periods.map((p) =>
-          supabaseClient.rpc("performance_aggregate", {
-            p_mesin: machineKey, p_stasiun_list: stasiunList,
-            p_start: p.start.toISOString(), p_end: p.end.toISOString(),
-          })
+          p.separator
+            ? Promise.resolve({ data: null })
+            : supabaseClient.rpc("performance_aggregate", {
+                p_mesin: machineKey, p_stasiun_list: stasiunList,
+                p_start: p.start.toISOString(), p_end: p.end.toISOString(),
+              })
         )),
         supabaseClient.rpc("downtime_top_problems", {
           p_mesin: machineKey, p_stasiun_list: stasiunList,
@@ -634,6 +678,9 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       const targetFixed = Number(this.mesinSettings.gsph_target_fixed) || 0;
 
       const trend = periods.map((p, idx) => {
+        if (p.separator) {
+          return { label: "", separator: true, gsph: null, targetGsph: null };
+        }
         const row = (aggResults[idx].data && aggResults[idx].data[0]) || {};
         const whJam = (Number(row.wh_menit) || 0) / 60;
         const stroke = Number(row.stroke) || 0;
@@ -651,7 +698,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         const quality = stroke > 0 ? Math.max(0, (stroke - ng) / stroke) * 100 : 100;
         const oee = (availability / 100) * (performanceFactor / 100) * (quality / 100) * 100;
         return {
-          label: p.label, stroke, ng, ngValue,
+          label: p.label, kindYear: p.kind === "year", stroke, ng, ngValue,
           dandoriMenit: Math.round(Number(row.dandori_menit) || 0),
           downtimeMenit,
           breakMenit: Math.round(Number(row.break_menit) || 0),
@@ -661,7 +708,35 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         };
       });
       st.trend = trend;
-      st.data = trend[trend.length - 1];
+      // Kartu angka selalu menampilkan PERIODE TERPILIH:
+      //  - tahunan -> tahun terpilih (index ke-2, sebelum pembatas)
+      //  - bulanan/harian -> agregat periode itu sendiri
+      if (section === "tahunan") {
+        st.data = trend[2] || null;
+      } else if (section === "bulanan") {
+        // jumlahkan seluruh hari dlm bulan terpilih
+        const valid = trend.filter((t) => !t.separator);
+        const sum = valid.reduce((a, t) => ({
+          stroke: a.stroke + (t.stroke || 0), ng: a.ng + (t.ng || 0),
+          ngValue: a.ngValue + (t.ngValue || 0),
+          dandoriMenit: a.dandoriMenit + (t.dandoriMenit || 0),
+          downtimeMenit: a.downtimeMenit + (t.downtimeMenit || 0),
+          breakMenit: a.breakMenit + (t.breakMenit || 0),
+          whJam: a.whJam + (t.whJam || 0),
+        }), { stroke: 0, ng: 0, ngValue: 0, dandoriMenit: 0, downtimeMenit: 0, breakMenit: 0, whJam: 0 });
+        const gsph = sum.whJam > 0 ? sum.stroke / sum.whJam : 0;
+        const tg = (valid.find((t) => t.targetGsph > 0) || {}).targetGsph || 0;
+        const availability = sum.whJam > 0 ? Math.max(0, (sum.whJam * 60 - sum.downtimeMenit) / (sum.whJam * 60)) * 100 : 0;
+        const performanceFactor = tg > 0 ? Math.min(gsph / tg, 1) * 100 : 0;
+        const quality = sum.stroke > 0 ? Math.max(0, (sum.stroke - sum.ng) / sum.stroke) * 100 : 100;
+        st.data = {
+          ...sum, gsph, targetGsph: tg, availability, performanceFactor, quality,
+          oee: (availability / 100) * (performanceFactor / 100) * (quality / 100) * 100,
+          label: this.perfPeriodLabel("month", this.perfBounds("month", st.anchor, 0).start),
+        };
+      } else {
+        st.data = trend[trend.length - 1];
+      }
       st.top5 = (top5Result.data || []).map((r) => ({ kategori: r.kategori, problem: r.problem, menit: Math.round(Number(r.total_menit) || 0) }));
       st.byCategory = (catResult.data || []).map((r) => ({ kategori: r.kategori, menit: Math.round(Number(r.total_menit) || 0) }));
       if (section === "harian") this.fetchPerfDayRows();
@@ -677,21 +752,60 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     renderPerfChart(section) {
       const st = this.perf[section];
       if (!st.trend || st.trend.length === 0) return;
-      const canvasId = "perfChart_" + machineKey + "_" + section;
+      const canvasId = "perfChart_" + machineKey + "_" + section + (section === "harian" ? "_daily" : "");
       const canvas = document.getElementById(canvasId);
       if (!canvas || typeof Chart === "undefined") return;
       if (st.chart) st.chart.destroy();
+      // Mode harian -> tampilkan 2 batang berdampingan (Target vs Aktual)
+      if (section === "harian") {
+        const d = st.data || {};
+        st.chart = new Chart(canvas, {
+          type: "bar",
+          data: {
+            labels: ["GSPH"],
+            datasets: [
+              { label: "Target", data: [Number((d.targetGsph || 0).toFixed(1))],
+                backgroundColor: cssVar("--sky"), borderRadius: 6, borderSkipped: false, barPercentage: 0.5, categoryPercentage: 0.6 },
+              { label: "Aktual", data: [Number((d.gsph || 0).toFixed(1))],
+                backgroundColor: cssVar("--teal"), borderRadius: 6, borderSkipped: false, barPercentage: 0.5, categoryPercentage: 0.6 },
+            ],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, indexAxis: "y",
+            plugins: {
+              legend: { display: true, position: "top", align: "end",
+                labels: { color: cssVar("--muted"), boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", font: { size: 10 }, padding: 12 } },
+              tooltip: { backgroundColor: cssVar("--panel"), titleColor: cssVar("--text"), bodyColor: cssVar("--text"),
+                borderColor: cssVar("--border"), borderWidth: 1, padding: 10 },
+            },
+            scales: {
+              x: { ticks: { color: cssVar("--chart-tick"), font: { size: 10 } },
+                   grid: { color: cssVar("--chart-grid"), drawTicks: false }, border: { display: false }, beginAtZero: true },
+              y: { ticks: { color: cssVar("--chart-tick"), font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+            },
+          },
+        });
+        return;
+      }
+
+      // Warnai batang tahun berbeda dari batang bulan (mode tahunan)
+      const barColors = st.trend.map((t) =>
+        section === "tahunan" && t.kindYear ? cssVar("--navy") : cssVar("--teal")
+      );
+
       st.chart = new Chart(canvas, {
         data: {
           labels: st.trend.map((t) => t.label),
           datasets: [
             {
-              type: "bar", label: "GSPH (Aktual)", data: st.trend.map((t) => Number(t.gsph.toFixed(1))),
-              backgroundColor: cssVar("--amber"), borderRadius: 4, borderSkipped: false, barPercentage: 0.6, categoryPercentage: 0.7, order: 2,
+              type: "bar", label: "GSPH (Aktual)",
+              data: st.trend.map((t) => (t.separator ? null : Number((t.gsph || 0).toFixed(1)))),
+              backgroundColor: barColors, borderRadius: 4, borderSkipped: false, barPercentage: 0.7, categoryPercentage: 0.8, order: 2,
             },
             {
-              type: "line", label: "GSPH (Target)", data: st.trend.map((t) => Number((t.targetGsph || 0).toFixed(1))),
-              borderColor: cssVar("--red"), borderWidth: 2, pointRadius: 0, tension: 0, order: 1,
+              type: "line", label: "GSPH (Target)",
+              data: st.trend.map((t) => (t.separator ? null : Number((t.targetGsph || 0).toFixed(1)))),
+              borderColor: cssVar("--red"), borderWidth: 2, pointRadius: 0, tension: 0, spanGaps: true, order: 1,
             },
           ],
         },
@@ -818,6 +932,11 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
     fmtClock,
     fmtNum,
+    fmtJam(iso) {
+      if (!iso) return "-";
+      const d = new Date(iso);
+      return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    },
     // ---- Earned / Operation / Availability per baris (gaya "Daily Status") ----
     stdCtFor(partNumber) {
       const p = this.partNumberList.find((x) => x.value === partNumber);

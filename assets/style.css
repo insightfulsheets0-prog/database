@@ -666,14 +666,19 @@ td.mono, .mono { font-family: var(--font-mono); }
 .chip-lg { padding: 10px 22px; font-size: 14px; }
 .perf-card-oee {
   background: var(--panel-2);
-  border: 1px solid var(--amber);
-  border-left: 4px solid var(--amber);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--teal);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 .perf-card-oee .perf-label { color: var(--muted); }
-.perf-value-xl { font-size: 30px !important; color: var(--amber) !important; }
+.perf-value-xl {
+  font-size: 30px !important;
+  color: var(--text) !important;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
 .perf-oee-breakdown {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -740,6 +745,8 @@ td.mono, .mono { font-family: var(--font-mono); }
   font-size: 22px;
   font-weight: 700;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
 .perf-top-grid {
   display: grid;
@@ -761,7 +768,7 @@ td.mono, .mono { font-family: var(--font-mono); }
   position: relative;
 }
 .perf-card-accent {
-  border-color: var(--amber);
+  border-color: var(--teal);
   background: var(--amber-dim);
 }
 .perf-lower-grid {
@@ -1297,3 +1304,29 @@ td.mono, .mono { font-family: var(--font-mono); }
   background: var(--amber-dim);
 }
 .manpower-box.manpower-hadir .manpower-value { color: var(--teal); }
+
+/* ---------- Cost split (NG Inline vs Scrap Top End) ---------- */
+.cost-split { margin-top: 2px; }
+.cost-split-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.cost-split-label { font-size: 10px; color: var(--muted); }
+.cost-split-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+.cost-split-bar {
+  height: 5px;
+  background: var(--panel-2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.cost-split-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+.cost-fill-ng { background: var(--red); }
+.cost-fill-scrap { background: var(--sky); }

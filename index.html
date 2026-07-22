@@ -36,12 +36,17 @@
     </button>
     <div class="sidebar-brand" x-show="!sidebarCollapsed">PRESS SHOP<span>·</span>SYSTEM</div>
     <nav class="sidebar-nav" @click="mobileNavOpen = false">
-      <a href="index.html" class="sidebar-link active"><span>🏠</span><span x-show="!sidebarCollapsed">Dashboard</span></a>
-      <a href="machines/tandem.html" class="sidebar-link"><span>⚙️</span><span x-show="!sidebarCollapsed">Tandem</span></a>
-      <a href="machines/blanking.html" class="sidebar-link"><span>⚙️</span><span x-show="!sidebarCollapsed">Blanking</span></a>
-      <a href="machines/transfer-2000t.html" class="sidebar-link"><span>⚙️</span><span x-show="!sidebarCollapsed">Transfer 2000t</span></a>
-      <a href="machines/transfer-800t.html" class="sidebar-link"><span>⚙️</span><span x-show="!sidebarCollapsed">Transfer 800t</span></a>
-      <a href="machines/pc200t.html" class="sidebar-link"><span>⚙️</span><span x-show="!sidebarCollapsed">PC200t</span></a>
+      <a href="index.html" class="sidebar-link active" title="Dashboard"><span>🏠</span><span x-show="!sidebarCollapsed">Dashboard</span></a>
+      <a href="input-produksi.html" class="sidebar-link" title="Input Produksi"><span>⚙️</span><span x-show="!sidebarCollapsed">Input Produksi</span></a>
+      <template x-if="isLeaderOrAdmin()">
+        <a href="input-attendance.html" class="sidebar-link" title="Input Attendance"><span>👥</span><span x-show="!sidebarCollapsed">Input Attendance</span></a>
+      </template>
+      <template x-if="isLeaderOrAdmin()">
+        <a href="input-scrap.html" class="sidebar-link" title="Input Scrap"><span>♻️</span><span x-show="!sidebarCollapsed">Input Scrap</span></a>
+      </template>
+      <template x-if="isLeaderOrAdmin()">
+        <a href="input-safety.html" class="sidebar-link" title="Input Safety"><span>⛑️</span><span x-show="!sidebarCollapsed">Input Safety</span></a>
+      </template>
     </nav>
     <div class="sidebar-foot" x-show="!sidebarCollapsed">
       <div class="who" x-text="profile?.full_name || session?.user?.email || '...'"></div>
@@ -146,12 +151,22 @@
               <span class="sqcpm-col-icon">💰</span>
               <div><div class="sqcpm-col-title">BIAYA</div><div class="sqcpm-col-sub">COST</div></div>
             </div>
-            <div class="sqcpm-metric-label">NG + Scrap Top End</div>
+            <div class="sqcpm-metric-label">Total Biaya</div>
             <div class="sqcpm-metric-value" x-text="fmtRupiahShort(totals.ngValue + scrap.scrapValueRp)"></div>
-            <div class="sqcpm-bar"><div class="sqcpm-bar-fill" :style="'width:' + Math.max(0, Math.min(100, scrap.targetRasio > 0 ? (1 - scrap.rasio / (scrap.targetRasio * 2)) * 100 : 50)) + '%'"></div></div>
-            <div class="sqcpm-mini-label">
-              <span x-show="scrap.rasio > 0">Rasio <b x-text="fmtNum(scrap.rasio * 100) + '%'"></b> / target <b x-text="fmtNum(scrap.targetRasio * 100) + '%'"></b></span>
-              <span x-show="scrap.rasio === 0">NG <b x-text="fmtRupiahShort(totals.ngValue)"></b></span>
+            <div class="cost-split">
+              <div class="cost-split-row">
+                <span class="cost-split-label">NG Inline</span>
+                <span class="cost-split-value" x-text="fmtRupiahShort(totals.ngValue)"></span>
+              </div>
+              <div class="cost-split-bar"><div class="cost-split-fill cost-fill-ng" :style="'width:' + costSharePct('ng') + '%'"></div></div>
+              <div class="cost-split-row" style="margin-top:6px;">
+                <span class="cost-split-label">Scrap Top End</span>
+                <span class="cost-split-value" x-text="fmtRupiahShort(scrap.scrapValueRp)"></span>
+              </div>
+              <div class="cost-split-bar"><div class="cost-split-fill cost-fill-scrap" :style="'width:' + costSharePct('scrap') + '%'"></div></div>
+            </div>
+            <div class="sqcpm-mini-label" x-show="scrap.rasio > 0">
+              Rasio scrap <b x-text="fmtNum(scrap.rasio * 100) + '%'"></b> / target <b x-text="fmtNum(scrap.targetRasio * 100) + '%'"></b>
             </div>
             <div class="sqcpm-chart"><canvas id="miniCost"></canvas></div>
           </div>
@@ -192,26 +207,6 @@
               </div>
             </div>
             <div class="sqcpm-chart"><canvas id="miniMoral"></canvas></div>
-          </div>
-        </div>
-
-        <!-- Input Absensi (admin/leader) -->
-        <div class="dash-panel" x-show="isLeaderOrAdmin()" style="margin-bottom:18px;">
-          <p class="dash-panel-title">Input Absensi Harian</p>
-          <div class="form-grid">
-            <div class="field"><label>Tanggal</label><input type="date" x-model="absenForm.tanggal"></div>
-            <div class="field">
-              <label>Shift</label>
-              <select x-model="absenForm.shift"><option value="1">Shift 1</option><option value="2">Shift 2</option></select>
-            </div>
-            <div class="field"><label>Total Orang</label><input type="number" x-model="absenForm.total_orang"></div>
-            <div class="field"><label>Hadir</label><input type="number" x-model="absenForm.hadir"></div>
-            <div class="field"><label>Cuti</label><input type="number" x-model="absenForm.cuti"></div>
-            <div class="field"><label>Absen</label><input type="number" x-model="absenForm.absen"></div>
-            <div class="field"><label>Overtime (jam)</label><input type="number" x-model="absenForm.overtime_jam"></div>
-          </div>
-          <div class="form-actions">
-            <button type="button" class="btn-primary" @click="saveAbsensi()">Simpan Absensi</button>
           </div>
         </div>
 
@@ -437,6 +432,13 @@ function dashboard() {
       }
       return "warn";
     },
+    costSharePct(which) {
+      const ng = Number(this.totals.ngValue) || 0;
+      const scrap = Number(this.scrap.scrapValueRp) || 0;
+      const total = ng + scrap;
+      if (total <= 0) return 0;
+      return ((which === "ng" ? ng : scrap) / total) * 100;
+    },
     async fetchSafety() {
       const { start, end } = this.bounds();
       const { data, error } = await supabaseClient.rpc("safety_summary", {
@@ -482,16 +484,22 @@ function dashboard() {
         p_start: start.toISOString().slice(0, 10), p_end: end.toISOString().slice(0, 10),
       });
       const row = (!error && data && data[0]) || {};
-      const totalSlot = Number(row.total_orang) || 0;   // total kehadiran-slot tercatat
+      const totalSlot = Number(row.total_orang) || 0;
       const hadir = Number(row.hadir) || 0;
       const cuti = Number(row.cuti) || 0;
+      const absen = Number(row.absen) || 0;
+      const hari = Math.max(1, Number(row.jumlah_hari) || 1);
+      // Mode bulanan/tahunan -> tampilkan RATA-RATA HARIAN (bukan total kumulatif)
+      const isRata = this.periodMode !== "harian";
       this.attendance = {
-        total_orang: totalSlot, hadir, cuti,
-        absen: Number(row.absen) || 0,
-        overtime_jam: Number(row.overtime_jam) || 0,
-        // Excl. cuti: cuti dianggap TIDAK hadir
+        total_orang: isRata ? Math.round(totalSlot / hari) : totalSlot,
+        hadir: isRata ? Math.round(hadir / hari) : hadir,
+        cuti: isRata ? Math.round(cuti / hari) : cuti,
+        absen: isRata ? Math.round(absen / hari) : absen,
+        overtime_jam: isRata ? Number((Number(row.overtime_jam) || 0) / hari).toFixed(1) : (Number(row.overtime_jam) || 0),
+        jumlah_hari: hari,
+        // persentase tetap sama (rasio tidak terpengaruh pembagian hari)
         pctExclCuti: totalSlot > 0 ? (hadir / totalSlot) * 100 : 0,
-        // Incl. cuti: cuti dianggap hadir (sesuai sheet "Grafik dengan cuti")
         pctInclCuti: totalSlot > 0 ? ((hadir + cuti) / totalSlot) * 100 : 0,
       };
     },

@@ -6,34 +6,42 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (Dashboard 5 kolom SQCPM + warna baru)
+## 🔧 Yang perlu dikerjakan sekarang (menu baru + halaman input terpisah)
 
-### Kalau SQL dari langkah sebelumnya BELUM dijalankan, jalankan dulu:
-1. **`migration_sqcdm_v2.sql`** — kolom `cuti`, tabel `scrap_top_end` +
-   `safety_log`, fungsi ringkasannya
-2. **`upsert_harga_part.sql`** — 530 harga part
-3. **`import_scrap_top_end.sql`** — 48 baris scrap bulanan
-4. Import **`attendance_import.csv`** ke tabel `attendance_log`
+**Tidak ada migrasi database baru.** Kalau SQL dari langkah sebelumnya
+belum dijalankan (`migration_sqcdm_v2.sql`, `upsert_harga_part.sql`,
+`import_scrap_top_end.sql`, import `attendance_import.csv`), jalankan
+dulu.
 
-### Lalu upload semua file app ke GitHub
+**Upload semua file** ke GitHub — ada **4 halaman baru**:
+`input-produksi.html`, `input-attendance.html`, `input-scrap.html`,
+`input-safety.html`.
 
 ### Yang berubah
-- **Dashboard utama jadi 5 kolom SQCPM** (Safety · Quality ·
-  Productivity · Cost · Moral), tiap kolom punya: ikon + judul,
-  angka besar, progress bar status, keterangan ringkas, dan
-  **mini-chart tren 6 periode terakhir**. Jauh lebih ringkas
-  dibanding versi sebelumnya yang bertumpuk-tumpuk.
-- **Palet warna baru untuk tema terang** — navy (#16304F) + teal
-  (#187F7F) + sky blue (#7FB2F0) dengan latar krem lembut, mengikuti
-  referensi yang Anda kirim. Amber/oranye lama sudah diganti.
-- **Kolom Moral** menampilkan presensi lengkap: persentase kehadiran
-  (exclude cuti) sebagai angka utama, plus rincian Hadir / Cuti / Absen
-  di bawahnya.
+- **Sidebar dirombak** jadi: Dashboard · Input Produksi · Input
+  Attendance · Input Scrap · Input Safety.
+- **Hak akses per role**:
+  - **Operator** — cuma Dashboard + Input Produksi (menu lain
+    tersembunyi, tab Master Data di halaman mesin juga disembunyikan)
+  - **Admin & Leader** — semua menu
+- **Panel Input Absensi dihapus dari Dashboard**, pindah ke halaman
+  sendiri (`input-attendance.html`) lengkap dengan riwayat + edit.
+- **Halaman Input Scrap & Input Safety baru** — form + riwayat, jadi
+  data Scrap/Safety bisa diinput langsung dari app (tidak perlu SQL).
+- **Kolom Cost dipisah** — NG Inline dan Scrap Top End ditampilkan
+  bertingkat dengan bar proporsi masing-masing.
+- **Moral mode bulanan/tahunan** sekarang menampilkan **rata-rata
+  harian** (Total/Hadir/Cuti/Absen dibagi jumlah hari), bukan
+  akumulasi.
+- **Tab Performance** — warna kartu disamakan dengan tema baru
+  (navy/teal), dan angka pakai `tabular-nums` supaya tidak tampak
+  berbayang/bergeser.
 
 ### Catatan
-Mini-chart mengambil 6 periode terakhir sesuai mode yang dipilih
-(6 hari / 6 bulan / 6 tahun). Untuk periode yang belum ada datanya,
-grafik wajar menampilkan 0.
+**NG Inline masih Rp 0** karena kolom `ng` di `production_log` belum
+ada isinya. Kirim data NG per part number FY2024–2026 seperti yang Anda
+sebutkan, nanti saya proses jadi CSV import. Setelah itu operator bisa
+input NG lewat app seperti biasa.
 
 ---
 

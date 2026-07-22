@@ -100,36 +100,98 @@
         </div>
 
         <!-- 5 kartu kontrol utama: Safety, Quality, Productivity, Cost, Moral -->
-        <div class="sqcdmp-grid sqcdmp-grid-5">
-          <div class="sqcdmp-card" :class="safety.accident === 0 ? 'sqcdmp-good' : 'sqcdmp-bad'">
-            <div class="sqcdmp-head"><span class="sqcdmp-icon">⛑️</span>SAFETY</div>
-            <div class="sqcdmp-value" x-text="fmtNum(safety.accident)"></div>
-            <div class="sqcdmp-sub">Accident · <b x-text="fmtNum(safety.hariTanpaAccident)"></b> hari aman</div>
-            <div class="sqcdmp-badge" x-text="safety.accident === 0 ? 'ZERO ACCIDENT' : 'PERHATIAN'"></div>
+        <div class="sqcpm-columns">
+          <!-- SAFETY -->
+          <div class="sqcpm-col" :class="safety.accident === 0 ? 'col-good' : 'col-bad'">
+            <div class="sqcpm-col-head">
+              <span class="sqcpm-col-icon">⛑️</span>
+              <div><div class="sqcpm-col-title">KESELAMATAN</div><div class="sqcpm-col-sub">SAFETY</div></div>
+            </div>
+            <div class="sqcpm-metric-label">Hari Tanpa Kecelakaan</div>
+            <div class="sqcpm-metric-value" x-text="fmtNum(safety.hariTanpaAccident)"></div>
+            <div class="sqcpm-bar"><div class="sqcpm-bar-fill" :style="'width:' + (safety.accident === 0 ? 100 : 20) + '%'"></div></div>
+            <div class="sqcpm-mini-label" x-text="fmtNum(safety.accident) + ' insiden tercatat'"></div>
+            <div class="sqcpm-chart"><canvas id="miniSafety"></canvas></div>
           </div>
-          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(100 - ngRatePct * 2, 90, 80)">
-            <div class="sqcdmp-head"><span class="sqcdmp-icon">🛡️</span>QUALITY</div>
-            <div class="sqcdmp-value" x-text="fmtNum(ngRatePct) + '%'"></div>
-            <div class="sqcdmp-sub">NG Rate · Target ≤ 0,5% · <b x-text="fmtNum(totals.ng)"></b> pcs</div>
-            <div class="sqcdmp-badge" x-text="cardLabel(100 - ngRatePct * 2, 90, 80)"></div>
+
+          <!-- QUALITY -->
+          <div class="sqcpm-col" :class="'col-' + cardStatus(100 - ngRatePct * 2, 90, 80)">
+            <div class="sqcpm-col-head">
+              <span class="sqcpm-col-icon">🎯</span>
+              <div><div class="sqcpm-col-title">KUALITAS</div><div class="sqcpm-col-sub">QUALITY</div></div>
+            </div>
+            <div class="sqcpm-metric-label">NG Rate (Target ≤ 0,5%)</div>
+            <div class="sqcpm-metric-value" x-text="fmtNum(ngRatePct) + '%'"></div>
+            <div class="sqcpm-bar"><div class="sqcpm-bar-fill" :style="'width:' + Math.max(0, Math.min(100, 100 - ngRatePct * 20)) + '%'"></div></div>
+            <div class="sqcpm-mini-label" x-text="fmtNum(totals.ng) + ' pcs NG'"></div>
+            <div class="sqcpm-chart"><canvas id="miniQuality"></canvas></div>
           </div>
-          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(totals.performanceFactor, 95, 80)">
-            <div class="sqcdmp-head"><span class="sqcdmp-icon">📈</span>PRODUCTIVITY</div>
-            <div class="sqcdmp-value" x-text="fmtNum(totals.gsph)"></div>
-            <div class="sqcdmp-sub">GSPH · Target <b x-text="fmtNum(totals.targetGsph)"></b></div>
-            <div class="sqcdmp-badge" x-text="cardLabel(totals.performanceFactor, 95, 80)"></div>
+
+          <!-- PRODUCTIVITY -->
+          <div class="sqcpm-col" :class="'col-' + cardStatus(totals.performanceFactor, 95, 80)">
+            <div class="sqcpm-col-head">
+              <span class="sqcpm-col-icon">⚙️</span>
+              <div><div class="sqcpm-col-title">PRODUKTIVITAS</div><div class="sqcpm-col-sub">PRODUCTIVITY</div></div>
+            </div>
+            <div class="sqcpm-metric-label">OEE Keseluruhan</div>
+            <div class="sqcpm-metric-value" x-text="fmtNum(totals.oee) + '%'"></div>
+            <div class="sqcpm-bar"><div class="sqcpm-bar-fill" :style="'width:' + Math.max(0, Math.min(100, totals.oee)) + '%'"></div></div>
+            <div class="sqcpm-mini-label">GSPH <b x-text="fmtNum(totals.gsph)"></b> / target <b x-text="fmtNum(totals.targetGsph)"></b></div>
+            <div class="sqcpm-chart"><canvas id="miniProductivity"></canvas></div>
           </div>
-          <div class="sqcdmp-card" :class="'sqcdmp-' + costStatus()">
-            <div class="sqcdmp-head"><span class="sqcdmp-icon">💰</span>COST</div>
-            <div class="sqcdmp-value" x-text="fmtRupiahShort(totals.ngValue + scrap.scrapValueRp)"></div>
-            <div class="sqcdmp-sub">NG <b x-text="fmtRupiahShort(totals.ngValue)"></b> · Scrap <b x-text="fmtRupiahShort(scrap.scrapValueRp)"></b></div>
-            <div class="sqcdmp-badge" x-text="scrap.rasio > 0 ? ('Rasio ' + fmtNum(scrap.rasio * 100) + '%') : 'NG VALUE'"></div>
+
+          <!-- COST -->
+          <div class="sqcpm-col" :class="'col-' + costStatus()">
+            <div class="sqcpm-col-head">
+              <span class="sqcpm-col-icon">💰</span>
+              <div><div class="sqcpm-col-title">BIAYA</div><div class="sqcpm-col-sub">COST</div></div>
+            </div>
+            <div class="sqcpm-metric-label">NG + Scrap Top End</div>
+            <div class="sqcpm-metric-value" x-text="fmtRupiahShort(totals.ngValue + scrap.scrapValueRp)"></div>
+            <div class="sqcpm-bar"><div class="sqcpm-bar-fill" :style="'width:' + Math.max(0, Math.min(100, scrap.targetRasio > 0 ? (1 - scrap.rasio / (scrap.targetRasio * 2)) * 100 : 50)) + '%'"></div></div>
+            <div class="sqcpm-mini-label">
+              <span x-show="scrap.rasio > 0">Rasio <b x-text="fmtNum(scrap.rasio * 100) + '%'"></b> / target <b x-text="fmtNum(scrap.targetRasio * 100) + '%'"></b></span>
+              <span x-show="scrap.rasio === 0">NG <b x-text="fmtRupiahShort(totals.ngValue)"></b></span>
+            </div>
+            <div class="sqcpm-chart"><canvas id="miniCost"></canvas></div>
           </div>
-          <div class="sqcdmp-card" :class="'sqcdmp-' + cardStatus(attendance.pctExclCuti, 95, 85)">
-            <div class="sqcdmp-head"><span class="sqcdmp-icon">👥</span>MORAL</div>
-            <div class="sqcdmp-value" x-text="fmtNum(attendance.pctExclCuti) + '%'"></div>
-            <div class="sqcdmp-sub">Excl. cuti · Incl. <b x-text="fmtNum(attendance.pctInclCuti) + '%'"></b></div>
-            <div class="sqcdmp-badge" x-text="cardLabel(attendance.pctExclCuti, 95, 85)"></div>
+
+          <!-- MORAL -->
+          <div class="sqcpm-col" :class="'col-' + cardStatus(attendance.pctExclCuti, 95, 85)">
+            <div class="sqcpm-col-head">
+              <span class="sqcpm-col-icon">👥</span>
+              <div><div class="sqcpm-col-title">MORAL</div><div class="sqcpm-col-sub">ATTENDANCE</div></div>
+            </div>
+            <div class="sqcpm-metric-label">Tingkat Kehadiran</div>
+            <div class="sqcpm-metric-value" x-text="fmtNum(attendance.pctExclCuti) + '%'"></div>
+            <div class="sqcpm-bar"><div class="sqcpm-bar-fill" :style="'width:' + Math.max(0, Math.min(100, attendance.pctExclCuti)) + '%'"></div></div>
+            <div class="manpower-grid">
+              <div class="manpower-box">
+                <span class="manpower-icon">👥</span>
+                <span class="manpower-label">Total</span>
+                <span class="manpower-value" x-text="fmtNum(attendance.total_orang)"></span>
+                <span class="manpower-unit">Orang</span>
+              </div>
+              <div class="manpower-box manpower-hadir">
+                <span class="manpower-icon">🧍</span>
+                <span class="manpower-label">Hadir</span>
+                <span class="manpower-value" x-text="fmtNum(attendance.hadir)"></span>
+                <span class="manpower-unit">Orang</span>
+              </div>
+              <div class="manpower-box">
+                <span class="manpower-icon">🚫</span>
+                <span class="manpower-label">Absen</span>
+                <span class="manpower-value" x-text="fmtNum(attendance.absen)"></span>
+                <span class="manpower-unit">Orang</span>
+              </div>
+              <div class="manpower-box">
+                <span class="manpower-icon">⏰</span>
+                <span class="manpower-label">O.T</span>
+                <span class="manpower-value" x-text="fmtNum(attendance.overtime_jam)"></span>
+                <span class="manpower-unit">Jam</span>
+              </div>
+            </div>
+            <div class="sqcpm-chart"><canvas id="miniMoral"></canvas></div>
           </div>
         </div>
 
@@ -294,6 +356,73 @@ function dashboard() {
     tahunPilih: String(new Date().getFullYear()),
     attendance: { pctInclCuti: 0, pctExclCuti: 0, hadir: 0, cuti: 0, absen: 0, total_orang: 0, overtime_jam: 0 },
     safety: { accident: 0, hariTanpaAccident: 0 },
+    miniTrend: { labels: [], safety: [], quality: [], productivity: [], cost: [], moral: [] },
+    // Ambil 6 periode terakhir utk sparkline tiap kolom SQCPM
+    async fetchMiniTrend() {
+      const COUNT = 6;
+      const base = new Date(this.tanggal + "T00:00:00");
+      const periods = [];
+      for (let i = COUNT - 1; i >= 0; i--) {
+        let start, end, label;
+        if (this.periodMode === "tahunan") {
+          const y = base.getFullYear() - i;
+          start = new Date(y, 0, 1); end = new Date(y + 1, 0, 1); label = String(y);
+        } else if (this.periodMode === "bulanan") {
+          start = new Date(base.getFullYear(), base.getMonth() - i, 1);
+          end = new Date(base.getFullYear(), base.getMonth() - i + 1, 1);
+          label = start.toLocaleDateString("id-ID", { month: "short" });
+        } else {
+          start = new Date(base.getFullYear(), base.getMonth(), base.getDate() - i);
+          end = new Date(base.getFullYear(), base.getMonth(), base.getDate() - i + 1);
+          label = start.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+        }
+        periods.push({ start, end, label });
+      }
+
+      const out = { labels: periods.map((p) => p.label), safety: [], quality: [], productivity: [], cost: [], moral: [] };
+
+      for (const p of periods) {
+        const sIso = p.start.toISOString(), eIso = p.end.toISOString();
+        const sDate = p.start.toISOString().slice(0, 10), eDate = p.end.toISOString().slice(0, 10);
+
+        const [aggAll, safetyRes, attRes, scrapRes] = await Promise.all([
+          Promise.all(MACHINES.map((m) =>
+            supabaseClient.rpc("performance_aggregate", { p_mesin: m.key, p_stasiun_list: null, p_start: sIso, p_end: eIso })
+          )),
+          supabaseClient.rpc("safety_summary", { p_start: sDate, p_end: eDate }),
+          supabaseClient.rpc("attendance_summary", { p_start: sDate, p_end: eDate }),
+          supabaseClient.rpc("scrap_top_end_summary", { p_start: sDate, p_end: eDate }),
+        ]);
+
+        let stroke = 0, ng = 0, ngValue = 0, whMenit = 0, downtime = 0;
+        aggAll.forEach((r) => {
+          const row = (r.data && r.data[0]) || {};
+          stroke += Number(row.stroke) || 0;
+          ng += Number(row.ng) || 0;
+          ngValue += Number(row.ng_value) || 0;
+          whMenit += Number(row.wh_menit) || 0;
+          downtime += Number(row.downtime_menit) || 0;
+        });
+        const whJam = whMenit / 60;
+        const gsph = whJam > 0 ? stroke / whJam : 0;
+
+        const sRow = (safetyRes.data && safetyRes.data[0]) || {};
+        out.safety.push(Number(sRow.accident_count) || 0);
+        out.quality.push(stroke > 0 ? Number(((ng / stroke) * 100).toFixed(3)) : 0);
+        out.productivity.push(Number(gsph.toFixed(1)));
+
+        const scRow = (scrapRes.data && scrapRes.data[0]) || {};
+        const scrapRp = (Number(scRow.scrap_value_kidr) || 0) * 1000;
+        out.cost.push(Number(((ngValue + scrapRp) / 1e6).toFixed(2))); // juta Rp
+
+        const aRow = (attRes.data && attRes.data[0]) || {};
+        const totalSlot = Number(aRow.total_orang) || 0;
+        const hadir = Number(aRow.hadir) || 0;
+        out.moral.push(totalSlot > 0 ? Number(((hadir / totalSlot) * 100).toFixed(1)) : 0);
+      }
+
+      this.miniTrend = out;
+    },
     scrap: { scrapValueRp: 0, totalValueRp: 0, rasio: 0, targetRasio: 0 },
     fmtRupiahShort(n) {
       const v = Number(n) || 0;
@@ -556,6 +685,7 @@ function dashboard() {
       this.achievementPct = achTotal.rencana > 0 ? (achTotal.aktual / achTotal.rencana) * 100 : 0;
 
       await Promise.all([this.fetchAttendance(), this.fetchSafety(), this.fetchScrap()]);
+      await this.fetchMiniTrend();
 
       this._results = results;
       this.loading = false;
@@ -582,9 +712,52 @@ function dashboard() {
       if (!this._results) return;
       this.renderHourlyChart();
       this.renderFleetChart();
-      this.renderDonut("donutAvail", this.totals.availability, cssVar("--blue"));
-      this.renderDonut("donutPerf", this.totals.performanceFactor, cssVar("--green"));
-      this.renderDonut("donutQual", this.totals.quality, cssVar("--amber"));
+      this.renderDonut("donutAvail", this.totals.availability, cssVar("--sky"));
+      this.renderDonut("donutPerf", this.totals.performanceFactor, cssVar("--teal"));
+      this.renderDonut("donutQual", this.totals.quality, cssVar("--navy"));
+      this.renderSqcpmMinis();
+    },
+
+    // ---- Mini chart (sparkline) di tiap kolom SQCPM ----
+    miniChartBase(canvasId, labels, data, color, type) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || typeof Chart === "undefined") return;
+      if (this.charts[canvasId]) this.charts[canvasId].destroy();
+      const isBar = type === "bar";
+      this.charts[canvasId] = new Chart(canvas, {
+        type: isBar ? "bar" : "line",
+        data: {
+          labels,
+          datasets: [{
+            data, borderColor: color, backgroundColor: isBar ? color : "transparent",
+            borderWidth: 2.5, tension: 0.4, pointRadius: 0, pointHoverRadius: 4,
+            borderRadius: isBar ? 3 : 0, barPercentage: 0.6, categoryPercentage: 0.7,
+          }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: cssVar("--panel"), titleColor: cssVar("--text"), bodyColor: cssVar("--text"),
+              borderColor: cssVar("--border"), borderWidth: 1, padding: 8, displayColors: false,
+            },
+          },
+          scales: {
+            x: { ticks: { color: cssVar("--chart-tick"), font: { size: 8 } }, grid: { display: false }, border: { display: false } },
+            y: { ticks: { color: cssVar("--chart-tick"), font: { size: 8 }, maxTicksLimit: 3 },
+                 grid: { color: cssVar("--chart-grid"), drawTicks: false }, border: { display: false }, beginAtZero: true },
+          },
+        },
+      });
+    },
+    renderSqcpmMinis() {
+      const t = this.miniTrend || { labels: [], safety: [], quality: [], productivity: [], cost: [], moral: [] };
+      this.miniChartBase("miniSafety", t.labels, t.safety, cssVar("--teal"), "line");
+      this.miniChartBase("miniQuality", t.labels, t.quality, cssVar("--sky"), "line");
+      this.miniChartBase("miniProductivity", t.labels, t.productivity, cssVar("--teal"), "bar");
+      this.miniChartBase("miniCost", t.labels, t.cost, cssVar("--red"), "bar");
+      this.miniChartBase("miniMoral", t.labels, t.moral, cssVar("--navy"), "line");
     },
 
     renderHourlyChart() {

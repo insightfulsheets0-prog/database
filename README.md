@@ -6,45 +6,34 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (data Safety/Cost/Moral masuk + grafik baru)
+## 🔧 Yang perlu dikerjakan sekarang (Dashboard 5 kolom SQCPM + warna baru)
 
-### 1. Jalankan SQL BERURUTAN di Supabase SQL Editor
-1. **`migration_sqcdm_v2.sql`** — nambah kolom `cuti` di absensi, tabel
-   `scrap_top_end` + `safety_log`, dan fungsi ringkasannya.
-2. **`upsert_harga_part.sql`** — isi Harga per Pcs untuk **530 part**
-   (sumber: `Harga_Part.xlsx` kolom G "Cost/part (Rp.)").
-3. **`import_scrap_top_end.sql`** — isi data Scrap Top End bulanan
-   **48 baris** (FY2022–FY2025, satuan K IDR).
+### Kalau SQL dari langkah sebelumnya BELUM dijalankan, jalankan dulu:
+1. **`migration_sqcdm_v2.sql`** — kolom `cuti`, tabel `scrap_top_end` +
+   `safety_log`, fungsi ringkasannya
+2. **`upsert_harga_part.sql`** — 530 harga part
+3. **`import_scrap_top_end.sql`** — 48 baris scrap bulanan
+4. Import **`attendance_import.csv`** ke tabel `attendance_log`
 
-### 2. Import data Absensi
-Import **`attendance_import.csv`** ke tabel `attendance_log` lewat
-Table Editor → Import CSV (148 baris harian, Jan–Jul 2026).
-
-### 3. Upload semua file app ke GitHub
+### Lalu upload semua file app ke GitHub
 
 ### Yang berubah
-- **Kartu SQCDM lengkap dengan data asli**:
-  - **Safety** — 0 accident + hitungan "hari aman" (dihitung dari
-    `safety_log`; karena belum ada insiden sejak FY2024, otomatis
-    menghitung sejak 1 April 2024)
-  - **Quality** — NG Rate
-  - **Productivity** — GSPH vs Target
-  - **Cost** — **NG Value + Scrap Top End Value** digabung, plus rasio
-    scrap vs target (0,46%) sebagai badge
-  - **Moral** — **2 versi**: angka utama *exclude cuti*, angka pembanding
-    *include cuti* (sesuai sheet "Grafik dengan/tanpa cuti" di file Anda)
-- **Semua grafik dimodernkan** — grid samar, garis lebih halus tanpa
-  titik (muncul saat hover), bar ramping dengan sudut membulat, legend
-  pakai titik bulat, tooltip menyesuaikan tema, pie chart jadi donut.
+- **Dashboard utama jadi 5 kolom SQCPM** (Safety · Quality ·
+  Productivity · Cost · Moral), tiap kolom punya: ikon + judul,
+  angka besar, progress bar status, keterangan ringkas, dan
+  **mini-chart tren 6 periode terakhir**. Jauh lebih ringkas
+  dibanding versi sebelumnya yang bertumpuk-tumpuk.
+- **Palet warna baru untuk tema terang** — navy (#16304F) + teal
+  (#187F7F) + sky blue (#7FB2F0) dengan latar krem lembut, mengikuti
+  referensi yang Anda kirim. Amber/oranye lama sudah diganti.
+- **Kolom Moral** menampilkan presensi lengkap: persentase kehadiran
+  (exclude cuti) sebagai angka utama, plus rincian Hadir / Cuti / Absen
+  di bawahnya.
 
-### Catatan hasil pembacaan data Anda
-- File `Harga_Part.xlsx` sheet `Sheet1` isinya **data absensi anak magang
-  2021** (kelihatannya nyasar) — saya abaikan, tidak dipakai.
-- Kode absensi yang saya pakai: `H`+angka shift = hadir · `CT`/`CM`/`CK`
-  = cuti · `S`/`I`/`TL`/`DL`/`ISH`/`TR` = absen. Kabari kalau ada yang
-  perlu digeser kategorinya.
-- Data absensi yang tersedia cuma **Shift 1** (file tidak memisahkan
-  shift), jadi semua tercatat sebagai shift 1.
+### Catatan
+Mini-chart mengambil 6 periode terakhir sesuai mode yang dipilih
+(6 hari / 6 bulan / 6 tahun). Untuk periode yang belum ada datanya,
+grafik wajar menampilkan 0.
 
 ---
 

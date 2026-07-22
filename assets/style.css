@@ -11,23 +11,27 @@
 
 /* ---------- Tema Terang (default) ---------- */
 :root, [data-theme="light"] {
-  --bg: #f4f5f7;
+  --bg: #fdf6ec;
   --panel: #ffffff;
-  --panel-2: #f0f2f5;
-  --border: #dde1e6;
-  --text: #1c2126;
-  --muted: #6b7480;
-  --amber: #c9820f;
-  --amber-dim: #fbe7c4;
-  --green: #2f9e63;
+  --panel-2: #f4f7fa;
+  --border: #d8e1ea;
+  --text: #16304f;
+  --muted: #64798f;
+  --navy: #16304f;
+  --teal: #187f7f;
+  --sky: #7fb2f0;
+  --amber: #187f7f;
+  --amber-dim: #e3f0f0;
+  --green: #187f7f;
   --red: #d1454b;
-  --shadow-sm: 0 1px 2px rgba(16,24,32,0.06);
-  --shadow-md: 0 2px 10px rgba(16,24,32,0.08);
-  --chart-grid: #eceff2;
-  --chart-tick: #6b7480;
-  --oee-card-bg: #1c2126;
+  --blue: #7fb2f0;
+  --shadow-sm: 0 1px 2px rgba(22,48,79,0.06);
+  --shadow-md: 0 2px 10px rgba(22,48,79,0.10);
+  --chart-grid: #e8eef4;
+  --chart-tick: #64798f;
+  --oee-card-bg: #16304f;
   --oee-card-text: #ffffff;
-  --oee-card-muted: #9aa3ad;
+  --oee-card-muted: #a9bed4;
 }
 
 /* ---------- Tema Gelap ---------- */
@@ -38,10 +42,14 @@
   --border: #2a3849;
   --text: #e8ecf1;
   --muted: #8b96a5;
+  --navy: #7fb2f0;
+  --teal: #34d399;
+  --sky: #7fb2f0;
   --amber: #e8a33d;
   --amber-dim: #4a3a1c;
   --green: #34d399;
   --red: #f05a60;
+  --blue: #4d7cf5;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
   --shadow-md: 0 2px 12px rgba(0,0,0,0.4);
   --chart-grid: #263344;
@@ -1144,3 +1152,148 @@ td.mono, .mono { font-family: var(--font-mono); }
 
 @media (max-width: 1100px) { .sqcdmp-grid, .sqcdmp-grid-5 { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 600px) { .sqcdmp-grid, .sqcdmp-grid-5 { grid-template-columns: repeat(2, 1fr); } }
+
+/* =========================================================
+   SQCPM — 5 kolom dashboard utama (gaya referensi)
+   ========================================================= */
+.sqcpm-columns {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.sqcpm-col {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--muted);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.sqcpm-col.col-good { border-top-color: var(--teal); }
+.sqcpm-col.col-warn { border-top-color: var(--sky); }
+.sqcpm-col.col-bad { border-top-color: var(--red); }
+
+.sqcpm-col-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.sqcpm-col-icon {
+  font-size: 20px;
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sqcpm-col-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  line-height: 1.2;
+}
+.sqcpm-col-sub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.sqcpm-metric-label {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.3;
+}
+.sqcpm-metric-value {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+}
+.sqcpm-bar {
+  height: 6px;
+  background: var(--panel-2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.sqcpm-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--muted);
+  transition: width 0.4s ease;
+}
+.col-good .sqcpm-bar-fill { background: var(--teal); }
+.col-warn .sqcpm-bar-fill { background: var(--sky); }
+.col-bad .sqcpm-bar-fill { background: var(--red); }
+.sqcpm-mini-label {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.sqcpm-mini-label b { color: var(--text); }
+.sqcpm-chart {
+  height: 90px;
+  position: relative;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+@media (max-width: 1250px) {
+  .sqcpm-columns { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 780px) {
+  .sqcpm-columns { grid-template-columns: repeat(2, 1fr); }
+  .sqcpm-metric-value { font-size: 24px; }
+}
+@media (max-width: 480px) {
+  .sqcpm-columns { grid-template-columns: 1fr; }
+}
+
+/* ---------- Manpower box (kolom Moral) ---------- */
+.manpower-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-top: 2px;
+}
+.manpower-box {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+}
+.manpower-icon { font-size: 13px; line-height: 1; }
+.manpower-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.manpower-value {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+.manpower-unit { font-size: 8px; color: var(--muted); }
+.manpower-box.manpower-hadir {
+  border-color: var(--teal);
+  background: var(--amber-dim);
+}
+.manpower-box.manpower-hadir .manpower-value { color: var(--teal); }

@@ -132,12 +132,18 @@ function fmtNum(n) {
   if (n === null || n === undefined || Number.isNaN(Number(n))) return "-";
   return Number(n).toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
+// toISOString().slice(0,10) mengonversi ke UTC dulu -- WIB = UTC+7, jadi
+// tengah malam lokal bisa terpotong mundur 1 hari. Ambil Y/M/D lokal saja.
+function localDateStr(d) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
 function safetyPage() {
   return {
     ...baseInputPage(),
     fmtNum,
-    form: { tanggal: new Date().toISOString().slice(0,10), kategori: "ACCIDENT", keterangan: "" },
+    form: { tanggal: localDateStr(new Date()), kategori: "ACCIDENT", keterangan: "" },
     rows: [],
     async init() {
       if (!await this.initBase()) return;

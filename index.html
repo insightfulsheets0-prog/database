@@ -340,6 +340,18 @@ function fmtNum(n) {
   return Number(n).toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
 
+// PENTING: jangan pakai date.toISOString().slice(0,10) untuk tanggal LOKAL.
+// toISOString() mengonversi ke UTC dulu -- karena WIB = UTC+7, tengah malam
+// lokal (00:00) jadi jam 17:00 HARI SEBELUMNYA di UTC, sehingga tanggal
+// terpotong mundur 1 hari. Fungsi ini mengambil Y/M/D langsung dari waktu
+// lokal browser, tanpa lewat UTC sama sekali.
+function localDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
@@ -349,7 +361,7 @@ function dashboard() {
     session: null, profile: null, mobileNavOpen: false, sidebarCollapsed: true,
     loading: true,
     theme: localStorage.getItem("theme_v1") || "light",
-    tanggal: new Date().toISOString().slice(0, 10),
+    tanggal: localDateStr(new Date()),
     shiftFilter: "all",
     periodMode: "harian",
     bulanPilih: String(new Date().getMonth()),
@@ -437,7 +449,7 @@ function dashboard() {
       // Semua periode ditembak PARALEL (sebelumnya berurutan -- lambat)
       const perPeriod = await Promise.all(periods.map(async (p) => {
         const sIso = p.start.toISOString(), eIso = p.end.toISOString();
-        const sDate = p.start.toISOString().slice(0, 10), eDate = p.end.toISOString().slice(0, 10);
+        const sDate = localDateStr(p.start), eDate = localDateStr(p.end);
         const [aggAll, safetyRes, attRes, scrapRes] = await Promise.all([
           Promise.all(MACHINES.map((m) =>
             supabaseClient.rpc("performance_aggregate", { p_mesin: m.key, p_stasiun_list: null, p_start: sIso, p_end: eIso })
@@ -531,7 +543,7 @@ function dashboard() {
     async fetchSafety() {
       const { start, end } = this.bounds();
       const { data, error } = await supabaseClient.rpc("safety_summary", {
-        p_start: start.toISOString().slice(0, 10), p_end: end.toISOString().slice(0, 10),
+        p_start: localDateStr(start), p_end: localDateStr(end),
       });
       const row = (!error && data && data[0]) || {};
       this.safety = {
@@ -542,7 +554,7 @@ function dashboard() {
     async fetchScrap() {
       const { start, end } = this.bounds();
       const { data, error } = await supabaseClient.rpc("scrap_top_end_summary", {
-        p_start: start.toISOString().slice(0, 10), p_end: end.toISOString().slice(0, 10),
+        p_start: localDateStr(start), p_end: localDateStr(end),
       });
       const row = (!error && data && data[0]) || {};
       // sumber data satuannya K IDR -> kalikan 1000 jadi Rupiah
@@ -553,7 +565,7 @@ function dashboard() {
         targetRasio: Number(row.target_rasio) || 0,
       };
     },
-    absenForm: { tanggal: new Date().toISOString().slice(0, 10), shift: "1", total_orang: "", hadir: "", cuti: "", absen: "", overtime_jam: "" },
+    absenForm: { tanggal: localDateStr(new Date()), shift: "1", total_orang: "", hadir: "", cuti: "", absen: "", overtime_jam: "" },
     achievementPct: 0,
     ngRatePct: 0, downtimePct: 0,
     isLeaderOrAdmin() { return this.profile && ["admin", "leader"].includes(this.profile.role); },
@@ -570,7 +582,7 @@ function dashboard() {
     async fetchAttendance() {
       const { start, end } = this.bounds();
       const { data, error } = await supabaseClient.rpc("attendance_summary", {
-        p_start: start.toISOString().slice(0, 10), p_end: end.toISOString().slice(0, 10),
+        p_start: localDateStr(start), p_end: localDateStr(end),
       });
       const row = (!error && data && data[0]) || {};
       const totalSlot = Number(row.total_orang) || 0;
@@ -611,7 +623,7 @@ function dashboard() {
       const d = new Date(this.tanggal + "T00:00:00");
       d.setDate(1);
       d.setMonth(Number(this.bulanPilih));
-      this.tanggal = d.toISOString().slice(0, 10);
+      this.tanggal = localDateStr(d);
       this.fetchAll();
     },
     applyTahun() {
@@ -620,7 +632,7 @@ function dashboard() {
       const d = new Date(this.tanggal + "T00:00:00");
       d.setDate(1);
       d.setFullYear(y);
-      this.tanggal = d.toISOString().slice(0, 10);
+      this.tanggal = localDateStr(d);
       this.fetchAll();
     },
     setPeriodMode(mode) {

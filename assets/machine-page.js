@@ -138,6 +138,13 @@ function toLocalInput(iso) {
   const p = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
+// PENTING: date.toISOString().slice(0,10) mengonversi ke UTC dulu -- karena
+// WIB = UTC+7, tengah malam lokal jadi jam 17:00 hari sebelumnya di UTC,
+// sehingga tanggalnya terpotong mundur 1 hari. Pakai ini untuk tanggal lokal.
+function localDateStr(d) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
 // =========================================================
 // Komponen utama
@@ -176,9 +183,9 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
 
     // ---- Performance dashboard (3 seksi independen) ----
     perf: {
-      tahunan: { anchor: new Date().toISOString().slice(0, 10), loading: false, data: null, trend: [], chart: null, pieChart: null, top5: [], byCategory: [] },
-      bulanan: { anchor: new Date().toISOString().slice(0, 10), loading: false, data: null, trend: [], chart: null, pieChart: null, top5: [], byCategory: [] },
-      harian: { anchor: new Date().toISOString().slice(0, 10), loading: false, data: null, trend: [], chart: null, pieChart: null, top5: [], byCategory: [] },
+      tahunan: { anchor: localDateStr(new Date()), loading: false, data: null, trend: [], chart: null, pieChart: null, top5: [], byCategory: [] },
+      bulanan: { anchor: localDateStr(new Date()), loading: false, data: null, trend: [], chart: null, pieChart: null, top5: [], byCategory: [] },
+      harian: { anchor: localDateStr(new Date()), loading: false, data: null, trend: [], chart: null, pieChart: null, top5: [], byCategory: [] },
     },
 
     isLeaderOrAdmin() {
@@ -631,7 +638,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       if (!y || y < 1900) return;
       const d = new Date(this.perf[section].anchor + "T00:00:00");
       d.setFullYear(y);
-      this.perf[section].anchor = d.toISOString().slice(0, 10);
+      this.perf[section].anchor = localDateStr(d);
       this.fetchPerfSection(section);
     },
     setPerfMonth(section, val) {
@@ -923,8 +930,8 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
     },
     // Cuma buat tab Input Produksi — riwayat hari ini saja, tanpa filter.
     riwayatHariIni() {
-      const today = new Date().toISOString().slice(0, 10);
-      return this.combinedAll().filter((r) => r.waktu_awal.slice(0, 10) === today);
+      const today = localDateStr(new Date());
+      return this.combinedAll().filter((r) => localDateStr(new Date(r.waktu_awal)) === today);
     },
     resetRiwayatFilter() { this.riwayatFilter = { dari: "", sampai: "", part_number: "" }; },
 

@@ -291,7 +291,7 @@
                         <span class="hint" x-text="(lines[st.id].state === 'running' ? 'sedang produksi' : 'sedang dandori') + ' · mulai ' + fmtClock(lines[st.id].entryStart)"></span>
                       </div>
                     </template>
-                    <template x-for="r in productionRows.filter(r => (r.stasiun||null) === dbStasiun(st.id) && r.waktu_awal.slice(0,10) === new Date().toISOString().slice(0,10))" :key="r.id">
+                    <template x-for="r in productionRows.filter(r => (r.stasiun||null) === dbStasiun(st.id) && localDateStr(new Date(r.waktu_awal)) === localDateStr(new Date()))" :key="r.id">
                       <div class="planning-item">
                         <span x-text="r.part_number"></span>
                         <span class="hint" x-text="(r.qty ?? '-') + 'pcs · ' + fmtClock(r.waktu_awal) + '-' + fmtClock(r.waktu_akhir)"></span>

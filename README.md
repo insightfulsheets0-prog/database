@@ -6,36 +6,30 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (mode TV + optimasi kecepatan)
+## 🔧 Yang perlu dikerjakan sekarang (palet baru + kesimpulan OEE)
 
-### 1. Jalankan migrasi database
-Di Supabase SQL Editor, jalankan **`migration_trend_optimize.sql`**
-(query baru). Ini bikin fungsi `gsph_trend_bucketed` yang
-mengelompokkan tren langsung di database.
+**Tidak ada migrasi database baru.** Kalau `migration_trend_optimize.sql`
+belum dijalankan, jalankan dulu.
 
-### 2. Upload semua file ke GitHub
+**Upload semua file** ke GitHub.
 
 ### Yang berubah
-**Optimasi kecepatan** — ini penyebab lambatnya:
-- Tren GSPH sebelumnya menembak database **sekali untuk tiap
-  hari × tiap line** (mode bulanan: 31 × 5 = **155 query**). Sekarang
-  pengelompokan dilakukan di database, jadi cukup **5 query**.
-- Sparkline SQCPM sebelumnya diambil **berurutan** per periode.
-  Sekarang semuanya paralel.
-- Semua pengambilan data akhir (absensi, safety, scrap, sparkline,
-  tren) sekarang jalan **bersamaan**, bukan antre satu-satu.
-
-**Mode TV 55"** — di layar lebar (≥1600px) dashboard otomatis
-menyesuaikan supaya **muat 1 layar penuh tanpa scroll**:
-- Tinggi dihitung dari tinggi layar, grafik & tabel mengisi ruang yang
-  tersisa secara proporsional (bukan tinggi tetap)
-- Kartu SQCPM, pareto, donut OEE, dan tabel dipadatkan
-- Baris "Ringkasan tambahan" (Total Stroke/Dandori/Line Aktif/OEE
-  Fleet) **dihapus** karena angkanya sudah ada di kartu SQCPM dan tabel
-  Line Status — ini yang paling banyak makan ruang tanpa menambah info
-
-Di layar biasa (laptop/tablet/HP) tampilan tetap seperti sebelumnya
-dengan scroll normal.
+- **Palet warna diganti total** ke sistem Slate/Blue sesuai spesifikasi
+  (gaya Apple/Linear/Stripe/Vercel):
+  - Terang: bg #FFFFFF · surface #F8FAFC · teks #0F172A / #64748B ·
+    primary #2563EB
+  - Gelap: bg #0F172A · surface #1E293B · teks #F8FAFC / #94A3B8 ·
+    primary #3B82F6
+  - Font **Inter** di seluruh app, shadow lembut, sudut 10px, transisi
+    tema halus tanpa layout shift.
+  - Grafik multi-line pakai 5 token seri (variasi biru + teal + netral)
+    yang tetap konsisten di light & dark.
+- **Kotak Kesimpulan OEE** — di bawah 3 donut (Availability/Performance/
+  Quality) sekarang ada ringkasan otomatis yang menyebut level OEE dan
+  **faktor terlemah** + saran singkat, mis. *"OEE 65% (cukup). Faktor
+  terlemah: Performance 66% — kejar GSPH mendekati target."*
+- **Layout TV dirapatkan** — jarak atas-bawah dikecilkan mengikuti
+  referensi, proporsi 3 baris disesuaikan supaya lebih pas di 55".
 
 ### Menunggu dari Anda
 - **Data Overtime** (kolom O.T masih 0)

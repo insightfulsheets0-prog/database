@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#f4f5f7">
 <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 <script>
   // set tema sebelum render, biar tidak "kedip" saat load
@@ -263,6 +263,7 @@
                 <div class="oee-donut-label">OEE</div>
               </div>
             </div>
+            <p class="oee-kesimpulan" x-text="oeeKesimpulan()"></p>
           </div>
         </div>
 
@@ -492,6 +493,30 @@ function dashboard() {
       if (v >= 1e6) return "Rp " + (v / 1e6).toFixed(1) + " jt";
       if (v >= 1e3) return "Rp " + (v / 1e3).toFixed(0) + " rb";
       return "Rp " + Math.round(v);
+    },
+    // Kesimpulan otomatis dari 3 faktor OEE (Availability/Performance/Quality)
+    oeeKesimpulan() {
+      const a = Number(this.totals.availability) || 0;
+      const p = Number(this.totals.performanceFactor) || 0;
+      const q = Number(this.totals.quality) || 0;
+      const oee = Number(this.totals.oee) || 0;
+      if (oee === 0 && a === 0 && p === 0) return "Belum ada data produksi pada periode ini.";
+
+      const faktor = [
+        { nama: "Availability", val: a, saran: "kurangi downtime & dandori" },
+        { nama: "Performance", val: p, saran: "kejar GSPH mendekati target" },
+        { nama: "Quality", val: q, saran: "tekan angka NG" },
+      ];
+      const terlemah = faktor.reduce((a, b) => (b.val < a.val ? b : a));
+      const level = oee >= 75 ? "baik" : oee >= 50 ? "cukup" : "perlu perhatian";
+
+      let s = `OEE ${fmtNum(oee)}% (${level}). `;
+      if (terlemah.val >= 95) {
+        s += "Ketiga faktor sudah tinggi dan seimbang.";
+      } else {
+        s += `Faktor terlemah: ${terlemah.nama} ${fmtNum(terlemah.val)}% — ${terlemah.saran}.`;
+      }
+      return s;
     },
     costStatus() {
       if (this.scrap.targetRasio > 0 && this.scrap.rasio > 0) {
@@ -843,7 +868,7 @@ function dashboard() {
       if (!canvas || typeof Chart === "undefined") return;
       if (this.charts.hourly) this.charts.hourly.destroy();
 
-      const lineColors = [cssVar("--teal"), cssVar("--navy"), cssVar("--sky"), cssVar("--red"), "#a855f7"];
+      const lineColors = [cssVar("--series-1"), cssVar("--series-2"), cssVar("--series-3"), cssVar("--series-4"), cssVar("--series-5")];
       let labels, datasets;
 
       if (this.periodMode === "harian") {

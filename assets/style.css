@@ -2,61 +2,72 @@
    Sistem Input Produksi & Downtime — tema industrial/pabrik
    ========================================================= */
 :root {
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-display: 'Inter', -apple-system, sans-serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
-  --radius: 6px;
-  --blue: #4d7cf5;
+  --radius: 10px;
 }
 
 /* ---------- Tema Terang (default) ---------- */
 :root, [data-theme="light"] {
-  --bg: #fdf6ec;
+  --bg: #ffffff;
   --panel: #ffffff;
-  --panel-2: #f4f7fa;
-  --border: #d8e1ea;
-  --text: #16304f;
-  --muted: #64798f;
-  --navy: #16304f;
-  --teal: #187f7f;
-  --sky: #7fb2f0;
-  --amber: #187f7f;
-  --amber-dim: #e3f0f0;
-  --green: #187f7f;
-  --red: #d1454b;
-  --blue: #7fb2f0;
-  --shadow-sm: 0 1px 2px rgba(22,48,79,0.06);
-  --shadow-md: 0 2px 10px rgba(22,48,79,0.10);
-  --chart-grid: #e8eef4;
-  --chart-tick: #64798f;
-  --oee-card-bg: #16304f;
-  --oee-card-text: #ffffff;
-  --oee-card-muted: #a9bed4;
+  --panel-2: #f8fafc;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --muted: #64748b;
+  --primary: #2563eb;
+  --navy: #2563eb;
+  --teal: #2563eb;
+  --sky: #60a5fa;
+  --amber: #2563eb;
+  --amber-dim: #eff6ff;
+  --green: #16a34a;
+  --red: #dc2626;
+  --blue: #2563eb;
+  --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md: 0 4px 12px rgba(15,23,42,0.06);
+  --chart-grid: #f1f5f9;
+  --chart-tick: #64748b;
+  --oee-card-bg: #f8fafc;
+  --oee-card-text: #0f172a;
+  --oee-card-muted: #64748b;
+  --series-1: #2563eb;
+  --series-2: #0ea5e9;
+  --series-3: #6366f1;
+  --series-4: #14b8a6;
+  --series-5: #64748b;
 }
 
 /* ---------- Tema Gelap ---------- */
 [data-theme="dark"] {
-  --bg: #0f1620;
-  --panel: #16202c;
-  --panel-2: #1d2937;
-  --border: #2a3849;
-  --text: #e8ecf1;
-  --muted: #8b96a5;
-  --navy: #7fb2f0;
-  --teal: #34d399;
-  --sky: #7fb2f0;
-  --amber: #e8a33d;
-  --amber-dim: #4a3a1c;
-  --green: #34d399;
-  --red: #f05a60;
-  --blue: #4d7cf5;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-  --shadow-md: 0 2px 12px rgba(0,0,0,0.4);
-  --chart-grid: #263344;
-  --chart-tick: #8b96a5;
-  --oee-card-bg: #0b111a;
-  --oee-card-text: #ffffff;
-  --oee-card-muted: #8b96a5;
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --panel-2: #1e293b;
+  --border: #334155;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --primary: #3b82f6;
+  --navy: #3b82f6;
+  --teal: #3b82f6;
+  --sky: #60a5fa;
+  --amber: #3b82f6;
+  --amber-dim: #1e3a5f;
+  --green: #22c55e;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+  --chart-grid: #334155;
+  --chart-tick: #94a3b8;
+  --oee-card-bg: #1e293b;
+  --oee-card-text: #f8fafc;
+  --oee-card-muted: #94a3b8;
+  --series-1: #3b82f6;
+  --series-2: #38bdf8;
+  --series-3: #818cf8;
+  --series-4: #2dd4bf;
+  --series-5: #94a3b8;
 }
 
 * { box-sizing: border-box; }
@@ -1455,10 +1466,10 @@ table.table-compact .status-badge { font-size: 9px; padding: 2px 7px; }
   .main {
     height: 100vh;
     overflow: hidden;
-    padding: 16px 20px;
+    padding: 14px 18px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
   .dash-topbar { margin-bottom: 0; flex-shrink: 0; }
   .dash-title-block h1 { font-size: 20px; }
@@ -1479,8 +1490,8 @@ table.table-compact .status-badge { font-size: 9px; padding: 2px 7px; }
     flex: 1;
     min-height: 0;
     display: grid;
-    grid-template-rows: 1.15fr 0.95fr 1.15fr;
-    gap: 10px;
+    grid-template-rows: 1.2fr 0.85fr 1.1fr;
+    gap: 8px;
   }
   .tv-grid > * { min-height: 0; margin-bottom: 0 !important; }
   .dash-main-grid { margin-bottom: 0; gap: 10px; min-height: 0; }
@@ -1506,4 +1517,38 @@ table.table-compact .status-badge { font-size: 9px; padding: 2px 7px; }
   table.table-compact th,
   table.table-compact td { padding: 5px 8px; font-size: 11px; }
   table.table-compact th { font-size: 9px; }
+}
+
+/* ---------- Kesimpulan OEE ---------- */
+.oee-kesimpulan {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  background: var(--panel-2);
+  border-radius: 8px;
+  border-left: 3px solid var(--primary);
+}
+[data-theme="dark"] .oee-kesimpulan { background: #0f172a; }
+
+/* ---------- Soft shadow premium (SaaS look) ---------- */
+.sqcpm-col, .dash-panel, .kpi-card, .perf-card, .panel {
+  box-shadow: var(--shadow-sm);
+}
+.sqcpm-col:hover, .dash-panel:hover {
+  box-shadow: var(--shadow-md);
+  transition: box-shadow 0.2s ease;
+}
+
+/* ---------- Smooth theme switch tanpa layout shift ---------- */
+body, .sqcpm-col, .dash-panel, .kpi-card, .perf-card, .panel,
+.sidebar, table, .chip, .btn-primary, .btn-secondary {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* ---------- TV: OEE breakdown row-3, kesimpulan di samping donut ---------- */
+@media (min-width: 1600px) {
+  .tv-row-3 .oee-donut-row { justify-content: flex-start; gap: 16px; }
+  .oee-kesimpulan { margin-top: 10px; font-size: 13px; }
 }

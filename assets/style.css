@@ -1060,6 +1060,8 @@ td.mono, .mono { font-family: var(--font-mono); }
   padding: 16px;
   box-shadow: var(--shadow-sm);
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 .dash-panel-title {
   font-family: var(--font-mono);
@@ -1068,8 +1070,22 @@ td.mono, .mono { font-family: var(--font-mono); }
   text-transform: uppercase;
   color: var(--muted);
   margin: 0 0 12px;
+  flex-shrink: 0;
 }
 .dash-chart-sm { height: 200px; position: relative; }
+.dash-panel .dash-chart-sm { flex: 1; height: auto; min-height: 180px; }
+
+/* Panel dengan tabel (Line Status, 10 Downtime Terburuk): tabel ikut
+   melebar mengisi sisa tinggi card, bukan menempel di atas saja. */
+.dash-panel .table-wrap {
+  flex: 1;
+  max-height: none;
+}
+.dash-panel .table-wrap table { width: 100%; height: 100%; }
+.dash-panel .table-wrap tbody tr { height: 1px; } /* trik: baris body berbagi rata sisa tinggi */
+
+/* Pareto bar: baris-barisnya ikut melebar mengisi sisa tinggi card */
+.dash-panel .pareto-row { flex: 1; }
 
 /* ---------- Pareto bar ---------- */
 .pareto-row {

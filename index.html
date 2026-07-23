@@ -96,7 +96,7 @@
     <template x-if="loading"><p class="empty-state">Memuat data...</p></template>
 
     <template x-if="!loading">
-      <div>
+      <div class="dash-body">
         <div class="error-msg" x-show="machinesTanpaTarget.length > 0" x-cloak>
           ⚠️ <b>Target GSPH belum diisi</b> untuk:
           <span x-text="machinesTanpaTarget.join(', ')"></span>.

@@ -1460,7 +1460,7 @@ table.table-compact .status-badge { font-size: 9px; padding: 2px 7px; }
 /* =========================================================
    MODE TV 55" — seluruh dashboard muat 1 layar tanpa scroll
    ========================================================= */
-@media (min-width: 1600px) {
+@media (min-width: 1280px) and (min-aspect-ratio: 4/3) {
   body { overflow: hidden; }
   .app-shell { height: 100vh; overflow: hidden; }
   .main {
@@ -1477,31 +1477,33 @@ table.table-compact .status-badge { font-size: 9px; padding: 2px 7px; }
 
   /* Kartu SQCPM lebih ringkas */
   .sqcpm-columns { margin-bottom: 0; gap: 10px; flex-shrink: 0; }
-  .sqcpm-col { padding: 12px; gap: 6px; border-radius: 8px; }
+  .sqcpm-col { padding: 12px; gap: 6px; border-radius: 8px; overflow: hidden; }
   .sqcpm-col-head { padding-bottom: 8px; }
   .sqcpm-col-icon { width: 30px; height: 30px; font-size: 16px; }
   .sqcpm-col-title { font-size: 12px; }
-  .sqcpm-metric-value { font-size: 26px; }
-  .sqcpm-chart { height: 62px; padding-top: 4px; }
+  .sqcpm-metric-value { font-size: 24px; }
+  .sqcpm-chart { height: 50px; padding-top: 4px; flex-shrink: 0; }
   .manpower-grid-5 .manpower-value { font-size: 13px; }
+  .sqcpm-mini-label { font-size: 9px; }
 
-  /* 3 baris konten mengisi sisa tinggi layar */
+  /* 2 baris konten mengisi sisa tinggi layar */
   .tv-grid {
     flex: 1;
     min-height: 0;
     display: grid;
-    grid-template-rows: 1.2fr 0.85fr 1.1fr;
-    gap: 8px;
+    grid-template-rows: 1fr 1fr;
+    gap: 10px;
   }
   .tv-grid > * { min-height: 0; margin-bottom: 0 !important; }
   .dash-main-grid { margin-bottom: 0; gap: 10px; min-height: 0; }
-  .dash-panel { padding: 12px 14px; min-height: 0; display: flex; flex-direction: column; }
+  .dash-main-grid.tv-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .dash-panel { padding: 14px 16px; min-height: 0; display: flex; flex-direction: column; }
   .dash-panel-title { margin-bottom: 8px; flex-shrink: 0; }
 
   /* Grafik & tabel menyesuaikan tinggi baris, bukan tinggi tetap */
   .dash-chart-sm,
   .dash-panel .perf-chart-wrap { height: auto !important; flex: 1; min-height: 0; }
-  .tv-row-2 .table-wrap { flex: 1; min-height: 0; max-height: none; }
+  .tv-row-1 .table-wrap { flex: 1; min-height: 0; max-height: none; }
   .tv-row-3 .table-wrap { flex: 1; min-height: 0; max-height: none; }
 
   /* Pareto lebih padat */
@@ -1520,6 +1522,29 @@ table.table-compact .status-badge { font-size: 9px; padding: 2px 7px; }
 }
 
 /* ---------- Kesimpulan OEE ---------- */
+.oee-donut-row-3 { justify-content: space-around; }
+.oee-total-big {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.oee-total-big-value {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.oee-total-big-label {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
 .oee-kesimpulan {
   margin: 12px 0 0;
   padding: 10px 12px;
@@ -1547,8 +1572,15 @@ body, .sqcpm-col, .dash-panel, .kpi-card, .perf-card, .panel,
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-/* ---------- TV: OEE breakdown row-3, kesimpulan di samping donut ---------- */
-@media (min-width: 1600px) {
-  .tv-row-3 .oee-donut-row { justify-content: flex-start; gap: 16px; }
-  .oee-kesimpulan { margin-top: 10px; font-size: 13px; }
+/* ---------- TV: OEE breakdown di row-3 ---------- */
+@media (min-width: 1280px) and (min-aspect-ratio: 4/3) {
+  .tv-row-3 .oee-donut-row-3 { justify-content: space-around; gap: 8px; flex: 1; align-items: center; }
+  .tv-row-3 .oee-donut-wrap { width: 60px; height: 60px; }
+  .tv-row-3 .oee-donut-label { font-size: 9px; }
+  .oee-total-big { margin-top: 6px; padding-top: 6px; }
+  .oee-total-big-value { font-size: 28px; }
+  .oee-total-big-label { font-size: 10px; }
+  .oee-kesimpulan { margin-top: 6px; font-size: 11px; padding: 8px 10px; }
+  /* tabel 10 terburuk: batasi supaya tidak melebihi tinggi baris */
+  .tv-row-3 .table-wrap { max-height: 100%; }
 }

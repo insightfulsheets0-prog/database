@@ -6,30 +6,28 @@ sinyal (mode offline).
 
 ---
 
-## 🔧 Yang perlu dikerjakan sekarang (palet baru + kesimpulan OEE)
+## 🔧 Yang perlu dikerjakan sekarang (layout dirapikan + fit-to-screen)
 
-**Tidak ada migrasi database baru.** Kalau `migration_trend_optimize.sql`
-belum dijalankan, jalankan dulu.
-
-**Upload semua file** ke GitHub.
+**Tidak ada migrasi database baru.** **Upload semua file** ke GitHub.
 
 ### Yang berubah
-- **Palet warna diganti total** ke sistem Slate/Blue sesuai spesifikasi
-  (gaya Apple/Linear/Stripe/Vercel):
-  - Terang: bg #FFFFFF · surface #F8FAFC · teks #0F172A / #64748B ·
-    primary #2563EB
-  - Gelap: bg #0F172A · surface #1E293B · teks #F8FAFC / #94A3B8 ·
-    primary #3B82F6
-  - Font **Inter** di seluruh app, shadow lembut, sudut 10px, transisi
-    tema halus tanpa layout shift.
-  - Grafik multi-line pakai 5 token seri (variasi biru + teal + netral)
-    yang tetap konsisten di light & dark.
-- **Kotak Kesimpulan OEE** — di bawah 3 donut (Availability/Performance/
-  Quality) sekarang ada ringkasan otomatis yang menyebut level OEE dan
-  **faktor terlemah** + saran singkat, mis. *"OEE 65% (cukup). Faktor
-  terlemah: Performance 66% — kejar GSPH mendekati target."*
-- **Layout TV dirapatkan** — jarak atas-bawah dikecilkan mengikuti
-  referensi, proporsi 3 baris disesuaikan supaya lebih pas di 55".
+- **Layout dashboard diatur ulang jadi 2 baris konten** (di bawah 5
+  kartu SQCPM):
+  - **Baris 1**: Trend GSPH · Pareto Downtime · **Line Status**
+    (tabelnya dipindah ke sini, jadi lebih pendek)
+  - **Baris 2**: Downtime per Kategori · 10 Downtime Terburuk ·
+    **OEE Breakdown** — ketiganya sejajar
+- **OEE Breakdown ditata ulang** — 3 donut (Availability/Performance/
+  Quality) sejajar di atas, lalu **angka OEE besar** di tengah bawah,
+  lalu kotak kesimpulan otomatis.
+- **Jarak antar-card diperbaiki** — sebelumnya sempat bertumpuk di layar
+  lebar; sekarang tiap kartu punya ruang cukup dan isinya tidak meluber.
+- **Fit-to-screen otomatis** — mode layar-penuh sekarang aktif di
+  **semua layar landscape lebar** (≥1280px, rasio ≥4:3), bukan cuma
+  1600px. Jadi dashboard otomatis pas ke tinggi layar berapa pun —
+  entah TV 43", 50", 55", atau 65" — tanpa scroll. (Catatan teknis:
+  browser tidak bisa membaca ukuran fisik TV dalam inch, hanya
+  resolusi; makanya pendekatannya "pas ke layar", bukan "pilih inch".)
 
 ### Menunggu dari Anda
 - **Data Overtime** (kolom O.T masih 0)

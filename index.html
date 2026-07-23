@@ -244,69 +244,44 @@
             <p class="empty-state" x-show="paretoDowntime.length === 0">Tidak ada downtime.</p>
           </div>
           <div class="dash-panel">
-            <p class="dash-panel-title">OEE Breakdown</p>
-            <div class="oee-donut-row">
-              <div class="oee-donut-item">
-                <div class="oee-donut-wrap"><canvas id="donutAvail"></canvas></div>
-                <div class="oee-donut-label">Availability</div>
-              </div>
-              <div class="oee-donut-item">
-                <div class="oee-donut-wrap"><canvas id="donutPerf"></canvas></div>
-                <div class="oee-donut-label">Performance</div>
-              </div>
-              <div class="oee-donut-item">
-                <div class="oee-donut-wrap"><canvas id="donutQual"></canvas></div>
-                <div class="oee-donut-label">Quality</div>
-              </div>
-              <div class="oee-total">
-                <div class="oee-total-value" x-text="fmtNum(totals.oee) + '%'"></div>
-                <div class="oee-donut-label">OEE</div>
-              </div>
-            </div>
-            <p class="oee-kesimpulan" x-text="oeeKesimpulan()"></p>
-          </div>
-        </div>
-
-        <!-- Status mesin -->
-        <div class="dash-panel tv-row-2">
-          <p class="dash-panel-title">Line Status</p>
-          <div class="table-wrap">
-            <table class="table-compact">
-              <thead>
-                <tr>
-                  <th>Line</th><th>Stroke</th><th>Target GSPH</th><th>Actual GSPH</th>
-                  <th>NG</th><th>Performance</th><th>OEE</th><th>Downtime</th><th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template x-for="m in machines" :key="m.key">
+            <p class="dash-panel-title">Line Status</p>
+            <div class="table-wrap">
+              <table class="table-compact">
+                <thead>
                   <tr>
-                    <td><b x-text="m.label"></b></td>
-                    <td class="mono" x-text="fmtNum(m.data?.stroke)"></td>
-                    <td class="mono" x-text="fmtNum(m.data?.targetGsph)"></td>
-                    <td class="mono" x-text="fmtNum(m.data?.gsph)"></td>
-                    <td class="mono" x-text="fmtNum(m.data?.ng)"></td>
-                    <td class="mono" x-text="fmtNum(m.data?.performanceFactor) + '%'"></td>
-                    <td class="mono" x-text="fmtNum(m.data?.oee) + '%'"></td>
-                    <td class="mono" x-text="fmtNum(m.data?.downtimeMenit) + ' mnt'"></td>
-                    <td><span class="status-badge" :class="statusClass(m)" x-text="statusLabel(m)"></span></td>
+                    <th>Line</th><th>Stroke</th><th>Target</th><th>Actual</th>
+                    <th>Perf</th><th>OEE</th><th>DT</th><th>Status</th>
                   </tr>
-                </template>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  <template x-for="m in machines" :key="m.key">
+                    <tr>
+                      <td><b x-text="m.label"></b></td>
+                      <td class="mono" x-text="fmtNum(m.data?.stroke)"></td>
+                      <td class="mono" x-text="fmtNum(m.data?.targetGsph)"></td>
+                      <td class="mono" x-text="fmtNum(m.data?.gsph)"></td>
+                      <td class="mono" x-text="fmtNum(m.data?.performanceFactor) + '%'"></td>
+                      <td class="mono" x-text="fmtNum(m.data?.oee) + '%'"></td>
+                      <td class="mono" x-text="fmtNum(m.data?.downtimeMenit)"></td>
+                      <td><span class="status-badge" :class="statusClass(m)" x-text="statusLabel(m)"></span></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        <!-- Baris bawah: downtime per kategori x line + top problem -->
-        <div class="dash-main-grid tv-row-3" style="grid-template-columns: 1fr 1fr;">
+        <!-- Baris bawah: downtime kategori + 10 terburuk + OEE Breakdown (3 sejajar) -->
+        <div class="dash-main-grid tv-row-3">
           <div class="dash-panel">
             <p class="dash-panel-title">Downtime per Kategori × Line</p>
-            <div class="dash-chart-sm" style="height:240px;"><canvas id="fleetDowntimeChart"></canvas></div>
+            <div class="dash-chart-sm"><canvas id="fleetDowntimeChart"></canvas></div>
           </div>
           <div class="dash-panel">
-            <p class="dash-panel-title">10 Downtime Terburuk (Semua Line)</p>
-            <div class="table-wrap" style="max-height:240px;">
-              <table>
+            <p class="dash-panel-title">10 Downtime Terburuk</p>
+            <div class="table-wrap">
+              <table class="table-compact">
                 <thead><tr><th>Line</th><th>Kategori</th><th>Problem</th><th>Menit</th></tr></thead>
                 <tbody>
                   <template x-for="row in fleetTop10" :key="row.mesin + row.kategori + row.problem">
@@ -321,6 +296,28 @@
                 </tbody>
               </table>
             </div>
+          </div>
+          <div class="dash-panel">
+            <p class="dash-panel-title">OEE Breakdown</p>
+            <div class="oee-donut-row oee-donut-row-3">
+              <div class="oee-donut-item">
+                <div class="oee-donut-wrap"><canvas id="donutAvail"></canvas></div>
+                <div class="oee-donut-label">Availability</div>
+              </div>
+              <div class="oee-donut-item">
+                <div class="oee-donut-wrap"><canvas id="donutPerf"></canvas></div>
+                <div class="oee-donut-label">Performance</div>
+              </div>
+              <div class="oee-donut-item">
+                <div class="oee-donut-wrap"><canvas id="donutQual"></canvas></div>
+                <div class="oee-donut-label">Quality</div>
+              </div>
+            </div>
+            <div class="oee-total-big">
+              <span class="oee-total-big-value" x-text="fmtNum(totals.oee) + '%'"></span>
+              <span class="oee-total-big-label">OEE Keseluruhan</span>
+            </div>
+            <p class="oee-kesimpulan" x-text="oeeKesimpulan()"></p>
           </div>
         </div>
         </div>

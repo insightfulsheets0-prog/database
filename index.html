@@ -142,7 +142,7 @@
             <div class="sqcpm-metric-value" x-text="fmtNum(totals.oee) + '%'"></div>
             <div class="sqcpm-bar"><div class="sqcpm-bar-fill" :style="'width:' + Math.max(0, Math.min(100, totals.oee)) + '%'"></div></div>
             <div class="sqcpm-mini-label">GSPH <b x-text="fmtNum(totals.gsph)"></b> / target <b x-text="fmtNum(totals.targetGsph)"></b></div>
-            <div class="sqcpm-chart"><canvas id="miniProductivity"></canvas></div>
+            <div class="sqcpm-chart sqcpm-chart-tall"><canvas id="miniProductivity"></canvas></div>
           </div>
 
           <!-- COST -->
@@ -168,7 +168,7 @@
             <div class="sqcpm-mini-label" x-show="scrap.rasio > 0">
               Rasio scrap <b x-text="fmtNum(scrap.rasio * 100) + '%'"></b> / target <b x-text="fmtNum(scrap.targetRasio * 100) + '%'"></b>
             </div>
-            <div class="sqcpm-chart"><canvas id="miniCost"></canvas></div>
+            <div class="sqcpm-chart sqcpm-chart-tall"><canvas id="miniCost"></canvas></div>
           </div>
 
           <!-- MORAL -->
@@ -231,17 +231,26 @@
             <div class="dash-chart-sm"><canvas id="gsphHourlyChart"></canvas></div>
           </div>
           <div class="dash-panel">
-            <p class="dash-panel-title">Pareto Downtime (Menit)</p>
-            <template x-for="row in paretoDowntime" :key="row.problem">
-              <div class="pareto-row">
-                <span class="pareto-label" :title="row.problem" x-text="row.problem"></span>
-                <div class="pareto-bar-track">
-                  <div class="pareto-bar-fill" :style="'width:' + row.pct + '%'"></div>
-                </div>
-                <span class="pareto-val" x-text="fmtNum(row.menit) + ' (' + fmtNum(row.pct) + '%)'"></span>
+            <p class="dash-panel-title">OEE Breakdown</p>
+            <div class="oee-donut-row oee-donut-row-3">
+              <div class="oee-donut-item">
+                <div class="oee-donut-wrap"><canvas id="donutAvail"></canvas></div>
+                <div class="oee-donut-label">Availability</div>
               </div>
-            </template>
-            <p class="empty-state" x-show="paretoDowntime.length === 0">Tidak ada downtime.</p>
+              <div class="oee-donut-item">
+                <div class="oee-donut-wrap"><canvas id="donutPerf"></canvas></div>
+                <div class="oee-donut-label">Performance</div>
+              </div>
+              <div class="oee-donut-item">
+                <div class="oee-donut-wrap"><canvas id="donutQual"></canvas></div>
+                <div class="oee-donut-label">Quality</div>
+              </div>
+            </div>
+            <div class="oee-total-big">
+              <span class="oee-total-big-value" x-text="fmtNum(totals.oee) + '%'"></span>
+              <span class="oee-total-big-label">OEE Keseluruhan</span>
+            </div>
+            <p class="oee-kesimpulan" x-text="oeeKesimpulan()"></p>
           </div>
           <div class="dash-panel">
             <p class="dash-panel-title">Line Status</p>
@@ -256,7 +265,7 @@
                 <tbody>
                   <template x-for="m in machines" :key="m.key">
                     <tr>
-                      <td><b x-text="m.label"></b></td>
+                      <td><b x-text="m.shortLabel"></b></td>
                       <td class="mono" x-text="fmtNum(m.data?.stroke)"></td>
                       <td class="mono" x-text="fmtNum(m.data?.targetGsph)"></td>
                       <td class="mono" x-text="fmtNum(m.data?.gsph)"></td>
@@ -272,8 +281,12 @@
           </div>
         </div>
 
-        <!-- Baris bawah: downtime kategori + 10 terburuk + OEE Breakdown (3 sejajar) -->
+        <!-- Baris bawah: downtime per kategori (pie) + per kategori x line (bar) + 10 terburuk + pareto -->
         <div class="dash-main-grid tv-row-3">
+          <div class="dash-panel">
+            <p class="dash-panel-title">Downtime per Kategori</p>
+            <div class="dash-chart-sm"><canvas id="categoryPieChart"></canvas></div>
+          </div>
           <div class="dash-panel">
             <p class="dash-panel-title">Downtime per Kategori × Line</p>
             <div class="dash-chart-sm"><canvas id="fleetDowntimeChart"></canvas></div>
@@ -298,26 +311,17 @@
             </div>
           </div>
           <div class="dash-panel">
-            <p class="dash-panel-title">OEE Breakdown</p>
-            <div class="oee-donut-row oee-donut-row-3">
-              <div class="oee-donut-item">
-                <div class="oee-donut-wrap"><canvas id="donutAvail"></canvas></div>
-                <div class="oee-donut-label">Availability</div>
+            <p class="dash-panel-title">Pareto Downtime (Menit)</p>
+            <template x-for="row in paretoDowntime" :key="row.problem">
+              <div class="pareto-row">
+                <span class="pareto-label" :title="row.problem" x-text="row.problem"></span>
+                <div class="pareto-bar-track">
+                  <div class="pareto-bar-fill" :style="'width:' + row.barPct + '%'"></div>
+                </div>
+                <span class="pareto-val" x-text="fmtNum(row.menit) + ' (' + fmtNum(row.pct) + '%)'"></span>
               </div>
-              <div class="oee-donut-item">
-                <div class="oee-donut-wrap"><canvas id="donutPerf"></canvas></div>
-                <div class="oee-donut-label">Performance</div>
-              </div>
-              <div class="oee-donut-item">
-                <div class="oee-donut-wrap"><canvas id="donutQual"></canvas></div>
-                <div class="oee-donut-label">Quality</div>
-              </div>
-            </div>
-            <div class="oee-total-big">
-              <span class="oee-total-big-value" x-text="fmtNum(totals.oee) + '%'"></span>
-              <span class="oee-total-big-label">OEE Keseluruhan</span>
-            </div>
-            <p class="oee-kesimpulan" x-text="oeeKesimpulan()"></p>
+            </template>
+            <p class="empty-state" x-show="paretoDowntime.length === 0">Tidak ada downtime.</p>
           </div>
         </div>
         </div>
@@ -328,11 +332,11 @@
 
 <script>
 const MACHINES = [
-  { key: "tandem", label: "Tandem", href: "machines/tandem.html" },
-  { key: "blanking", label: "Blanking", href: "machines/blanking.html" },
-  { key: "transfer_2000t", label: "Transfer 2000t", href: "machines/transfer-2000t.html" },
-  { key: "transfer_800t", label: "Transfer 800t", href: "machines/transfer-800t.html" },
-  { key: "pc200t", label: "PC200t", href: "machines/pc200t.html" },
+  { key: "tandem", label: "Tandem", shortLabel: "Tandem", href: "machines/tandem.html" },
+  { key: "blanking", label: "Blanking", shortLabel: "Blanking", href: "machines/blanking.html" },
+  { key: "transfer_2000t", label: "Transfer 2000t", shortLabel: "TR 2000t", href: "machines/transfer-2000t.html" },
+  { key: "transfer_800t", label: "Transfer 800t", shortLabel: "TR 800t", href: "machines/transfer-800t.html" },
+  { key: "pc200t", label: "PC200t", shortLabel: "PC200t", href: "machines/pc200t.html" },
 ];
 
 function fmtNum(n) {
@@ -580,9 +584,22 @@ function dashboard() {
       return s === "good" ? "GOOD" : s === "warn" ? "WARNING" : "CRITICAL";
     },
     async fetchAttendance() {
-      const { start, end } = this.bounds();
+      // Absensi disimpan 1 baris per (tanggal, shift) -- rentang tanggalnya
+      // harus tetap 1 hari/bulan/tahun penuh, filter shift dikirim terpisah
+      // lewat p_shift (bukan dari jendela jam 07:00-19:30 / 19:30-07:00 yang
+      // dipakai untuk data produksi/downtime).
+      const d = new Date(this.tanggal + "T00:00:00");
+      let start, end;
+      if (this.periodMode === "tahunan") {
+        start = new Date(d.getFullYear(), 0, 1); end = new Date(d.getFullYear() + 1, 0, 1);
+      } else if (this.periodMode === "bulanan") {
+        start = new Date(d.getFullYear(), d.getMonth(), 1); end = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      } else {
+        start = new Date(d.getFullYear(), d.getMonth(), d.getDate()); end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      }
+      const pShift = (this.periodMode === "harian" && this.shiftFilter !== "all") ? this.shiftFilter : null;
       const { data, error } = await supabaseClient.rpc("attendance_summary", {
-        p_start: localDateStr(start), p_end: localDateStr(end),
+        p_start: localDateStr(start), p_end: localDateStr(end), p_shift: pShift,
       });
       const row = (!error && data && data[0]) || {};
       const totalSlot = Number(row.total_orang) || 0;
@@ -777,6 +794,11 @@ function dashboard() {
       this.paretoDowntime = Object.entries(problemMap)
         .map(([problem, menit]) => ({ problem, menit, pct: totalDt > 0 ? (menit / totalDt) * 100 : 0 }))
         .sort((a, b) => b.menit - a.menit).slice(0, 6);
+      // lebar bar diskalakan ke nilai terbesar YANG DITAMPILKAN (bukan ke total
+      // downtime keseluruhan pabrik), supaya batang paling besar mengisi penuh
+      // track -- persentase di label tetap "% dari total" seperti biasa.
+      const maxParetoMenit = Math.max(1, ...this.paretoDowntime.map((r) => r.menit));
+      this.paretoDowntime.forEach((r) => { r.barPct = (r.menit / maxParetoMenit) * 100; });
 
       this.fleetTop10 = results.flatMap((r) => r.top).sort((a, b) => b.menit - a.menit).slice(0, 10);
 
@@ -824,6 +846,7 @@ function dashboard() {
       if (!this._results) return;
       this.renderHourlyChart();
       this.renderFleetChart();
+      this.renderCategoryPie();
       this.renderDonut("donutAvail", this.totals.availability, cssVar("--sky"));
       this.renderDonut("donutPerf", this.totals.performanceFactor, cssVar("--teal"));
       this.renderDonut("donutQual", this.totals.quality, cssVar("--navy"));
@@ -922,6 +945,41 @@ function dashboard() {
             x: { ticks: { color: cssVar("--chart-tick"), font: { size: 10 } }, grid: { display: false }, border: { display: false } },
             y: { ticks: { color: cssVar("--chart-tick"), font: { size: 10 }, maxTicksLimit: 5 },
                  grid: { color: cssVar("--chart-grid"), drawTicks: false }, border: { display: false }, beginAtZero: true },
+          },
+        },
+      });
+    },
+
+    renderCategoryPie() {
+      const canvas = document.getElementById("categoryPieChart");
+      if (!canvas || typeof Chart === "undefined") return;
+      if (this.charts.categoryPie) this.charts.categoryPie.destroy();
+      const categories = ["MESIN", "DIES", "FINGER", "OTHER"];
+      const colors = { MESIN: cssVar("--blue"), DIES: cssVar("--red"), FINGER: cssVar("--green"), OTHER: cssVar("--amber") };
+      const totalsPerCat = categories.map((cat) =>
+        this._results.reduce((sum, r) => sum + ((r.byCategory.find((c) => c.kategori === cat) || {}).menit || 0), 0)
+      );
+      this.charts.categoryPie = new Chart(canvas, {
+        type: "doughnut",
+        data: {
+          labels: categories,
+          datasets: [{ data: totalsPerCat, backgroundColor: categories.map((c) => colors[c]), borderWidth: 0 }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom", labels: { color: cssVar("--muted"), boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", font: { size: 10 }, padding: 10 } },
+            tooltip: {
+              backgroundColor: cssVar("--panel"), titleColor: cssVar("--text"), bodyColor: cssVar("--text"),
+              borderColor: cssVar("--border"), borderWidth: 1, padding: 10,
+              callbacks: {
+                label: (ctx) => {
+                  const total = totalsPerCat.reduce((a, b) => a + b, 0);
+                  const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : "0";
+                  return `${ctx.label}: ${fmtNum(ctx.parsed)} menit (${pct}%)`;
+                },
+              },
+            },
           },
         },
       });

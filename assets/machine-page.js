@@ -1012,6 +1012,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
       line.editForm = {
         waktu_awal: toLocalInput(row.waktu_awal), waktu_akhir: toLocalInput(row.waktu_akhir),
         part_number: row.part_number || "", qty: row.qty ?? "", manpower: row.manpower ?? "",
+        ng: row.ng ?? "",
         dandori_menit: row.dandori_menit ?? "", break_menit: row.break_menit ?? "",
       };
       this.extraFields.forEach((f) => (line.editForm[f.key] = row.extra?.[f.key] ?? ""));
@@ -1030,6 +1031,7 @@ function machinePage(machineKey, machineLabel, extraFields, routingMax, kategori
         waktu_awal: new Date(f.waktu_awal).toISOString(), waktu_akhir: new Date(f.waktu_akhir).toISOString(),
         part_number: f.part_number || null, qty: f.qty === "" ? null : Number(f.qty),
         manpower: f.manpower === "" ? null : Number(f.manpower),
+        ng: f.ng === "" ? null : Number(f.ng),
         dandori_menit: f.dandori_menit === "" ? null : Number(f.dandori_menit),
         break_menit: f.break_menit === "" ? null : Number(f.break_menit),
         extra: JSON.stringify(extra),

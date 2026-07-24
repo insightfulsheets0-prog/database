@@ -110,7 +110,7 @@
           <div class="sqcpm-col" :class="safety.accident === 0 ? 'col-good' : 'col-bad'">
             <div class="sqcpm-col-head">
               <span class="sqcpm-col-icon">⛑️</span>
-              <div><div class="sqcpm-col-title">KESELAMATAN</div><div class="sqcpm-col-sub">SAFETY</div></div>
+              <div><div class="sqcpm-col-title">SAFETY</div><div class="sqcpm-col-sub">KESELAMATAN</div></div>
             </div>
             <div class="sqcpm-metric-label">Hari Tanpa Kecelakaan</div>
             <div class="sqcpm-metric-value" x-text="fmtNum(safety.hariTanpaAccident)"></div>
@@ -123,7 +123,7 @@
           <div class="sqcpm-col" :class="'col-' + cardStatus(100 - ngRatePct * 2, 90, 80)">
             <div class="sqcpm-col-head">
               <span class="sqcpm-col-icon">🎯</span>
-              <div><div class="sqcpm-col-title">KUALITAS</div><div class="sqcpm-col-sub">QUALITY</div></div>
+              <div><div class="sqcpm-col-title">QUALITY</div><div class="sqcpm-col-sub">KUALITAS</div></div>
             </div>
             <div class="sqcpm-metric-label">NG Rate (Target ≤ 0,5%)</div>
             <div class="sqcpm-metric-value" x-text="fmtNum(ngRatePct) + '%'"></div>
@@ -136,12 +136,13 @@
           <div class="sqcpm-col" :class="'col-' + cardStatus(totals.performanceFactor, 95, 80)">
             <div class="sqcpm-col-head">
               <span class="sqcpm-col-icon">⚙️</span>
-              <div><div class="sqcpm-col-title">PRODUKTIVITAS</div><div class="sqcpm-col-sub">PRODUCTIVITY</div></div>
+              <div><div class="sqcpm-col-title">PRODUCTIVITY</div><div class="sqcpm-col-sub">PRODUKTIVITAS</div></div>
             </div>
             <div class="sqcpm-metric-label">OEE Keseluruhan</div>
             <div class="sqcpm-metric-value" x-text="fmtNum(totals.oee) + '%'"></div>
             <div class="sqcpm-bar"><div class="sqcpm-bar-fill" :style="'width:' + Math.max(0, Math.min(100, totals.oee)) + '%'"></div></div>
             <div class="sqcpm-mini-label">GSPH <b x-text="fmtNum(totals.gsph)"></b> / target <b x-text="fmtNum(totals.targetGsph)"></b></div>
+            <div class="sqcpm-chart-title">AVG GSPH All Line</div>
             <div class="sqcpm-chart sqcpm-chart-tall"><canvas id="miniProductivity"></canvas></div>
           </div>
 
@@ -149,7 +150,7 @@
           <div class="sqcpm-col" :class="'col-' + costStatus()">
             <div class="sqcpm-col-head">
               <span class="sqcpm-col-icon">💰</span>
-              <div><div class="sqcpm-col-title">BIAYA</div><div class="sqcpm-col-sub">COST</div></div>
+              <div><div class="sqcpm-col-title">COST</div><div class="sqcpm-col-sub">BIAYA</div></div>
             </div>
             <div class="sqcpm-metric-label">Total Biaya</div>
             <div class="sqcpm-metric-value" x-text="fmtRupiahShort(totals.ngValue + scrap.scrapValueRp)"></div>
@@ -166,7 +167,7 @@
               <div class="cost-split-bar"><div class="cost-split-fill cost-fill-scrap" :style="'width:' + costSharePct('scrap') + '%'"></div></div>
             </div>
             <div class="sqcpm-mini-label" x-show="scrap.rasio > 0">
-              Rasio scrap <b x-text="fmtNum(scrap.rasio * 100) + '%'"></b> / target <b x-text="fmtNum(scrap.targetRasio * 100) + '%'"></b>
+              Rasio scrap <b x-text="(scrap.rasio * 100).toFixed(2) + '%'"></b> / target <b x-text="(scrap.targetRasio * 100).toFixed(2) + '%'"></b>
             </div>
             <div class="sqcpm-chart sqcpm-chart-tall"><canvas id="miniCost"></canvas></div>
           </div>
@@ -175,7 +176,7 @@
           <div class="sqcpm-col" :class="'col-' + cardStatus(attendance.pctExclCuti, 95, 85)">
             <div class="sqcpm-col-head">
               <span class="sqcpm-col-icon">👥</span>
-              <div><div class="sqcpm-col-title">MORAL</div><div class="sqcpm-col-sub">ATTENDANCE</div></div>
+              <div><div class="sqcpm-col-title">ATTENDANCE</div><div class="sqcpm-col-sub">MORAL</div></div>
             </div>
             <div class="sqcpm-metric-label">
               Tingkat Kehadiran
@@ -215,11 +216,34 @@
                 <span class="manpower-unit">Jam</span>
               </div>
             </div>
-            <div class="sqcpm-mini-label" x-show="periodMode !== 'harian'">
-              Rata-rata dari <b x-text="fmtNum(attendance.jumlah_hari)"></b> hari kerja ·
-              total hadir <b x-text="fmtNum(attendance.totalHadir)"></b> orang-hari
+            <div class="moral-summary" x-show="periodMode !== 'harian'">
+              <div class="moral-summary-item">
+                <span class="moral-summary-value" x-text="fmtNum(attendance.totalHadir)"></span>
+                <span class="moral-summary-label">Total Hadir</span>
+              </div>
+              <div class="moral-summary-item">
+                <span class="moral-summary-value" x-text="fmtNum(attendance.totalCuti)"></span>
+                <span class="moral-summary-label">Total Cuti</span>
+              </div>
+              <div class="moral-summary-item">
+                <span class="moral-summary-value" x-text="fmtNum(attendance.totalAbsen)"></span>
+                <span class="moral-summary-label">Total Absen</span>
+              </div>
+              <div class="moral-summary-item">
+                <span class="moral-summary-value" x-text="fmtNum(attendance.totalOvertimeJam)"></span>
+                <span class="moral-summary-label">Total O.T (Jam)</span>
+              </div>
             </div>
-            <div class="sqcpm-chart"><canvas id="miniMoral"></canvas></div>
+            <div class="moral-summary moral-summary-2col" x-show="periodMode === 'harian'">
+              <div class="moral-summary-item">
+                <span class="moral-summary-value" x-text="fmtNum(attendanceByShift.shift1.hadir)"></span>
+                <span class="moral-summary-label">Hadir Shift 1</span>
+              </div>
+              <div class="moral-summary-item">
+                <span class="moral-summary-value" x-text="fmtNum(attendanceByShift.shift2.hadir)"></span>
+                <span class="moral-summary-label">Hadir Shift 2</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -255,7 +279,7 @@
           <div class="dash-panel">
             <p class="dash-panel-title">Line Status</p>
             <div class="table-wrap">
-              <table class="table-compact">
+              <table class="table-compact line-status-table">
                 <thead>
                   <tr>
                     <th>Line</th><th>Stroke</th><th>Target</th><th>Actual</th>
@@ -360,6 +384,32 @@ function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
+// Plugin kecil: tulis angka total di tengah doughnut chart (dipakai di
+// "Downtime per Kategori"), tanpa perlu library tambahan.
+if (typeof Chart !== "undefined") {
+  Chart.register({
+    id: "centerText",
+    afterDraw(chart, args, opts) {
+      if (!opts || !opts.value) return;
+      const { ctx, chartArea } = chart;
+      const cx = (chartArea.left + chartArea.right) / 2;
+      const cy = (chartArea.top + chartArea.bottom) / 2;
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = opts.color || "#1a2233";
+      ctx.font = "700 20px " + (opts.fontFamily || "sans-serif");
+      ctx.fillText(opts.value, cx, cy - (opts.label ? 8 : 0));
+      if (opts.label) {
+        ctx.fillStyle = opts.labelColor || "#8a93a6";
+        ctx.font = "600 9px " + (opts.fontFamily || "sans-serif");
+        ctx.fillText(opts.label, cx, cy + 11);
+      }
+      ctx.restore();
+    },
+  });
+}
+
 function dashboard() {
   return {
     session: null, profile: null, mobileNavOpen: false, sidebarCollapsed: true,
@@ -370,7 +420,8 @@ function dashboard() {
     periodMode: "harian",
     bulanPilih: String(new Date().getMonth()),
     tahunPilih: String(new Date().getFullYear()),
-    attendance: { pctInclCuti: 0, pctExclCuti: 0, hadir: 0, cuti: 0, absen: 0, total_orang: 0, overtime_jam: 0 },
+    attendance: { pctInclCuti: 0, pctExclCuti: 0, hadir: 0, cuti: 0, absen: 0, total_orang: 0, overtime_jam: 0, totalHadir: 0, totalCuti: 0, totalAbsen: 0, totalOvertimeJam: 0 },
+    attendanceByShift: { shift1: { hadir: 0, total: 0 }, shift2: { hadir: 0, total: 0 } },
     safety: { accident: 0, hariTanpaAccident: 0 },
     miniTrend: { labels: [], safety: [], quality: [], productivity: [], cost: [], moral: [] },
     // Tren GSPH per line, granularitas mengikuti mode periode:
@@ -617,9 +668,29 @@ function dashboard() {
         overtime_jam: isRata ? Number((Number(row.overtime_jam) || 0) / hari).toFixed(1) : (Number(row.overtime_jam) || 0),
         jumlah_hari: hari,
         totalHadir: hadir,
+        totalCuti: cuti,
+        totalAbsen: absen,
+        totalOvertimeJam: Number(row.overtime_jam) || 0,
         // persentase tetap sama (rasio tidak terpengaruh pembagian hari)
         pctExclCuti: totalSlot > 0 ? (hadir / totalSlot) * 100 : 0,
         pctInclCuti: totalSlot > 0 ? ((hadir + cuti) / totalSlot) * 100 : 0,
+      };
+      if (this.periodMode === "harian") {
+        await this.fetchAttendanceByShift(start, end);
+      }
+    },
+    async fetchAttendanceByShift(start, end) {
+      // Dipakai kartu Moral mode Harian: tampilkan hadir shift 1 & shift 2
+      // berdampingan, terlepas dari filter shift yang sedang aktif di topbar.
+      const [r1, r2] = await Promise.all([
+        supabaseClient.rpc("attendance_summary", { p_start: localDateStr(start), p_end: localDateStr(end), p_shift: "1" }),
+        supabaseClient.rpc("attendance_summary", { p_start: localDateStr(start), p_end: localDateStr(end), p_shift: "2" }),
+      ]);
+      const row1 = (!r1.error && r1.data && r1.data[0]) || {};
+      const row2 = (!r2.error && r2.data && r2.data[0]) || {};
+      this.attendanceByShift = {
+        shift1: { hadir: Number(row1.hadir) || 0, total: Number(row1.total_orang) || 0 },
+        shift2: { hadir: Number(row2.hadir) || 0, total: Number(row2.total_orang) || 0 },
       };
     },
     async saveAbsensi() {
@@ -892,7 +963,6 @@ function dashboard() {
       this.miniChartBase("miniQuality", t.labels, t.quality, cssVar("--sky"), "line");
       this.miniChartBase("miniProductivity", t.labels, t.productivity, cssVar("--teal"), "bar");
       this.miniChartBase("miniCost", t.labels, t.cost, cssVar("--red"), "bar");
-      this.miniChartBase("miniMoral", t.labels, t.moral, cssVar("--navy"), "line");
     },
 
     renderHourlyChart() {
@@ -955,10 +1025,11 @@ function dashboard() {
       if (!canvas || typeof Chart === "undefined") return;
       if (this.charts.categoryPie) this.charts.categoryPie.destroy();
       const categories = ["MESIN", "DIES", "FINGER", "OTHER"];
-      const colors = { MESIN: cssVar("--blue"), DIES: cssVar("--red"), FINGER: cssVar("--green"), OTHER: cssVar("--amber") };
+      const colors = { MESIN: cssVar("--blue"), DIES: cssVar("--red"), FINGER: cssVar("--green"), OTHER: cssVar("--category-other") };
       const totalsPerCat = categories.map((cat) =>
         this._results.reduce((sum, r) => sum + ((r.byCategory.find((c) => c.kategori === cat) || {}).menit || 0), 0)
       );
+      const grandTotal = totalsPerCat.reduce((a, b) => a + b, 0);
       this.charts.categoryPie = new Chart(canvas, {
         type: "doughnut",
         data: {
@@ -969,6 +1040,7 @@ function dashboard() {
           responsive: true, maintainAspectRatio: false,
           plugins: {
             legend: { position: "bottom", labels: { color: cssVar("--muted"), boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", font: { size: 10 }, padding: 10 } },
+            centerText: { value: fmtNum(grandTotal), label: "Menit Downtime", color: cssVar("--text"), labelColor: cssVar("--muted") },
             tooltip: {
               backgroundColor: cssVar("--panel"), titleColor: cssVar("--text"), bodyColor: cssVar("--text"),
               borderColor: cssVar("--border"), borderWidth: 1, padding: 10,
@@ -990,7 +1062,7 @@ function dashboard() {
       if (!canvas || typeof Chart === "undefined") return;
       if (this.charts.fleet) this.charts.fleet.destroy();
       const categories = ["MESIN", "DIES", "FINGER", "OTHER"];
-      const colors = { MESIN: cssVar("--blue"), DIES: cssVar("--red"), FINGER: cssVar("--green"), OTHER: cssVar("--amber") };
+      const colors = { MESIN: cssVar("--blue"), DIES: cssVar("--red"), FINGER: cssVar("--green"), OTHER: cssVar("--category-other") };
       this.charts.fleet = new Chart(canvas, {
         type: "bar",
         data: {

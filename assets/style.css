@@ -25,6 +25,7 @@
   --green: #16a34a;
   --red: #dc2626;
   --blue: #2563eb;
+  --category-other: #d97706;
   --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
   --shadow-md: 0 4px 12px rgba(15,23,42,0.06);
   --chart-grid: #f1f5f9;
@@ -56,6 +57,7 @@
   --green: #22c55e;
   --red: #ef4444;
   --blue: #3b82f6;
+  --category-other: #f59e0b;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
   --chart-grid: #334155;
@@ -1300,12 +1302,22 @@ td.mono, .mono { font-family: var(--font-mono); }
   line-height: 1.4;
 }
 .sqcpm-mini-label b { color: var(--text); }
+.sqcpm-chart-title {
+  margin-top: auto;
+  padding-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 .sqcpm-chart {
   height: 90px;
   position: relative;
   margin-top: auto;
   padding-top: 6px;
 }
+.sqcpm-chart-title + .sqcpm-chart { margin-top: 2px; padding-top: 0; }
 .sqcpm-chart-tall { height: 120px; }
 
 @media (max-width: 1250px) {
@@ -1363,6 +1375,43 @@ td.mono, .mono { font-family: var(--font-mono); }
   background: var(--amber-dim);
 }
 .manpower-box.manpower-hadir .manpower-value { color: var(--teal); }
+
+/* ---------- Ringkasan kehadiran (kartu Moral, pengganti grafik trend) ---------- */
+.moral-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+.moral-summary-2col { grid-template-columns: repeat(2, 1fr); }
+.moral-summary-item {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.moral-summary-value {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--navy);
+}
+.moral-summary-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  text-transform: uppercase;
+  text-align: center;
+}
+.moral-summary-2col .moral-summary-value { font-size: 20px; }
 
 /* ---------- Cost split (NG Inline vs Scrap Top End) ---------- */
 .cost-split { margin-top: 2px; }
@@ -1478,6 +1527,12 @@ table.table-compact th {
 table.table-compact .badge { font-size: 9px; padding: 2px 6px; }
 table.table-compact .status-badge { font-size: 9px; padding: 2px 7px; }
 
+/* Line Status: angkanya diperbesar sedikit dibanding tabel ringkas lain */
+table.line-status-table th,
+table.line-status-table td { font-size: 13px; padding: 8px 10px; }
+table.line-status-table th { font-size: 10.5px; }
+table.line-status-table .status-badge { font-size: 10px; padding: 3px 8px; }
+
 /* ---------- Kesimpulan di bawah donut downtime ---------- */
 .perf-pie-summary {
   margin: 8px 0 0;
@@ -1557,6 +1612,9 @@ table.table-compact .status-badge { font-size: 9px; padding: 2px 7px; }
   table.table-compact th { font-size: 8.5px; letter-spacing: 0.02em; }
   .tv-row-1 table.table-compact th,
   .tv-row-1 table.table-compact td { padding: 5px 4px; font-size: 10px; }
+  .tv-row-1 table.line-status-table th,
+  .tv-row-1 table.line-status-table td { padding: 6px 5px; font-size: 12px; }
+  .tv-row-1 table.line-status-table th { font-size: 9.5px; }
 }
 
 /* ---------- Kesimpulan OEE ---------- */
@@ -1610,15 +1668,15 @@ body, .sqcpm-col, .dash-panel, .kpi-card, .perf-card, .panel,
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-/* ---------- TV: OEE breakdown di row-3 ---------- */
+/* ---------- TV: OEE breakdown (kini di row-1) ---------- */
 @media (min-width: 1280px) and (min-aspect-ratio: 4/3) {
-  .tv-row-3 .oee-donut-row-3 { justify-content: space-around; gap: 8px; flex: 1; align-items: center; }
-  .tv-row-3 .oee-donut-wrap { width: 60px; height: 60px; }
-  .tv-row-3 .oee-donut-label { font-size: 9px; }
-  .oee-total-big { margin-top: 6px; padding-top: 6px; }
-  .oee-total-big-value { font-size: 28px; }
-  .oee-total-big-label { font-size: 10px; }
-  .oee-kesimpulan { margin-top: 6px; font-size: 11px; padding: 8px 10px; }
+  .tv-row-1 .oee-donut-row-3 { justify-content: space-around; gap: 10px; flex: 1; align-items: center; }
+  .tv-row-1 .oee-donut-wrap { width: 82px; height: 82px; }
+  .tv-row-1 .oee-donut-label { font-size: 11px; }
+  .oee-total-big { margin-top: 8px; padding-top: 8px; }
+  .oee-total-big-value { font-size: 36px; }
+  .oee-total-big-label { font-size: 11px; }
+  .oee-kesimpulan { margin-top: 8px; font-size: 11px; padding: 8px 10px; }
   /* tabel 10 terburuk: batasi supaya tidak melebihi tinggi baris */
   .tv-row-3 .table-wrap { max-height: 100%; }
 }

@@ -901,6 +901,7 @@
                         <span x-show="item.std_mp">Std MP: <b x-text="item.std_mp"></b></span>
                         <span x-show="item.std_ct"> · Std CT: <b x-text="item.std_ct"></b> mnt/stroke · SPM: <b x-text="spmFromCt(item.std_ct)"></b></span>
                         <span x-show="item.harga_pcs"> · Harga: <b x-text="'Rp ' + fmtNum(item.harga_pcs)"></b>/pcs</span>
+                        <span x-show="item.alias_values && item.alias_values.length"> · Alias: <b x-text="item.alias_values.join(', ')"></b></span>
                       </span>
                       <div class="next-process-display" x-show="item.next_processes && item.next_processes.length">
                         <template x-for="(p, i) in item.next_processes" :key="i">
@@ -931,6 +932,10 @@
                         <div style="flex:1;min-width:120px;">
                           <label class="hint" style="display:block;margin-bottom:4px;">Harga per Pcs (Rp)</label>
                           <input type="number" step="1" x-model="item.draftHargaPcs" placeholder="mis. 5000">
+                        </div>
+                        <div style="flex:2;min-width:220px;">
+                          <label class="hint" style="display:block;margin-bottom:4px;">Alias / Nama Lama Part Number (pisah koma)</label>
+                          <input type="text" x-model="item.draftAliasText" placeholder="mis. 889FI-SH803S-NEW, 889FI-SH803S-OLD">
                         </div>
                       </div>
                       <div>

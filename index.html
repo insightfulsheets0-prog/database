@@ -388,7 +388,7 @@ function cssVar(name) {
 // "Downtime per Kategori"), tanpa perlu library tambahan.
 if (typeof Chart !== "undefined") {
   Chart.register({
-    id: "centerText",
+    id: "pieCenterText",
     afterDraw(chart, args, opts) {
       if (!opts || !opts.value) return;
       const { ctx, chartArea } = chart;
@@ -406,6 +406,32 @@ if (typeof Chart !== "undefined") {
         ctx.fillText(opts.label, cx, cy + 11);
       }
       ctx.restore();
+    },
+  });
+  // Label di setiap slice pie/doughnut (dipakai di "Downtime per Kategori")
+  Chart.register({
+    id: "sliceLabels",
+    afterDraw(chart, args, opts) {
+      if (!opts || !opts.enabled) return;
+      const { ctx } = chart;
+      const meta = chart.getDatasetMeta(0);
+      const dataset = chart.data.datasets[0];
+      const total = (dataset.data || []).reduce((a, b) => a + (Number(b) || 0), 0);
+      if (total <= 0) return;
+      meta.data.forEach((arc, i) => {
+        const val = Number(dataset.data[i]) || 0;
+        if (val <= 0) return; // slice kosong tidak usah dilabeli, biar tidak numpuk
+        const pct = Math.round((val / total) * 100);
+        if (pct < 4) return; // slice terlalu kecil, teks tidak akan muat rapi
+        const pos = arc.tooltipPosition();
+        ctx.save();
+        ctx.fillStyle = opts.color || "#fff";
+        ctx.font = "700 11px " + (opts.fontFamily || "sans-serif");
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(pct + "%", pos.x, pos.y);
+        ctx.restore();
+      });
     },
   });
 }
@@ -915,13 +941,14 @@ function dashboard() {
 
     renderAllCharts() {
       if (!this._results) return;
-      this.renderHourlyChart();
-      this.renderFleetChart();
-      this.renderCategoryPie();
-      this.renderDonut("donutAvail", this.totals.availability, cssVar("--sky"));
-      this.renderDonut("donutPerf", this.totals.performanceFactor, cssVar("--teal"));
-      this.renderDonut("donutQual", this.totals.quality, cssVar("--navy"));
-      this.renderSqcpmMinis();
+      const safe = (fn, label) => { try { fn(); } catch (e) { console.error("Gagal render chart:", label, e); } };
+      safe(() => this.renderHourlyChart(), "hourly");
+      safe(() => this.renderFleetChart(), "fleet");
+      safe(() => this.renderCategoryPie(), "categoryPie");
+      safe(() => this.renderDonut("donutAvail", this.totals.availability, cssVar("--sky")), "donutAvail");
+      safe(() => this.renderDonut("donutPerf", this.totals.performanceFactor, cssVar("--teal")), "donutPerf");
+      safe(() => this.renderDonut("donutQual", this.totals.quality, cssVar("--navy")), "donutQual");
+      safe(() => this.renderSqcpmMinis(), "sqcpmMinis");
     },
 
     // ---- Mini chart (sparkline) di tiap kolom SQCPM ----
@@ -1040,7 +1067,8 @@ function dashboard() {
           responsive: true, maintainAspectRatio: false,
           plugins: {
             legend: { position: "bottom", labels: { color: cssVar("--muted"), boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", font: { size: 10 }, padding: 10 } },
-            centerText: { value: fmtNum(grandTotal), label: "Menit Downtime", color: cssVar("--text"), labelColor: cssVar("--muted") },
+            pieCenterText: { value: fmtNum(grandTotal), label: "Menit Downtime", color: cssVar("--text"), labelColor: cssVar("--muted") },
+            sliceLabels: { enabled: true, color: "#ffffff" },
             tooltip: {
               backgroundColor: cssVar("--panel"), titleColor: cssVar("--text"), bodyColor: cssVar("--text"),
               borderColor: cssVar("--border"), borderWidth: 1, padding: 10,
